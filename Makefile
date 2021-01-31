@@ -1,5 +1,4 @@
 
-
 binDir:=/usr/local/bin
 shimPath:=${binDir}/vars
 
@@ -15,6 +14,5 @@ endef
 install: 
 	@$(file >${shimPath},$(shim))
 	@chmod +x ${shimPath}
-  $(info installed shim to ${shimPath})
-
+	$(info installed shim to ${shimPath})
 
