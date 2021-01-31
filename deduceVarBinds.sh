@@ -1,16 +1,5 @@
 #!/bin/bash
 
-filePaths="$1"
-
-declare -A requiredNames
-for n in $2; do requiredNames[$n]=1; done
-
-requiredTargets="$3"
-prepMode=$4
-
-export cacheDir=${CACHE:-$HOME/.vars/cache}
-export now=$(date +%s)
-
 declare -A \
   files \
   blocks \
@@ -23,12 +12,30 @@ declare -A \
   flags \
   binds \
   requiredBlocks \
-  bodies
+  bodies \
+  requiredBlockNames
+
+IFS=$'\n' read -r -d= filePaths rawBlockNames requiredTargets modes <<< "$@"
+
+for n in $rawBlockNames; do requiredBlockNames[$n]=1; done
+
+[[ $modes =~ p ]] && export prepMode=1
+[[ $modes =~ v ]] && export debugMode=1
+
+
+export cacheDir=${CACHE:-$HOME/.vars/cache}
+export now=$(date +%s)
+
+#TODO: shadowing in a folder
+#if there are two ways of getting a value
+#should always favour the nearest way
+#
+
 
 main() {
   readBlocks "$filePaths"
 
-  for n in ${!requiredNames[@]}; do
+  for n in ${!requiredBlockNames[@]}; do
     for b in ${names[$n]}; do
       requiredBlocks[$b]=1
     done
@@ -286,7 +293,7 @@ getFile() {
       raw=$(<"$path")
     fi
 
-    files[$path]=$(sed 's/^#+/\x02/' <<< "$raw")
+    files[$path]=$(sed 's/^#+.*/\x02/' <<< "$raw")
   fi
 
   file=${files[$path]}

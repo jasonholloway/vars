@@ -3,25 +3,43 @@ shopt -s extglob
 
 : ${VARS_PATH:?VARS_PATH must be set!}
 
-export CACHE=~/.vars/cache
-mkdir -p $CACHE
+declare -a words=($@)
+declare -a blocks=()
+declare -a targets=()
+declare -a flags=()
+declare w
 
 main() {
-  local debugMode=1
-  local exportMode=1
-  local prepMode=
+  local CACHE=~/.vars/cache
+  mkdir -p $CACHE
 
-  parseOpts $@
+  parseMany parseFlag \
+  && {
+       parseGet \
+    || parseRun \
+    || parsePrep \
+    || parseLs \
+    || parseLoad \
+    || parseCache
+    }
+
+  [[ ${flags[@]} =~ v ]] && local debugMode=1
+
+  [[ $debugMode ]] && {
+    echo TARGETS: ${targets[@]}
+    echo BLOCKS: ${blocks[@]}
+    echo FLAGS: ${flags[@]}
+  } >&2
 
   files=$(findFiles)
-  lines=$(deduce "$files" "$blocks" "$targets" $prepMode)
+  lines=$(deduce ${files}$ '\n'${blocks[@]}$ '\n'${targets[@]}$' \n'${flags[@]})
 
   while IFS=' ' read -r type line; do
     case $type in
 
       bind*)
         [[ $debugMode ]] && echo "${type:4}${line}" >&2
-        [[ $exportMode ]] && export "$line"
+        export "$line"
         ;;
 
       out)
@@ -31,8 +49,95 @@ main() {
   done <<< "$lines"
 }
 
+shift1() {
+  i=$((i + 1))
+}
+
+parse1() {
+  local re=$1
+  local _w=${words[$i]}
+  [[ $_w =~ $re ]] \
+      && w=$_w \
+      && shift1
+}
+
+parseMany() {
+  while eval "$@"; do :; done
+}
+
+parseGet() {
+  parse1 '^(g|ge|get)$' \
+    && parseNames targets
+}
+
+parseRun() {
+  parse1 '^(r|ru|run)$' \
+    && parseNames blocks
+}
+
+parsePrep() {
+  parse1 '^(p|prep)$' \
+    && flags+=(p) \
+    && parseNames blocks
+}
+
+parseLs() {
+  parse1 '^(ls|list)$' \
+    && files=$(findFiles) \
+    && $VARS_PATH/varsList.sh "$files"
+}
+
+parseLoad() {
+  local count block
+  parse1 '^load$' \
+    && {
+      parse1 '^[0-9]+$' && count=$w
+    } \
+    && {
+      parse1 '.+' && block=$w
+    } \
+    && "$VARS_PATH/varsLoad.sh" "$count" "$block"
+}
+
+parseCache() {
+  parse1 '^cache$' \
+    && (
+      (parse1 '^clear$' \
+        && rm -rf $CACHE/* \
+        && echo cleared cache!) \
+      || find $CACHE -type d
+    )
+}
+
+parseFlag() {
+  parse1 '^-[a-zA-Z]$' \
+  && flags+=(${w: -1})
+}
+
+parseName() {
+  local -n into=$1
+  parse1 '.+' \
+    && into+=($w)
+}
+
+parseNames() {
+  parseMany "parseFlag || parseName $1"
+}
+
+parseArg() {
+  local w=${words[$i]}
+  [[ ! -z $w ]] \
+      && shift1 \
+      && echo "$w"
+}
+
 parseOpts() {
   case $1 in
+      -v)
+          shift
+          debugMode=1
+          parseOpts $@
+          ;;
       g|ge|get)
           shift
           targets=$@
@@ -94,3 +199,4 @@ readTargets() {
 }
 
 main $@
+
