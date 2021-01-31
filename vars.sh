@@ -1,9 +1,10 @@
 #!/bin/bash
 shopt -s extglob
 
+: ${VARS_PATH:?VARS_PATH must be set!}
+
 export CACHE=~/.vars/cache
 mkdir -p $CACHE
-
 
 main() {
   local debugMode=1
@@ -12,9 +13,8 @@ main() {
 
   parseOpts $@
 
-  files="$(listDotFiles '@*')"
-
-  lines="$(deduceVarBinds "$files" "$blocks" "$targets" $prepMode)"
+  files=$(findFiles)
+  lines=$(deduce "$files" "$blocks" "$targets" $prepMode)
 
   while IFS=' ' read -r type line; do
     case $type in
@@ -48,13 +48,13 @@ parseOpts() {
           ;;
       ls|list)
           shift
-          files="$(listDotFiles '@*')"
-          varsList "$files"
+          files=$(findFiles)
+          $VARS_PATH/varsList.sh "$files"
           exit $?
           ;;
       load)
           shift
-          varsLoad "$1" "$2"
+          $VARS_PATH/varsLoad.sh "$1" "$2"
           exit $?
           ;;
       c|cache)
@@ -71,6 +71,14 @@ parseOpts() {
           esac
           ;;
   esac
+}
+
+findFiles() {
+  "$VARS_PATH/listDotFiles.sh" '@*'
+}
+
+deduce() {
+  "$VARS_PATH/deduceVarBinds.sh" "$@"
 }
 
 readBlocks() {
