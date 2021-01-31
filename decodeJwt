@@ -1,0 +1,11 @@
+#!/bin/bash
+
+jwt=${1:?need to pass encoded JWT!}
+
+len=$((${#jwt} % 4))
+result="$jwt"
+
+if [ $len -eq 2 ]; then result="$result"'=='
+elif [ $len -eq 3 ]; then result="$result"'=' 
+fi
+echo "$result" | tr '_-' '/+' | base64 -d

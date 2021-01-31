@@ -1,0 +1,4 @@
+# out: firstName age
+
+echo firstName=bob
+echo age=70
