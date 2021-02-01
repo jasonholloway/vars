@@ -54,7 +54,7 @@ main() {
       boundIns[$n]=${binds[$n]}      
     done
 
-    if [[ ${flags[$b]} =~ C && -z ${requiredBlocks[$b]} ]]; then
+    if [[ ${flags[$b]} =~ C ]]; then # && -z ${requiredBlocks[$b]} ]]; then
       cacheKey=$(getCacheKey $b)
       tryGetCache binds $cacheKey && continue
     fi
