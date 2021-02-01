@@ -22,7 +22,6 @@ for n in $rawBlockNames; do requiredBlockNames[$n]=1; done
 [[ $modes =~ p ]] && export prepMode=1
 [[ $modes =~ v ]] && export debugMode=1
 
-
 export cacheDir=${CACHE:-$HOME/.vars/cache}
 export now=$(date +%s)
 
@@ -109,6 +108,10 @@ main() {
       binds[$n]=${boundOuts[$n]}
     done
   done
+
+  for t in $requiredTargets; do
+    echo out ${binds[$t]}
+  done
 }
 
 readBlocks() {
@@ -155,6 +158,7 @@ readBlocks() {
 
 trimBlocks() {
   local b
+  local requiredTargets=$requiredTargets
     
   for b in "${!requiredBlocks[@]}"; do
     requiredTargets="$requiredTargets ${ins[$b]}"

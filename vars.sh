@@ -32,7 +32,7 @@ main() {
   } >&2
 
   files=$(findFiles)
-  lines=$(deduce ${files}$ '\n'${blocks[@]}$ '\n'${targets[@]}$' \n'${flags[@]})
+  lines=$(deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]})
 
   while IFS=' ' read -r type line; do
     case $type in
