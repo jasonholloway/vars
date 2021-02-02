@@ -28,11 +28,11 @@ main() {
 
   [[ ${flags[@]} =~ v ]] && local debugMode=1
 
-  [[ $debugMode ]] && {
-    echo TARGETS: ${targets[@]}
-    echo BLOCKS: ${blocks[@]}
-    echo FLAGS: ${flags[@]}
-  } >&2
+  # [[ $debugMode ]] && {
+  #   echo TARGETS: ${targets[@]}
+  #   echo BLOCKS: ${blocks[@]}
+  #   echo FLAGS: ${flags[@]}
+  # } >&2
 
   files=$(findFiles)
   lines=$(deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]})
@@ -41,7 +41,18 @@ main() {
     case $type in
 
       bind*)
-        [[ $debugMode ]] && echo "${type:4}${line}" >&2
+          [[ $debugMode ]] && {
+              local d
+
+              if [[ ${#line} -gt 100 ]]; then
+                d="$(echo "$line" | cut -c -100)..."
+              else
+                d="$line"
+              fi
+
+              echo "${type:4}$d"
+            }
+
         export "$line"
         ;;
 
