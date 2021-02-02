@@ -11,6 +11,10 @@ declare -a adHocs=()
 declare w
 declare shouldRun
 
+colBindName='\033[0;36m'
+colBindValue='\033[0;35m'
+colNormal='\033[0m'
+
 main() {
   local CACHE=~/.vars/cache
   mkdir -p $CACHE
@@ -27,7 +31,8 @@ main() {
 
   [[ ! shouldRun ]] && exit 0
 
-  [[ ${flags[@]} =~ v ]] && local debugMode=1
+  [[ ${flags[@]} =~ q ]] && local quietMode=1
+  [[ ${flags[@]} =~ v ]] && local verboseMode=1
 
   # [[ $debugMode ]] && {
   #   echo TARGETS: ${targets[@]}
@@ -37,32 +42,32 @@ main() {
   # } >&2
 
   files=$(findFiles)
-  lines=$(deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]} $'\n'${adHocs[@]})
 
-  while IFS=' ' read -r type line; do
-    case $type in
+  deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]} $'\n'${adHocs[@]} \
+  | while IFS=' ' read -r type line; do
+      case $type in
 
-      bind*)
-          [[ $debugMode ]] && {
-              local d
+        bind*)
+            [[ ! $quietMode ]] && {
+                local d
 
-              if [[ ${#line} -gt 100 ]]; then
-                d="$(echo "$line" | cut -c -100)..."
-              else
-                d="$line"
-              fi
+                if [[ ${#line} -gt 100 ]]; then
+                    d="$(echo "$line" | cut -c -100)..."
+                else
+                    d="$line"
+                fi
 
-              echo "${type:4}$d" >&2
-            }
+                echo -e "${colBindName}${type:4}${d%%=*}=${colBindValue}${d##*=}${colNormal}" >&2
+                }
 
-        export "$line"
-        ;;
+            export "$line"
+            ;;
 
-      out)
-        echo "$line"
-        ;;
-    esac
-  done <<< "$lines"
+        out)
+            echo "$line"
+            ;;
+        esac
+    done
 }
 
 shift1() {
@@ -129,8 +134,13 @@ parseCache() {
 }
 
 parseFlag() {
-  parse1 '^-[a-zA-Z]$' \
-  && flags+=(${w: -1})
+  parse1 '^-[a-zA-Z]+$' \
+    && {
+      local i
+      for (( i=1 ; i < ${#w} ; i++ )); do
+        flags+=(${w:i:1});
+      done
+    }
 }
 
 parseAdHocBind() {
@@ -153,53 +163,6 @@ parseArg() {
   [[ ! -z $w ]] \
       && shift1 \
       && echo "$w"
-}
-
-parseOpts() {
-  case $1 in
-      -v)
-          shift
-          debugMode=1
-          parseOpts $@
-          ;;
-      g|ge|get)
-          shift
-          targets=$@
-          ;;
-      r|ru|run)
-          shift 
-          blocks=$@
-          ;;
-      p|prep)
-          shift 
-          prepMode=1
-          blocks=$@
-          ;;
-      ls|list)
-          shift
-          files=$(findFiles)
-          $VARS_PATH/varsList.sh "$files"
-          exit $?
-          ;;
-      load)
-          shift
-          $VARS_PATH/varsLoad.sh "$1" "$2"
-          exit $?
-          ;;
-      c|cache)
-          shift
-          case $1 in
-              clear)
-                  rm -rf $CACHE/*
-                  echo cleared cache
-                  exit 0
-                  ;;
-              *)
-                  find $CACHE -type d
-                  ;;
-          esac
-          ;;
-  esac
 }
 
 findFiles() {
