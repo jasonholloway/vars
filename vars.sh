@@ -144,7 +144,7 @@ parseFlag() {
 }
 
 parseAdHocBind() {
-  parse1 '^\w+=\w+$' \
+  parse1 '^\w+=.+$' \
     && adHocs+=($w)
 }
 
