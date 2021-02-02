@@ -8,6 +8,7 @@ declare -a blocks=()
 declare -a targets=()
 declare -a flags=()
 declare w
+declare shouldRun
 
 main() {
   local CACHE=~/.vars/cache
@@ -22,6 +23,8 @@ main() {
     || parseLoad \
     || parseCache
     }
+
+  [[ ! shouldRun ]] && exit 0
 
   [[ ${flags[@]} =~ v ]] && local debugMode=1
 
@@ -67,18 +70,21 @@ parseMany() {
 
 parseGet() {
   parse1 '^(g|ge|get)$' \
-    && parseNames targets
+    && parseNames targets \
+    && shouldRun=1
 }
 
 parseRun() {
   parse1 '^(r|ru|run)$' \
-    && parseNames blocks
+    && parseNames blocks \
+    && shouldRun=1
 }
 
 parsePrep() {
   parse1 '^(p|prep)$' \
     && flags+=(p) \
-    && parseNames blocks
+    && parseNames blocks \
+    && shouldRun=1
 }
 
 parseLs() {
