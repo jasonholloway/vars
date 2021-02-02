@@ -15,7 +15,7 @@ declare -A \
   bodies \
   requiredBlockNames
 
-IFS=$'\n' read -r -d= filePaths rawBlockNames requiredTargets modes <<< "$@"
+IFS=$'\n' read -r -d¬ filePaths rawBlockNames requiredTargets modes adHocs <<< "$@"
 
 for n in $rawBlockNames; do requiredBlockNames[$n]=1; done
 
@@ -41,6 +41,12 @@ main() {
   done
 
   trimBlocks
+
+  for adHoc in $adHocs; do
+    local t v
+    IFS='=' read -r t v <<< "$adHoc"
+    pinned[$t]=$v
+  done
 
   for t in ${!pinned[@]}; do
     local v=${pinned[$t]}

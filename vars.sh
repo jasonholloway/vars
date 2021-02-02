@@ -7,6 +7,7 @@ declare -a words=($@)
 declare -a blocks=()
 declare -a targets=()
 declare -a flags=()
+declare -a adHocs=()
 declare w
 declare shouldRun
 
@@ -32,10 +33,11 @@ main() {
   #   echo TARGETS: ${targets[@]}
   #   echo BLOCKS: ${blocks[@]}
   #   echo FLAGS: ${flags[@]}
+  #   echo ADHOCS: ${adHocs[@]}
   # } >&2
 
   files=$(findFiles)
-  lines=$(deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]})
+  lines=$(deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]} $'\n'${adHocs[@]})
 
   while IFS=' ' read -r type line; do
     case $type in
@@ -50,7 +52,7 @@ main() {
                 d="$line"
               fi
 
-              echo "${type:4}$d"
+              echo "${type:4}$d" >&2
             }
 
         export "$line"
@@ -131,6 +133,11 @@ parseFlag() {
   && flags+=(${w: -1})
 }
 
+parseAdHocBind() {
+  parse1 '^\w+=\w+$' \
+    && adHocs+=($w)
+}
+
 parseName() {
   local -n into=$1
   parse1 '.+' \
@@ -138,7 +145,7 @@ parseName() {
 }
 
 parseNames() {
-  parseMany "parseFlag || parseName $1"
+  parseMany "parseFlag || parseAdHocBind || parseName $1"
 }
 
 parseArg() {
