@@ -29,7 +29,7 @@ main() {
     || parseCache
     }
 
-  [[ ! shouldRun ]] && exit 0
+  [[ ! shouldRun -eq 1 ]] && exit 0
 
   [[ ${flags[@]} =~ q ]] && local quietMode=1
   [[ ${flags[@]} =~ v ]] && local verboseMode=1
@@ -107,8 +107,10 @@ parsePrep() {
 
 parseLs() {
   parse1 '^(ls|list)$' \
-    && files=$(findFiles) \
-    && $VARS_PATH/varsList.sh "$files"
+    && {
+      files=$(findFiles)
+      $VARS_PATH/varsList.sh "$files"
+    }
 }
 
 parseLoad() {
