@@ -326,7 +326,7 @@ getFile() {
     local raw
 
     if [[ ${path: -4} == .gpg ]]; then
-      raw=$(gpg -dq <"$path")
+      raw=$(gpg -dq --pinentry-mode loopback <"$path")
     else
       raw=$(<"$path")
     fi
