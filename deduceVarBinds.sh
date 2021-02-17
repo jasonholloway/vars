@@ -23,13 +23,17 @@ for n in $rawBlockNames; do requiredBlockNames[$n]=1; done
 [[ $modes =~ v ]] && export debugMode=1
 
 export cacheDir=${CACHE:-$HOME/.vars/cache}
+mkdir -p $cacheDir
+
+export pinnedDir=${PINNED:-$HOME/.vars/pinned}
+mkdir -p $pinnedDir
+
 export now=$(date +%s)
 
 #TODO: shadowing in a folder
 #if there are two ways of getting a value
 #should always favour the nearest way
 #
-
 
 main() {
   readBlocks "$filePaths"
@@ -42,16 +46,7 @@ main() {
 
   trimBlocks
 
-  for adHoc in $adHocs; do
-    local t v
-    IFS='=' read -r t v <<< "$adHoc"
-    pinned[$t]=$v
-  done
-
-  for t in ${!pinned[@]}; do
-    local v=${pinned[$t]}
-    binds[$t]=$v
-  done
+  readPinned
   
   for b in $(orderBlocks); do
     local cacheKey=
@@ -145,6 +140,32 @@ main() {
 
   for t in $requiredTargets; do
     echo out ${binds[$t]}
+  done
+
+  { for t in ${!binds[@]}; do
+      echo -ne "$t\t"
+      base64 -w0 <<< "${binds[$t]}"
+      echo
+    done } > ~/.vars/last
+}
+
+readPinned() {
+  for f in $pinnedDir/*; do
+    if [[ -e $f ]]; then
+      local t=${f#$pinnedDir/}
+      pinned[$t]=$(base64 -d "$f")
+    fi
+  done
+
+  for adHoc in $adHocs; do
+    local t v
+    IFS='=' read -r t v <<< "$adHoc"
+    pinned[$t]=$v
+  done
+
+  for t in ${!pinned[@]}; do
+    local v=${pinned[$t]}
+    binds[$t]=$v
   done
 }
 
@@ -387,5 +408,6 @@ setCache() {
     echo $n:$(echo "${_binds[$n]}" | base64 -w0) >> "$file"
   done
 }
+
 
 main "$@"

@@ -1,5 +1,4 @@
 #!/bin/bash
-
 files="$1"
 
 main() {
