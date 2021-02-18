@@ -23,6 +23,8 @@ main() {
   && {
        parseGet \
     || parseRun \
+    || parsePin \
+    || parseContext \
     || parsePrep \
     || parseLs \
     || parseLoad \
@@ -109,8 +111,45 @@ parseLs() {
   parse1 '^(ls|list)$' \
     && {
       files=$(findFiles)
-      $VARS_PATH/varsList.sh "$files"
+      $VARS_PATH/list.sh "$files"
     }
+}
+
+parsePin() {
+  parse1 '^(p|pi|pin)$' \
+    && {
+      {
+        parse1 '^(l|li|lis|list|ls)$' \
+        && $VARS_PATH/context.sh listPinned
+      } || {
+        parse1 '^(c|cl|clear)$' \
+        && $VARS_PATH/context.sh clearPinned
+      } || {
+        parse1 '^(u|unpin|r|rm|remove)$' \
+          && {
+            parseMany "parseName targets" \
+            && $VARS_PATH/context.sh unpin "${targets[@]}"
+          }
+      } || {
+        parseMany "parseName targets" \
+        && $VARS_PATH/context.sh pin "${targets[@]}"
+      }
+    }
+}
+
+parseContext() {
+  parse1 '^(x|con|cont|conte|contex|context)$' \
+      && {
+          {
+            parse1 '^(l|li|lis|list|ls)$' \
+            && $VARS_PATH/context.sh list
+          } || {
+            parse1 '^(c|cl|clear)$' \
+            && $VARS_PATH/context.sh clearContext
+          } || {
+            $VARS_PATH/context.sh list
+          }
+        }
 }
 
 parseLoad() {

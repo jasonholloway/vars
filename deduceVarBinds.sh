@@ -6,6 +6,7 @@ declare -A \
   names \
   blockFiles \
   targets \
+  stashed \
   pinned \
   ins \
   outs \
@@ -15,7 +16,14 @@ declare -A \
   bodies \
   requiredBlockNames
 
-IFS=$'\n' read -r -d¬ filePaths rawBlockNames requiredTargets modes adHocs <<< "$@"
+IFS=$'\n' read -r -d¦ filePaths rawBlockNames requiredTargets modes adHocs <<< "$@"
+
+# {
+# echo $filePaths
+# echo $rawBlockNames
+# echo $requiredTargets
+# echo $modes
+# } >&2
 
 for n in $rawBlockNames; do requiredBlockNames[$n]=1; done
 
