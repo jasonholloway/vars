@@ -36,6 +36,9 @@ mkdir -p $cacheDir
 export pinnedDir=${PINNED:-$HOME/.vars/pinned}
 mkdir -p $pinnedDir
 
+export contextFile="$HOME/.vars/context"
+export outFile="$HOME/.vars/out"
+
 export now=$(date +%s)
 
 #TODO: shadowing in a folder
@@ -55,106 +58,109 @@ main() {
   trimBlocks
 
   readPinned
-  
-  for b in $(orderBlocks); do
-    local cacheKey=
-      
-    declare -A boundIns=()
-    for n in ${ins[$b]}; do
-      boundIns[$n]=${binds[$n]}      
-    done
 
-    local -A pendingOuts=()
-    for n in ${outs[$b]}; do
-      pendingOuts[$n]=1
-    done
-    
-    local -A pinnedForMe=()
-    for n in ${!pinned[@]}; do
-      if [[ ${pendingOuts[$n]} ]]; then
-        pinnedForMe[$n]=${pinned[$n]}
-        unset pendingOuts[$n]
-      fi
-    done
-    
-    if [[ ${#pendingOuts[@]} -gt 0 ]]; then
+  {
+    for b in $(orderBlocks); do
+        local cacheKey=
 
-      local cacheResult=1
-      if [[ ${flags[$b]} =~ C && -z ${requiredBlocks[$b]} ]]; then
-        cacheKey=$(getCacheKey $b)
-        tryGetCache binds $cacheKey
-        cacheResult=$?
-      fi
-
-      if [[ ! $cacheResult -eq 0 ]]; then
-
-        for i in ${ins[$b]}; do 
-          export "$i=${binds[$i]}"
+        declare -A boundIns=()
+        for n in ${ins[$b]}; do
+          boundIns[$n]=${binds[$n]}      
         done
 
-        local body
-        getBody $b
+        local -A pendingOuts=()
+        for n in ${outs[$b]}; do
+          pendingOuts[$n]=1
+        done
 
-        lines=$(eval "$body" | awk '
-          /^@\w+/ { print "cmd " $0; next }
-          /^\W*\w+=/ { print "bind " $0; next }
-          { print "out " $0 }
-        ')
+        local -A pinnedForMe=()
+        for n in ${!pinned[@]}; do
+          if [[ ${pendingOuts[$n]} ]]; then
+            pinnedForMe[$n]=${pinned[$n]}
+            unset pendingOuts[$n]
+          fi
+        done
 
-        declare -A boundOuts=()
-        declare -A attrs=()
+        if [[ ${#pendingOuts[@]} -gt 0 ]]; then
 
-        while read -r type line; do
-          case $type in
-            cmd)
-              read -r n v <<< "$line"
-              attrs[${n:1}]="$v"
-            ;;
-
-            bind)
-              n=${line%%=*}
-              v=${line#*=}
-              echo "bind $n=$v"
-              boundOuts[$n]="$v"
-            ;;
-
-            out)
-              if [[ ! -z ${requiredBlocks[$b]} ]]
-                then echo "out $line"
-              fi 
-            ;;
-          esac
-        done <<< "$lines"
-
-        if [[ ! -z ${attrs[cacheTill]} ]]; then
-          [[ -z $cacheKey ]] && cacheKey=$(getCacheKey $b)
-          setCache boundOuts $cacheKey ${attrs[cacheTill]}
+        local cacheResult=1
+        if [[ ${flags[$b]} =~ C && -z ${requiredBlocks[$b]} ]]; then
+          cacheKey=$(getCacheKey $b)
+          tryGetCache binds $cacheKey
+          cacheResult=$?
         fi
 
-        for n in ${!boundOuts[@]}; do
-          binds[$n]=${boundOuts[$n]}
+        if [[ ! $cacheResult -eq 0 ]]; then
+
+          for i in ${ins[$b]}; do 
+            export "$i=${binds[$i]}"
+          done
+
+          local body
+          getBody $b
+
+          lines=$(eval "$body" | awk '
+            /^@\w+/ { print "cmd " $0; next }
+            /^\W*\w+=/ { print "bind " $0; next }
+            { print "out " $0 }
+          ')
+
+          declare -A boundOuts=()
+          declare -A attrs=()
+
+          while read -r type line; do
+            case $type in
+              cmd)
+                read -r n v <<< "$line"
+                attrs[${n:1}]="$v"
+              ;;
+
+              bind)
+                n=${line%%=*}
+                v=${line#*=}
+                echo "bind $n=$v"
+                boundOuts[$n]="$v"
+              ;;
+
+              out)
+                if [[ ! -z ${requiredBlocks[$b]} ]]
+                  then echo "out $line"
+                fi 
+              ;;
+            esac
+          done <<< "$lines"
+
+          if [[ ! -z ${attrs[cacheTill]} ]]; then
+            [[ -z $cacheKey ]] && cacheKey=$(getCacheKey $b)
+            setCache boundOuts $cacheKey ${attrs[cacheTill]}
+          fi
+
+          for n in ${!boundOuts[@]}; do
+            binds[$n]=${boundOuts[$n]}
+          done
+
+          fi
+        fi
+
+        for n in ${!pinnedForMe[@]}; do
+          local v=${pinnedForMe[$n]}
+          binds[$n]=$v
+          echo "bind! $n=$v"
         done
 
-      fi
-    fi
-
-    for n in ${!pinnedForMe[@]}; do
-      local v=${pinnedForMe[$n]}
-      binds[$n]=$v
-      echo "bind! $n=$v"
     done
 
-  done
+    for t in $requiredTargets; do
+      echo out ${binds[$t]}
+    done
 
-  for t in $requiredTargets; do
-    echo out ${binds[$t]}
-  done
+    { for t in ${!binds[@]}; do
+        echo -ne "$t\t"
+        base64 -w0 <<< "${binds[$t]}"
+        echo
+      done } > "$contextFile"
 
-  { for t in ${!binds[@]}; do
-      echo -ne "$t\t"
-      base64 -w0 <<< "${binds[$t]}"
-      echo
-    done } > ~/.vars/last
+  } | tee "$outFile"
 }
 
 readPinned() {
@@ -387,8 +393,8 @@ tryGetCache() {
 
   IFS=$'\n' read -r -d '' foundKey foundExpiry foundBinds < "$file"
   
-  [ $key != $foundKey ] && return 1
-  [ $now -gt $foundExpiry ] && return 1
+  [[ "$key" != "$foundKey" ]] && return 1
+  [[ "$now" > "$foundExpiry" ]] && return 1
 
   while IFS=: read -r name encoded; do
     local val=$(echo $encoded | base64 -d)

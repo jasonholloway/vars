@@ -1,6 +1,7 @@
 #!/bin/bash
 
-lastFile=$HOME/.vars/last
+outFile=$HOME/.vars/out
+contextFile=$HOME/.vars/context
 pinnedDir=$HOME/.vars/pinned
 mkdir -p "$pinnedDir"
 
@@ -14,7 +15,7 @@ main() {
       list) list;;
       listPinned) listPinned;;
       clearPinned) clearPinned;;
-      clearContext) clearLast;;
+      clearContext) clearContext;;
       previous) previous;;
   esac
 }
@@ -27,14 +28,14 @@ pin() {
     names[$n]=1
   done 
 
-  if [[ -e $lastFile ]]; then
+  if [[ -e $contextFile ]]; then
     while read n b; do
       if [[ ${names[$n]} -eq 1 ]]; then
         read v <<< "$(base64 -d <<< "$b")"
         echo "$b" > "$pinnedDir/$n"
         echo "PINNED $n=$(crop 50 $v)" >&2
       fi
-    done < $lastFile
+    done < $contextFile
   fi
 }
 
@@ -63,22 +64,22 @@ clearPinned() {
   echo "UNPINNED ALL" >&2
 }
 
-clearLast() {
-  echo '' > $lastFile
+clearContext() {
+  echo '' > $contextFile
   echo "CLEARED CONTEXT" >&2
 }
 
 list() {
-  if [[ -e $lastFile ]]; then
+  if [[ -e $contextFile ]]; then
     while read n b; do
       read v <<< "$(base64 -d <<< "$b")"
       echo -e "$n\t$(crop 50 $v)"
-    done < $lastFile
+    done < $contextFile
   fi
 }
 
 previous() {
-  "$VARS_PATH/render.sh" "[[\"PREVIOUS\",\"RESULT\",\"HERE\"]]"
+  "$VARS_PATH/render.sh" "$(sed -n 's/^out //p' <$outFile)"
 }
 
 crop() {
