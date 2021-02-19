@@ -45,9 +45,9 @@ main() {
 
   files=$(findFiles)
 
-  deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]} $'\n'${adHocs[@]} \
-  | while IFS=' ' read -r type line; do
-      case $type in
+  out=$(
+    deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]} $'\n'${adHocs[@]} \
+  | while IFS=' ' read -r type line; do case $type in
 
         bind*)
             [[ ! $quietMode ]] && {
@@ -69,7 +69,9 @@ main() {
             echo "$line"
             ;;
         esac
-    done
+    done)
+
+  render "$out"
 }
 
 shift1() {
@@ -226,5 +228,9 @@ readTargets() {
   done
 }
 
-main $@
+render() {
+  jq . 2>/dev/null <<< "$1"
+  [[ $? -ne 0 ]] && echo "$1"
+}
 
+main $@
