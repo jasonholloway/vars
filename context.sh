@@ -15,6 +15,7 @@ main() {
       listPinned) listPinned;;
       clearPinned) clearPinned;;
       clearContext) clearLast;;
+      previous) previous;;
   esac
 }
 
@@ -74,6 +75,10 @@ list() {
       echo -e "$n\t$(crop 50 $v)"
     done < $lastFile
   fi
+}
+
+previous() {
+  "$VARS_PATH/render.sh" "[[\"PREVIOUS\",\"RESULT\",\"HERE\"]]"
 }
 
 crop() {
