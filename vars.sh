@@ -229,7 +229,7 @@ readTargets() {
 }
 
 render() {
-  jq . 2>/dev/null <<< "$1"
+  jq -C . 2>/dev/null <<< "$1"
   [[ $? -ne 0 ]] && echo "$1"
 }
 
