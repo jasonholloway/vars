@@ -149,6 +149,9 @@ parseContext() {
             parse1 '^(c|cl|clear)$' \
             && $VARS_PATH/context.sh clearContext
           } || {
+            parse1 '^prev(ious)?$' \
+            && $VARS_PATH/context.sh previous
+          } || {
             $VARS_PATH/context.sh list
           }
         }
@@ -229,8 +232,7 @@ readTargets() {
 }
 
 render() {
-  jq -C . 2>/dev/null <<< "$1"
-  [[ $? -ne 0 ]] && echo "$1"
+  "$VARS_PATH/render.sh" "$@"
 }
 
 main $@
