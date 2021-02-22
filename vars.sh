@@ -36,7 +36,7 @@ main() {
   [[ ${flags[@]} =~ q ]] && local quietMode=1
   [[ ${flags[@]} =~ v ]] && local verboseMode=1
 
-  # [[ $debugMode ]] && {
+  # [[ ! $quietMode ]] && {
   #   echo TARGETS: ${targets[@]}
   #   echo BLOCKS: ${blocks[@]}
   #   echo FLAGS: ${flags[@]}
@@ -47,20 +47,28 @@ main() {
 
   out=$(
     deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]} $'\n'${adHocs[@]} \
-  | while IFS=' ' read -r type line; do case $type in
+    | while IFS=' ' read -r type line
+      do case $type in
 
         bind*)
             [[ ! $quietMode ]] && {
-                local d
+              local d
 
-                if [[ ${#line} -gt 100 ]]; then
-                    d="$(echo "$line" | cut -c -100)..."
-                else
-                    d="$line"
-                fi
+              if [[ ${#line} -gt 100 ]]; then
+                  d="$(echo "$line" | cut -c -100)..."
+              else
+                  d="$line"
+              fi
 
-                echo -e "${colBindName}${type:4}${d%%=*}=${colBindValue}${d##*=}${colNormal}" >&2
-                }
+              key=${d%%=*}
+              val=${d#*=}
+
+              [[ $key =~ ([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
+                val='****'
+              }
+
+              echo -e "${colBindName}${type:4}${key}=${colBindValue}${val}${colNormal}" >&2
+            }
 
             export "$line"
             ;;

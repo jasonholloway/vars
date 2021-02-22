@@ -61,6 +61,7 @@ main() {
 
   {
     for b in $(orderBlocks); do
+        
         local cacheKey=
 
         declare -A boundIns=()
@@ -83,61 +84,63 @@ main() {
 
         if [[ ${#pendingOuts[@]} -gt 0 ]]; then
 
-        local cacheResult=1
-        if [[ ${flags[$b]} =~ C && -z ${requiredBlocks[$b]} ]]; then
-          cacheKey=$(getCacheKey $b)
-          tryGetCache binds $cacheKey
-          cacheResult=$?
-        fi
-
-        if [[ ! $cacheResult -eq 0 ]]; then
-
-          for i in ${ins[$b]}; do 
-            export "$i=${binds[$i]}"
-          done
-
-          local body
-          getBody $b
-
-          lines=$(eval "$body" | awk '
-            /^@\w+/ { print "cmd " $0; next }
-            /^\W*\w+=/ { print "bind " $0; next }
-            { print "out " $0 }
-          ')
-
-          declare -A boundOuts=()
-          declare -A attrs=()
-
-          while read -r type line; do
-            case $type in
-              cmd)
-                read -r n v <<< "$line"
-                attrs[${n:1}]="$v"
-              ;;
-
-              bind)
-                n=${line%%=*}
-                v=${line#*=}
-                echo "bind $n=$v"
-                boundOuts[$n]="$v"
-              ;;
-
-              out)
-                if [[ ! -z ${requiredBlocks[$b]} ]]
-                  then echo "out $line"
-                fi 
-              ;;
-            esac
-          done <<< "$lines"
-
-          if [[ ! -z ${attrs[cacheTill]} ]]; then
-            [[ -z $cacheKey ]] && cacheKey=$(getCacheKey $b)
-            setCache boundOuts $cacheKey ${attrs[cacheTill]}
+          local cacheResult=1
+          if [[ ${flags[$b]} =~ C && -z ${requiredBlocks[$b]} ]]; then
+            cacheKey=$(getCacheKey $b)
+            tryGetCache binds $cacheKey
+            cacheResult=$?
           fi
 
-          for n in ${!boundOuts[@]}; do
-            binds[$n]=${boundOuts[$n]}
-          done
+          if [[ ! $cacheResult -eq 0 ]]; then
+
+            for i in ${ins[$b]}; do 
+              export "$i=${binds[$i]}"
+            done
+
+            local body
+            getBody $b
+
+            lines=$(eval "$body" | awk '
+              /^@\w+/ { print "cmd " $0; next }
+              /^\W*\w+=/ { print "bind " $0; next }
+              { print "out " $0 }
+            ')
+
+            # echo "$lines" >&2
+
+            declare -A boundOuts=()
+            declare -A attrs=()
+
+            while read -r type line; do
+              case $type in
+                cmd)
+                  read -r n v <<< "$line"
+                  attrs[${n:1}]="$v"
+                ;;
+
+                bind)
+                  n=${line%%=*}
+                  v=${line#*=}
+                  echo "bind $n=$v"
+                  boundOuts[$n]="$v"
+                ;;
+
+                out)
+                  if [[ ! -z ${requiredBlocks[$b]} ]]
+                    then echo "out $line"
+                  fi 
+                ;;
+              esac
+            done <<< "$lines"
+
+            if [[ ! -z ${attrs[cacheTill]} ]]; then
+              [[ -z $cacheKey ]] && cacheKey=$(getCacheKey $b)
+              setCache boundOuts $cacheKey ${attrs[cacheTill]}
+            fi
+
+            for n in ${!boundOuts[@]}; do
+              binds[$n]=${boundOuts[$n]}
+            done
 
           fi
         fi
@@ -268,6 +271,7 @@ trimBlocks() {
       v=$(eval "echo \"\${$t=}\"")
       if [[ ! -z "$v" ]]; then
         pinned[$t]=$v
+        echo "bind! $t=$v"
       else
         local bs=${supplying[$t]}
 
