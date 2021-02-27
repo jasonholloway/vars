@@ -23,20 +23,33 @@ main() {
 pin() {
   [[ $# -eq 0 ]] && exit
     
-  local -A names
+  local -A toAdd=()
+  local -A fromContext=()
+
   for n in $@; do
-    names[$n]=1
+    if [[ $n =~ ^[[:alnum:]]+$ ]]; then
+      fromContext[$n]=1
+    elif [[ $n =~ ^[[:alnum:]]+=.* ]]; then
+      toAdd[${n%%=*}]=${n##*=}
+    fi
   done 
 
-  if [[ -e $contextFile ]]; then
+  if [[ ${#fromContext[@]} > 0 && -e $contextFile ]]; then
     while read n b; do
-      if [[ ${names[$n]} -eq 1 ]]; then
-        read v <<< "$(base64 -d <<< "$b")"
-        echo "$b" > "$pinnedDir/$n"
-        echo "PINNED $n=$(crop 50 $v)" >&2
+      if [[ ${fromContext[$n]} -eq 1 ]]; then
+        local xv
+        read xv <<< "$(base64 -d <<< "$b")"
+        toAdd[$n]=$xv
       fi
     done < $contextFile
   fi
+
+  for n in ${!toAdd[@]}; do
+    local v=${toAdd[$n]}
+    local b=$(base64 -w0 <<< "$v")
+    echo "$b" > "$pinnedDir/$n"
+    echo "PINNED $n=$(crop 50 $v)" >&2
+  done
 }
 
 unpin() {

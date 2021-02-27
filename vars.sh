@@ -142,7 +142,9 @@ parsePin() {
           }
       } || {
         parseMany "parseName targets" \
-        && $VARS_PATH/context.sh pin "${targets[@]}"
+          && {
+            $VARS_PATH/context.sh pin "${targets[@]}"
+          }
       }
     }
 }
