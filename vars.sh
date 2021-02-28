@@ -33,7 +33,7 @@ main() {
 
   [[ ! shouldRun -eq 1 ]] && exit 0
 
-  [[ ${flags[@]} =~ q ]] && local quietMode=1
+  [[ ${flags[@]} =~ q || ! -t 1 ]] && local quietMode=1
   [[ ${flags[@]} =~ v ]] && local verboseMode=1
 
   # [[ ! $quietMode ]] && {
@@ -74,7 +74,11 @@ main() {
             ;;
 
         out)
-            echo "$line"
+            if [[ $quietMode ]]; then
+              echo -n "$line"
+            else 
+              echo "$line"
+            fi
             ;;
         esac
     done)
