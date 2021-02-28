@@ -19,7 +19,7 @@ vars_choose() {
   IFS=, read type name <<< "$target"
 
   case $type in
-    T)
+    O)
       BUFFER="vg $name"
       CURSOR=${#BUFFER}
       ;;
@@ -37,11 +37,10 @@ bindkey '^[jvj' vars_choose
 
 
 vars_get() {
-  target=$(vars list | sed -n '/^T/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
+  target=$(vars list | sed -n '/^O/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
 
   if [[ $? && ! -z $target ]]; then
-    BUFFER="vg $target"
-    CURSOR=${#BUFFER}
+    vg $target
   fi
 
   zle reset-prompt
@@ -55,8 +54,9 @@ vars_run() {
   block=$(vars list | sed -n '/^B/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
 
   if [[ $? && ! -z $block ]]; then
-    BUFFER="vr $block"
-    CURSOR=${#BUFFER}
+    vr $block
+    # BUFFER="vr $block"
+    # CURSOR=${#BUFFER}
   fi
 
   zle reset-prompt
@@ -67,7 +67,7 @@ bindkey '^[jvr' vars_run
 
 
 vars_pinArbitrary() {
-  var=$(vars list | sed -n '/^T/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
+  var=$(vars list | sed -n '/^I/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
 
   if [[ $? && ! -z $var ]]; then
     BUFFER="vp ${var}="
