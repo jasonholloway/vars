@@ -3,29 +3,19 @@
 declare -A \
   files \
   blocks \
-  names \
+  blockLookup \
   blockFiles \
-  targets \
   stashed \
   pinned \
   ins \
   outs \
   flags \
   binds \
-  requiredBlocks \
   bodies \
-  requiredBlockNames
+  targetBlocks \
+  targets
 
-IFS=$'\n' read -r -d¦ filePaths rawBlockNames requiredTargets modes adHocs <<< "$@"
-
-# {
-# echo $filePaths
-# echo $rawBlockNames
-# echo $requiredTargets
-# echo $modes
-# } >&2
-
-for n in $rawBlockNames; do requiredBlockNames[$n]=1; done
+IFS=$'\n' read -r -d¦ filePaths targetBlockNames targetNames modes adHocs <<< "$@"
 
 [[ $modes =~ p ]] && export prepMode=1
 [[ $modes =~ v ]] && export debugMode=1
@@ -41,22 +31,11 @@ export outFile="$HOME/.vars/out"
 
 export now=$(date +%s)
 
-#TODO: shadowing in a folder
-#if there are two ways of getting a value
-#should always favour the nearest way
-#
 
 main() {
   readBlocks "$filePaths"
-
-  for n in ${!requiredBlockNames[@]}; do
-    for b in ${names[$n]}; do
-      requiredBlocks[$b]=1
-    done
-  done
-
+  collectTargets
   trimBlocks
-
   readPinned
 
   {
@@ -85,7 +64,7 @@ main() {
         if [[ ${#pendingOuts[@]} -gt 0 ]]; then
 
           local cacheResult=1
-          if [[ ${flags[$b]} =~ C && -z ${requiredBlocks[$b]} ]]; then
+          if [[ ${flags[$b]} =~ C && -z ${targetBlocks[$b]} ]]; then
             cacheKey=$(getCacheKey $b)
             tryGetCache binds $cacheKey
             cacheResult=$?
@@ -126,8 +105,8 @@ main() {
                 ;;
 
                 out)
-                  if [[ ! -z ${requiredBlocks[$b]} ]]
-                    then echo "out $line"
+                  if [[ ! -z ${targetBlocks[$b]} ]]
+                  then echo "out $line"
                   fi 
                 ;;
               esac
@@ -153,7 +132,7 @@ main() {
 
     done
 
-    for t in $requiredTargets; do
+    for t in $targetNames; do
       echo out ${binds[$t]}
     done
 
@@ -198,26 +177,21 @@ readBlocks() {
       i=$((i+1))
       n="$file|$i"
 
-      name=$(awk '
-        /#\W+n:/ {n=$3; quit}
-        END { if(n) {print n} else {print "'$i'"} }
-      ' <<< "$part")
-
-      [[ ! $name =~ ^[0-9]+$ ]] \
-        && names[$name]=$n
-
       blockFiles[$n]=$file
       blocks[$n]=$part
 
       while read -r line; do
         case $line in
+          '# n:'*)
+            local shortName=$(trim ${line#\#*:})
+            blockLookup[$shortName]=$n
+            ;;
           '# in:'*)
             ins[$n]=${line#\#*:}
           ;;
           '# out:'*)
             o=${line#\#*:}
             outs[$n]="${outs[$n]} $o"
-            for t in $o; do targets[$t]="${targets[$t]} $n"; done
           ;;
           '# cache'*)
             flags[$n]="${flags[$n]} C"
@@ -228,32 +202,33 @@ readBlocks() {
   done
 }
 
+collectTargets() {
+  local n b
+
+  for n in $targetNames; do
+    targets[$n]=1
+  done
+
+  for n in $targetBlockNames; do
+    for b in ${blockLookup[$n]}; do
+        targetBlocks[$b]=1
+    done
+  done
+}
+
 trimBlocks() {
-  local b
-  local requiredTargets=$requiredTargets
-    
-  for b in "${!requiredBlocks[@]}"; do
-    requiredTargets="$requiredTargets ${ins[$b]}"
-  done
+  local n b i
 
-  local -A trimmableBlocks=()
-  for b in ${!blocks[@]}; do
-    if [[ -z ${requiredBlocks[$b]} ]]; then
-      trimmableBlocks[$b]=1
-    fi
-  done
+  local -A trimmables=()
+  for b in ${!blocks[@]}; do trimmables[$b]=1; done
 
-  # {
-  #   echo TARGETS: ${!targets[@]}
-  #   echo BLOCKS: ${!blocks[@]}
-  #   echo TRIMMABLE: ${!trimmableBlocks[@]}
-  #   echo REQUIRED: $requiredTargets
-  # } >&2
+  for b in ${!targetBlocks[@]}; do
+    unset trimmables[$b]
+    for i in ${ins[$b]}; do targets[$i]=1; done
+  done
 
   local -A pending=()
-  for t in $requiredTargets; do
-    pending[$t]=1
-  done
+  for t in ${!targets[@]}; do pending[$t]=1; done
 
   local -A supplying=()
   for b in ${!blocks[@]}; do
@@ -276,7 +251,7 @@ trimBlocks() {
         local bs=${supplying[$t]}
 
         for b in $bs; do
-          unset trimmableBlocks[$b]
+          unset trimmables[$b]
 
           for i in ${ins[$b]}; do
             if [ ! ${seen[$i]+xxx} ]; then
@@ -291,12 +266,12 @@ trimBlocks() {
     done
   done
 
-  for b in ${!trimmableBlocks[@]}; do
+  for b in ${!trimmables[@]}; do
     unset blocks[$b]
   done
 
   if [[ $prepMode ]]; then
-    for b in ${!requiredBlocks[@]}; do
+    for b in ${!targetBlocks[@]}; do
       unset blocks[$b]
     done
   fi
@@ -427,5 +402,11 @@ setCache() {
   done
 }
 
+trim() {
+    local var="$*"
+    var="${var#"${var%%[![:space:]]*}"}"
+    var="${var%"${var##*[![:space:]]}"}"   
+    printf '%s' "$var"
+}
 
 main "$@"
