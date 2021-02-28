@@ -87,8 +87,6 @@ main() {
               { print "out " $0 }
             ')
 
-            # echo "$lines" >&2
-
             declare -A boundOuts=()
             declare -A attrs=()
 
@@ -107,8 +105,8 @@ main() {
                 ;;
 
                 out)
-                  if [[ ! -z ${targetBlocks[$b]} ]]
-                  then echo "out $line"
+                  if [[ ! -z ${targetBlocks[$b]} ]]; then
+                    echo "out $line"
                   fi 
                 ;;
               esac
@@ -240,16 +238,11 @@ trimBlocks() {
   done
 
   local -A seen=()
-  local v
   
   while [ ${#pending[@]} -gt 0 ]; do
     for t in ${!pending[@]}; do
 
-      v=$(eval "echo \"\${$t=}\"")
-      if [[ ! -z "$v" ]]; then
-        pinned[$t]=$v
-        echo "bind! $t=$v"
-      else
+      if [[ -z ${pinned[$t]} ]]; then
         local bs=${supplying[$t]}
 
         for b in $bs; do
