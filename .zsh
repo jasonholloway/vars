@@ -41,7 +41,9 @@ vars_get() {
   target=$(vars list | sed -n '/^O/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
 
   if [[ $? && ! -z $target ]]; then
-    vg $target
+    BUFFER="vg $target"
+    CURSOR=${#BUFFER}
+    zle accept-line
   fi
 
   zle reset-prompt
@@ -56,9 +58,9 @@ vars_run() {
   block=$(vars list | sed -n '/^B/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
 
   if [[ $? && ! -z $block ]]; then
-    vr $block
-    # BUFFER="vr $block"
-    # CURSOR=${#BUFFER}
+    BUFFER="vr $block"
+    CURSOR=${#BUFFER}
+    zle accept-line
   fi
 
   zle reset-prompt
