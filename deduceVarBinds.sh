@@ -40,6 +40,8 @@ main() {
 
   {
     for b in $(orderBlocks); do
+        local isTargetBlock=
+        [[ ${targetBlocks[$b]} == 1 ]] && isTargetBlock=1
         
         local cacheKey=
 
@@ -61,10 +63,10 @@ main() {
           fi
         done
 
-        if [[ ${#pendingOuts[@]} -gt 0 ]]; then
+        if [[ ${#pendingOuts[@]} -gt 0 || $isTargetBlock ]]; then
 
           local cacheResult=1
-          if [[ ${flags[$b]} =~ C && -z ${targetBlocks[$b]} ]]; then
+          if [[ ${flags[$b]} =~ C && ! $isTargetBlock ]]; then
             cacheKey=$(getCacheKey $b)
             tryGetCache binds $cacheKey
             cacheResult=$?
