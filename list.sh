@@ -13,7 +13,7 @@ scan() {
     /#\W+in:/ {for(i=3; i<=NF; i++) print "I," $i}
     /#\W+out:/ {for(i=3; i<=NF; i++) print "O," $i}
     ' <<< "$(cat $files)"
-  } | sort | uniq -u
+  } | sort | uniq
 }
 
 main "$@"
