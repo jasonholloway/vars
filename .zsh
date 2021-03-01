@@ -35,6 +35,7 @@ vars_choose() {
 zle -N vars_choose
 bindkey '^[jvj' vars_choose
 bindkey '^[vl' vars_choose
+bindkey 'jvl' vars_choose
 
 
 vars_get() {
@@ -52,6 +53,7 @@ vars_get() {
 zle -N vars_get
 bindkey '^[jvg' vars_get
 bindkey '^[vg' vars_get
+bindkey 'jvg' vars_get
 
 
 vars_run() {
@@ -69,6 +71,7 @@ vars_run() {
 zle -N vars_run
 bindkey '^[jvr' vars_run
 bindkey '^[vr' vars_run
+bindkey 'jvr' vars_run
 
 
 vars_pinArbitrary() {
@@ -85,6 +88,7 @@ vars_pinArbitrary() {
 zle -N vars_pinArbitrary
 bindkey '^[jvp' vars_pinArbitrary
 bindkey '^[vp' vars_pinArbitrary
+bindkey 'jvp' vars_pinArbitrary
 
 
 vars_pinFromContext() {
@@ -100,6 +104,7 @@ vars_pinFromContext() {
 zle -N vars_pinFromContext
 bindkey '^[jvxp' vars_pinFromContext
 bindkey '^[vxp' vars_pinFromContext
+bindkey 'jvxp' vars_pinFromContext
 
 
 vars_unpin() {
@@ -115,6 +120,7 @@ vars_unpin() {
 zle -N vars_unpin
 bindkey '^[jvpr' vars_unpin
 bindkey '^[vpr' vars_unpin
+bindkey 'jvpr' vars_unpin
 
 
 bindkey -s '^[jvpl' 'vars pin list^M'
@@ -137,3 +143,14 @@ bindkey -s '^[vxc' 'vars context clear^M'
 
 bindkey -s '^[vxz' 'vars context prev^M'
 bindkey -s '^[vz' 'vars context prev^M'
+
+
+bindkey -s 'jvpl' 'vars pin list^M'
+bindkey -s 'jvpc' 'vars pin clear^M'
+
+bindkey -s 'jvx' 'vars context list^M'
+bindkey -s 'jvxl' 'vars context list^M'
+bindkey -s 'jvxc' 'vars context clear^M'
+
+bindkey -s 'jvxz' 'vars context prev^M'
+bindkey -s 'jvz' 'vars context prev^M'
