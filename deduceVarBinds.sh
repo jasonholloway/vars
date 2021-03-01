@@ -35,8 +35,8 @@ export now=$(date +%s)
 main() {
   readBlocks "$filePaths"
   collectTargets
-  trimBlocks
   readPinned
+  trimBlocks
 
   {
     for b in $(orderBlocks); do
