@@ -36,38 +36,37 @@ main() {
   [[ ${flags[@]} =~ q || ! -t 1 ]] && local quietMode=1
   [[ ${flags[@]} =~ v ]] && local verboseMode=1
 
-  # [[ ! $quietMode ]] && {
-  #   echo TARGETS: ${targets[@]}
-  #   echo BLOCKS: ${blocks[@]}
-  #   echo FLAGS: ${flags[@]}
-  #   echo ADHOCS: ${adHocs[@]}
-  # } >&2
+  {
+    coproc deducer { deduce; }
 
-  files=$(findFiles)
+    {
+        echo $(findFiles)
+        echo ${blocks[@]}
+        echo ${targets[@]}
+        echo ${flags[@]}
+        echo ${adHocs[@]}
+    } >&${deducer[1]}
 
-  out=$(
-    deduce ${files} $'\n'${blocks[@]} $'\n'${targets[@]} $'\n'${flags[@]} $'\n'${adHocs[@]} \
-    | while IFS=' ' read -r type line
-      do case $type in
-
+    while read -ru ${deducer[0]} type line; do
+      case $type in
         bind*)
             [[ ! $quietMode ]] && {
-              local d
+                local d
 
-              if [[ ${#line} -gt 100 ]]; then
-                  d="$(echo "$line" | cut -c -100)..."
-              else
-                  d="$line"
-              fi
+                if [[ ${#line} -gt 100 ]]; then
+                    d="$(echo "$line" | cut -c -100)..."
+                else
+                    d="$line"
+                fi
 
-              key=${d%%=*}
-              val=${d#*=}
+                key="${d%%=*}"
+                val="${d#*=}"
 
-              [[ $key =~ ([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
-                val='****'
-              }
+                [[ $key =~ ([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
+                    val='****'
+                }
 
-              echo -e "${colBindName}${type:4}${key}=${colBindValue}${val}${colNormal}" >&2
+                echo -e "${colBindName}${type:4}${key}=${colBindValue}${val}${colNormal}" >&2
             }
 
             export "$line"
@@ -75,15 +74,14 @@ main() {
 
         out)
             if [[ $quietMode ]]; then
-              echo -n "$line"
+                echo -n "$line"
             else 
-              echo "$line"
+                echo "$line"
             fi
             ;;
         esac
-    done)
-
-  render "$out"
+    done
+  } | render
 }
 
 shift1() {

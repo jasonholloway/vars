@@ -15,7 +15,11 @@ declare -A \
   targetBlocks \
   targets
 
-IFS=$'\n' read -r -d¦ filePaths targetBlockNames targetNames modes adHocs <<< "$@"
+read filePaths
+read targetBlockNames
+read targetNames
+read modes
+read adHocs
 
 [[ $modes =~ p ]] && export prepMode=1
 [[ $modes =~ v ]] && export debugMode=1
