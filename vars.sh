@@ -244,7 +244,7 @@ readTargets() {
 }
 
 render() {
-  "$VARS_PATH/render.sh" "$@"
+  "$VARS_PATH/render.sh" "$(</dev/stdin)"
 }
 
 main $@
