@@ -37,7 +37,8 @@ main() {
   [[ ${flags[@]} =~ v ]] && local verboseMode=1
 
   {
-    coproc deducer { deduce; }
+    coproc { deduce; }
+    exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
     {
         echo $(findFiles)
@@ -45,9 +46,9 @@ main() {
         echo ${targets[@]}
         echo ${flags[@]}
         echo ${adHocs[@]}
-    } >&${deducer[1]}
+    } >&6
 
-    while read -ru ${deducer[0]} type line; do
+    while read -ru 5 type line; do
       case $type in
         bind*)
             [[ ! $quietMode ]] && {
@@ -81,6 +82,9 @@ main() {
             ;;
         esac
     done
+
+    exec 5<&- 6>&-
+
   } | render
 }
 
