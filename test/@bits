@@ -2,3 +2,14 @@
 
 echo firstName=bob
 echo age=70
+
+#++++++++++++++++++++++++
+# out: dog
+echo dog=¦Bert¦Rex¦Biter¦Nobby
+
+
+
+#+++++++++++++++++++++++
+# n: sayHello
+# in: dog
+echo Hello, ${dog}!

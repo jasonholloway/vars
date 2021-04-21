@@ -80,6 +80,18 @@ main() {
                 echo "$line"
             fi
             ;;
+
+        pick)
+            {
+                read name rawVals <<< "$line"
+
+                local val=$({
+                    sed 's/¦//; s/¦/\n/g' <<< "$rawVals"
+                } | fzy -p "${name}> ")
+
+                echo $val >&6
+            }
+            ;;
         esac
     done
 

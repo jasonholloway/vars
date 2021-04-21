@@ -79,7 +79,14 @@ main() {
           if [[ ! $cacheResult -eq 0 ]]; then
 
             for i in ${ins[$b]}; do 
-              export "$i=${binds[$i]}"
+              local v=${binds[$i]}
+
+              if [[ ${v:0:1} == ¦ ]]; then
+                  echo pick $i $v
+                  read v
+              fi
+              
+              export "$i=$v"
             done
 
             local body
