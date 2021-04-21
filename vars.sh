@@ -70,7 +70,7 @@ main() {
                 echo -e "${colBindName}${type:4}${key}=${colBindValue}${val}${colNormal}" >&2
             }
 
-            export "$line"
+            # export "$line"
             ;;
 
         out)
@@ -91,6 +91,12 @@ main() {
 
                 echo $val >&6
             }
+            ;;
+
+        pin)
+            read key val <<< "$line"
+            $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
+            echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
             ;;
         esac
     done

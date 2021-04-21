@@ -82,8 +82,10 @@ main() {
               local v=${binds[$i]}
 
               if [[ ${v:0:1} == ¦ ]]; then
-                  echo pick $i $v
+                  echo "pick $i $v"
                   read v
+                  binds[$i]=$v
+                  echo "pin $i $v"
               fi
               
               export "$i=$v"
