@@ -30,7 +30,7 @@ pin() {
     if [[ $n =~ ^[[:alnum:]]+$ ]]; then
       fromContext[$n]=1
     elif [[ $n =~ ^[[:alnum:]]+=.* ]]; then
-      toAdd[${n%%=*}]=${n##*=}
+      toAdd[${n%%=*}]=${n#*=}
     fi
   done 
 
