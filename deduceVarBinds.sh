@@ -85,7 +85,8 @@ main() {
                   echo "pick $i $v"
                   read v
                   binds[$i]=$v
-                  echo "pin $i $v"
+                  echo "bind $i=$v"
+                  # echo "pin $i $v"
               fi
               
               export "$i=$v"
