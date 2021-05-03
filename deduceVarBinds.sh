@@ -35,6 +35,17 @@ export outFile="$HOME/.vars/out"
 
 export now=$(date +%s)
 
+@curl() {
+    curl -Ss -Lk \
+         $([ ! -z $VARS_VERBOSE ] && echo "-v") \
+         $([ ! -z $VARS_PROXY ] && echo "--proxy $VARS_PROXY") \
+         "$@"
+}
+
+@cacheTill() {
+    echo @cacheTill "$@"
+}
+
 
 main() {
   readBlocks "$filePaths"
