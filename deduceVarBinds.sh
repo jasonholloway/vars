@@ -35,6 +35,8 @@ export outFile="$HOME/.vars/out"
 
 export now=$(date +%s)
 
+source $VARS_PATH/helpers.sh
+
 @curl() {
     curl -Ss -Lk \
          $([ ! -z $VARS_VERBOSE ] && echo "-v") \
