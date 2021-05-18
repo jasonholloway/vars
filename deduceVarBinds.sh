@@ -74,9 +74,13 @@ main() {
 
         local -A pinnedForMe=()
         for n in ${!pinned[@]}; do
-          if [[ ${pendingOuts[$n]} ]]; then
-            local v=${pinned[$n]}
+          local v=${pinned[$n]}
+
+          if [[ ${boundIns[$n]} ]]; then
             echo "bind! $n=$v"
+          fi
+            
+          if [[ ${pendingOuts[$n]} ]]; then
             pinnedForMe[$n]=$v
             unset pendingOuts[$n]
           fi
