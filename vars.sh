@@ -13,6 +13,8 @@ declare shouldRun
 
 colBindName='\033[0;36m'
 colBindValue='\033[0;35m'
+colGood='\033[0;32m'
+colBad='\033[0;31m'
 colNormal='\033[0m'
 
 main() {
@@ -79,6 +81,10 @@ main() {
             else 
                 echo "$line"
             fi
+            ;;
+
+        warn)
+            echo -e "${colBad}${line}${colNormal}" >&2
             ;;
 
         pick)

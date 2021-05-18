@@ -64,25 +64,26 @@ main() {
 
         declare -A boundIns=()
         for n in ${ins[$b]}; do
-          boundIns[$n]=${binds[$n]}      
+          local boundVal=${binds[$n]}
+          if [[ $boundVal ]]; then
+            boundIns[$n]=$boundVal
+          else
+              local pinnedVal=${pinned[$n]}
+              if [[ $pinnedVal ]]; then
+                binds[$n]=$pinnedVal
+                boundIns[$n]=$pinnedVal
+                echo "bind! $n=$pinnedVal"
+              else
+                echo "warn Missing ${n}"
+              fi
+          fi
         done
 
+        # pendingOuts: can elide the block if none set
         local -A pendingOuts=()
         for n in ${outs[$b]}; do
-          pendingOuts[$n]=1
-        done
-
-        local -A pinnedForMe=()
-        for n in ${!pinned[@]}; do
-          local v=${pinned[$n]}
-
-          if [[ ${boundIns[$n]} ]]; then
-            echo "bind! $n=$v"
-          fi
-            
-          if [[ ${pendingOuts[$n]} ]]; then
-            pinnedForMe[$n]=$v
-            unset pendingOuts[$n]
+          if [[ -z ${binds[$n]} ]]; then
+            pendingOuts[$n]=1
           fi
         done
 
@@ -155,15 +156,6 @@ main() {
 
           fi
         fi
-
-        for n in ${!pinnedForMe[@]}; do
-          local v=${pinnedForMe[$n]}
-
-          if [[ -z ${binds[$n]} ]]; then
-            binds[$n]=$v
-          fi
-        done
-
     done
 
     for t in $targetNames; do
@@ -191,11 +183,6 @@ readPinned() {
     local t v
     IFS='=' read -r t v <<< "$adHoc"
     pinned[$t]=$v
-  done
-
-  for t in ${!pinned[@]}; do
-    local v=${pinned[$t]}
-    binds[$t]=$v
   done
 }
 
