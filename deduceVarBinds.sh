@@ -75,7 +75,9 @@ main() {
         local -A pinnedForMe=()
         for n in ${!pinned[@]}; do
           if [[ ${pendingOuts[$n]} ]]; then
-            pinnedForMe[$n]=${pinned[$n]}
+            local v=${pinned[$n]}
+            echo "bind! $n=$v"
+            pinnedForMe[$n]=$v
             unset pendingOuts[$n]
           fi
         done
@@ -99,7 +101,6 @@ main() {
                   read v
                   binds[$i]=$v
                   echo "bind $i=$v"
-                  # echo "pin $i $v"
               fi
               
               export "$i=$v"
@@ -153,8 +154,10 @@ main() {
 
         for n in ${!pinnedForMe[@]}; do
           local v=${pinnedForMe[$n]}
-          binds[$n]=$v
-          echo "bind! $n=$v"
+
+          if [[ -z ${binds[$n]} ]]; then
+            binds[$n]=$v
+          fi
         done
 
     done
