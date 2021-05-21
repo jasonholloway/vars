@@ -159,10 +159,12 @@ main() {
 
     # blurt to context file
     { for t in ${!binds[@]}; do
-        echo -ne "$t\t"
-        base64 -w0 <<< "${binds[$t]}"
-        echo
-      done } > "$contextFile"
+        if [[ ${t:0:1} != \* ]]; then
+          echo -ne "$t\t"
+          base64 -w0 <<< "${binds[$t]}"
+          echo
+        fi
+      done } >> "$contextFile"
 
   } | tee "$outFile"
 }
