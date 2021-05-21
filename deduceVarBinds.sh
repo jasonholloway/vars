@@ -37,17 +37,6 @@ export now=$(date +%s)
 
 source $VARS_PATH/helpers.sh
 
-@curl() {
-    curl -Ss -Lk \
-         $([ ! -z $VARS_VERBOSE ] && echo "-v") \
-         $([ ! -z $VARS_PROXY ] && echo "--proxy $VARS_PROXY") \
-         "$@"
-}
-
-@cacheTill() {
-    echo @cacheTill "$@"
-}
-
 
 main() {
   readBlocks "$filePaths"
@@ -62,7 +51,7 @@ main() {
         
         local cacheKey=
 
-        declare -A boundIns=()
+        local -A boundIns=()
         for n in ${ins[$b]}; do
           local boundVal=${binds[$n]}
           if [[ $boundVal ]]; then

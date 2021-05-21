@@ -93,7 +93,7 @@ main() {
 
                 local val=$({
                     sed 's/¦//; s/¦/\n/g' <<< "$rawVals"
-                } | fzy -p "${name}> ")
+                } | fzy --prompt "${name}> ")
 
                 echo $val >&6
             }
