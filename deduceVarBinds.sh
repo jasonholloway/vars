@@ -163,7 +163,14 @@ main() {
     done
 
     for t in $targetNames; do
-      echo out ${binds[$t]}
+      local v=${binds[$t]}
+
+      if [[ ${v:0:1} == ¦ ]]; then
+        echo "pick $t $v"
+        read v
+      fi
+                
+      echo out $v
     done
 
     # blurt to context file
