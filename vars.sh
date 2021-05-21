@@ -65,7 +65,7 @@ main() {
                 key="${d%%=*}"
                 val="${d#*=}"
 
-                [[ $key =~ (^\*)|([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
+                [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
                     val='****'
                 }
 
