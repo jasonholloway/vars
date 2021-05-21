@@ -13,3 +13,11 @@ echo dog=¦Bert¦Rex¦Biter¦Nobby
 # n: sayHello
 # in: dog
 echo Hello, ${dog}!
+
+
+
+
+#+++++++++++++++++++
+# n: sayMoo
+# in: cowName
+echo "${cowName}: Moo!"

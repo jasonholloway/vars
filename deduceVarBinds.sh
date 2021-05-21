@@ -74,7 +74,11 @@ main() {
                 boundIns[$n]=$pinnedVal
                 echo "bind! $n=$pinnedVal"
               else
-                echo "warn Missing ${n}"
+                echo "pick $n"
+                read v
+                binds[$n]=$v
+                boundIns[$n]=$pinnedVal
+                echo "bind $n=$v"
               fi
           fi
         done
