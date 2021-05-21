@@ -37,12 +37,12 @@ export now=$(date +%s)
 
 source $VARS_PATH/helpers.sh
 
-
 main() {
   readBlocks "$filePaths"
   collectTargets
   readPinned
   trimBlocks
+  readHistory
 
   {
     for b in $(orderBlocks); do
@@ -63,7 +63,9 @@ main() {
                 boundIns[$n]=$pinnedVal
                 echo "bind! $n=$pinnedVal"
               else
-                echo "pick $n"
+                local found=${history[$n]}
+                  
+                echo "pick $n $found"
                 read v
                 binds[$n]=$v
                 boundIns[$n]=$pinnedVal
@@ -155,6 +157,7 @@ main() {
       echo out ${binds[$t]}
     done
 
+    # blurt to context file
     { for t in ${!binds[@]}; do
         echo -ne "$t\t"
         base64 -w0 <<< "${binds[$t]}"
@@ -358,6 +361,14 @@ getFile() {
   fi
 
   file=${files[$path]}
+}
+
+readHistory() {
+  declare -A history=()
+  while read k encoded; do
+    local v=$(base64 -d <<< $encoded)
+    history[$k]=$v
+  done <<< $(<$contextFile)
 }
 
 getCacheKey() {
