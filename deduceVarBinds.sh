@@ -42,7 +42,6 @@ main() {
   collectTargets
   readPinned
   trimBlocks
-  readHistory
 
   {
     for b in $(orderBlocks); do
@@ -57,20 +56,30 @@ main() {
           if [[ $boundVal ]]; then
             boundIns[$n]=$boundVal
           else
-              local pinnedVal=${pinned[$n]}
-              if [[ $pinnedVal ]]; then
-                binds[$n]=$pinnedVal
-                boundIns[$n]=$pinnedVal
-                echo "bind! $n=$pinnedVal"
-              else
-                local found=${history[$n]}
-                  
-                echo "pick $n $found"
-                read v
-                binds[$n]=$v
-                boundIns[$n]=$pinnedVal
-                echo "bind $n=$v"
-              fi
+            local pinnedVal=${pinned[$n]}
+            if [[ $pinnedVal ]]; then
+              binds[$n]=$pinnedVal
+              boundIns[$n]=$pinnedVal
+              echo "bind! $n=$pinnedVal"
+            else
+                {
+                    echo -n "pick $n "
+                    tac $contextFile |
+                    sed -n '/'$n'\t/ { s/^.*\s//p }' |
+                    uniq -u |
+                    while read v; do
+                        echo -n ¦
+                        base64 -d <<< $v
+                    done |
+                    tr -d '\n'
+                    echo
+                }
+
+              read v
+              binds[$n]=$v
+              boundIns[$n]=$pinnedVal
+              echo "bind $n=$v"
+            fi
           fi
         done
 
@@ -363,14 +372,6 @@ getFile() {
   fi
 
   file=${files[$path]}
-}
-
-readHistory() {
-  declare -A history=()
-  while read k encoded; do
-    local v=$(base64 -d <<< $encoded)
-    history[$k]=$v
-  done <<< $(<$contextFile)
 }
 
 getCacheKey() {

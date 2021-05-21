@@ -71,8 +71,6 @@ main() {
 
                 echo -e "${colBindName}${type:4}${key}=${colBindValue}${val}${colNormal}" >&2
             }
-
-            # export "$line"
             ;;
 
         out)
