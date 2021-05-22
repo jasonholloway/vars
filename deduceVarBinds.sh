@@ -122,23 +122,22 @@ main() {
             declare -A attrs=()
 
             { while read -r line; do
-                  echo LINE $line >&2
                 case "$line" in
-                    @[[:alpha:]]*)
-                        read -r n v <<< "$line"
+                    @set[[:space:]+([:word:])[:space:]]*)
+                        read -r _ n v <<< "$line"
                         attrs[${n:1}]="$v"
                     ;;
 
-                    +([[:alpha:]])=*)
+                    @tty[[:space:]]*)
+                        echo "tty $line"
+                        read v <&3 #todo: currently will just be 'done'
+                    ;;
+
+                    +([[:word:]])=*)
                         n=${line%%=*}
                         v=${line#*=}
                         echo "bind $n=$v"
                         boundOuts[$n]="$v"
-                    ;;
-
-                    tty[[:space:]]*) #todo: should be more unique cmd string
-                        echo "tty $line"
-                        read v <&3 #todo: currently will just be 'done'
                     ;;
 
                     *)

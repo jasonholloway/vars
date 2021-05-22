@@ -8,11 +8,11 @@
 }
 
 @cacheTill() {
-    echo @cacheTill "$@"
+    echo @set cacheTill "$@"
 }
 
 @tty() {
-    echo tty $@
+    echo @tty $@
 }
 
 @k() {
