@@ -1,4 +1,5 @@
 #!/bin/bash
+shopt -s extglob
 
 declare -A \
   files \
@@ -115,39 +116,35 @@ main() {
             local body
             getBody $b
 
-            lines=$(eval "$body" | awk '
-              /^@\w+/ { print "cmd " $0; next }
-              /^\W*\w+=/ { print "bind " $0; next }
-              /^tty / { print $0; next }
-              { print "out " $0 }
-            ')
+            lines=$(eval "$body")
 
             declare -A boundOuts=()
             declare -A attrs=()
 
-            { while read -r type line; do
-                case $type in
-                    cmd)
+            { while read -r line; do
+                  echo LINE $line >&2
+                case "$line" in
+                    @[[:alpha:]]*)
                         read -r n v <<< "$line"
                         attrs[${n:1}]="$v"
                     ;;
 
-                    bind)
+                    +([[:alpha:]])=*)
                         n=${line%%=*}
                         v=${line#*=}
                         echo "bind $n=$v"
                         boundOuts[$n]="$v"
                     ;;
 
-                    tty)
+                    tty[[:space:]]*) #todo: should be more unique cmd string
                         echo "tty $line"
                         read v <&3 #todo: currently will just be 'done'
                     ;;
 
-                    out)
-                    if [[ ! -z ${targetBlocks[$b]} ]]; then
-                        echo "out $line"
-                    fi 
+                    *)
+                        if [[ ! -z ${targetBlocks[$b]} ]]; then
+                            echo "out $line"
+                        fi 
                     ;;
                 esac
               done <<< "$lines"
