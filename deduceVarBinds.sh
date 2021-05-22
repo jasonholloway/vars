@@ -66,9 +66,11 @@ main() {
                 {
                     echo -n "pick $n "
                     tac $contextFile |
-                    sed -n '/'$n'\t/ { s/^.*\s//p }' |
-                    uniq -u |
-                    while read v; do echo -n ¦$v; done
+                    sed -n '/^'$n'\t/ { s/^.*\s//p }' |
+                    nl |
+                    sort -k2 -u |
+                    sort |
+                    while read _ v; do echo -n ¦$v; done
                     echo
                 }
 
