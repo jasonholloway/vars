@@ -92,7 +92,7 @@ bindkey 'jvp' vars_pinArbitrary
 
 
 vars_pinFromContext() {
-  var=$(vars context list | fzy -q ""$1"" -l 20 | cut -f1)
+  var=$(vars context list | tac | fzy -q ""$1"" -l 20)
 
   if [[ $? && ! -z $var ]]; then
     vars pin $var

@@ -65,12 +65,16 @@ main() {
             else
                 {
                     echo -n "pick $n "
-                    tac $contextFile |
-                    sed -n '/^'$n'\t/ { s/^.*\s//p }' |
-                    nl |
-                    sort -k2 -u |
-                    sort |
-                    while read _ v; do echo -n ¦$v; done
+
+                    if [[ -e $contextFile ]]; then
+                        tac $contextFile |
+                        sed -n '/^'$n'=/ { s/^.*=//p }' |
+                        nl |
+                        sort -k2 -u |
+                        sort |
+                        while read _ v; do echo -n ¦$v; done
+                    fi
+
                     echo
                 }
 
@@ -182,7 +186,7 @@ main() {
     # blurt to context file
     { for t in ${!binds[@]}; do
         if [[ ${t:0:1} != '_' ]]; then
-          echo $t$'\t'${binds[$t]//$'\n'/$'\30'}
+          echo $t=${binds[$t]//$'\n'/$'\30'}
         fi
       done } >> "$contextFile"
 

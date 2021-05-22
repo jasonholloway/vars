@@ -24,25 +24,12 @@ pin() {
   [[ $# -eq 0 ]] && exit
     
   local -A toAdd=()
-  local -A fromContext=()
 
   for n in $@; do
-    if [[ $n =~ ^[[:alnum:]]+$ ]]; then
-      fromContext[$n]=1
-    elif [[ $n =~ ^[[:alnum:]]+=.* ]]; then
+    if [[ $n =~ ^[[:alnum:]]+=.* ]]; then
       toAdd[${n%%=*}]=${n#*=}
     fi
   done 
-
-  if [[ ${#fromContext[@]} > 0 && -e $contextFile ]]; then
-    while read n b; do
-      if [[ ${fromContext[$n]} -eq 1 ]]; then
-        local xv
-        read xv <<< "$(base64 -d <<< "$b")"
-        toAdd[$n]=$xv
-      fi
-    done < $contextFile
-  fi
 
   for n in ${!toAdd[@]}; do
     local v=${toAdd[$n]}
@@ -78,16 +65,19 @@ clearPinned() {
 }
 
 clearContext() {
-  echo '' > $contextFile
+  rm -f $contextFile
   echo "CLEARED CONTEXT" >&2
 }
 
 list() {
   if [[ -e $contextFile ]]; then
-    local v; local n
-    while read n v; do
-      echo -e "$n\t$(crop 50 $v)"
-    done < $contextFile
+    {
+        tac $contextFile |
+        nl |
+        sort -k2 -u |
+        sort -r |
+        cut -f2
+    }
   fi
 }
 
