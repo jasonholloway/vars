@@ -125,7 +125,7 @@ main() {
 
             { while read -r line; do
                 case "$line" in
-                    @set[[:space:]+([:word:])[:space:]]*)
+                    @set[[:space:]]+([[:word:]])[[:space:]]*)
                         read -r _ n v <<< "$line"
                         attrs[${n:1}]="$v"
                     ;;
