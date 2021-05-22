@@ -142,8 +142,8 @@ main() {
                                 echo -n $k=${binds[$k]//$'\n'/$'\32'}$'\31'
                             done
                         )
-                        
-                        echo "tty $ctx $arg"
+
+                        echo tty $ctx$'\x1C'$arg
                         read v <&3 #todo: currently will just be 'done'
                     ;;
 

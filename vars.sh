@@ -103,7 +103,7 @@ main() {
 
         tty) {
                 (
-                    read ctx cmd <<< "$line"
+                    IFS=$'\x1C' read ctx cmd <<< "$line"
 
                     while IFS='=' read -d$'\31' -r n v; do
                         v=${v//$'\32'/ }
