@@ -75,9 +75,8 @@ main() {
                 }
 
               read v
-              local v2=${v//$'\30'/$'\n'}
-              binds[$n]=$v2
-              boundIns[$n]=$v2
+              binds[$n]=$v
+              boundIns[$n]=$v
               echo "bind $n=$v"
             fi
           fi
@@ -112,7 +111,7 @@ main() {
                   echo "bind $i=$v"
               fi
               
-              export "$i=$v"
+              export "$i=${v//$'\30'/$'\n'}"
             done
 
             local body
