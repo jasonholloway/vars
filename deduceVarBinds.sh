@@ -67,17 +67,14 @@ main() {
                     tac $contextFile |
                     sed -n '/'$n'\t/ { s/^.*\s//p }' |
                     uniq -u |
-                    while read v; do
-                        echo -n ¦
-                        base64 -d <<< $v
-                    done |
-                    tr -d '\n'
+                    while read v; do echo -n ¦$v; done
                     echo
                 }
 
               read v
-              binds[$n]=$v
-              boundIns[$n]=$pinnedVal
+              local v2=${v//$'\30'/$'\n'}
+              binds[$n]=$v2
+              boundIns[$n]=$v2
               echo "bind $n=$v"
             fi
           fi
@@ -183,9 +180,7 @@ main() {
     # blurt to context file
     { for t in ${!binds[@]}; do
         if [[ ${t:0:1} != '_' ]]; then
-          echo -ne "$t\t"
-          base64 -w0 <<< "${binds[$t]}"
-          echo
+          echo $t$'\t'${binds[$t]//$'\n'/$'\30'}
         fi
       done } >> "$contextFile"
 

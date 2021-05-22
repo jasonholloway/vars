@@ -84,8 +84,8 @@ clearContext() {
 
 list() {
   if [[ -e $contextFile ]]; then
-    while read n b; do
-      read v <<< "$(base64 -d <<< "$b")"
+    local v; local n
+    while read n v; do
       echo -e "$n\t$(crop 50 $v)"
     done < $contextFile
   fi
