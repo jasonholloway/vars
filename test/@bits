@@ -26,6 +26,8 @@ echo "${cowName}: Moo!"
 
 #+++++++++++++++++++
 # n: tryTTY
-# in: dog
-@tty echo $dog
+# in: dog age
+@tty 'echo DOG1 $dog $age $(tty) >&2' 
+@tty 'echo DOG2 $dog $age $(tty) >&2' 
+@tty 'echo DOG3 $(@curl google.com) >&2' 
 

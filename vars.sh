@@ -102,8 +102,19 @@ main() {
             };;
 
         tty) {
-            eval "$line" >&2
-            echo done >&6 #todo: could pipe response from above back
+                (
+                    read ctx cmd <<< "$line"
+
+                    while IFS='=' read -d$'\31' -r n v; do
+                    export "$n=${v//$'\32'/ }"
+                    done <<< "$ctx"
+
+                    source $VARS_PATH/helpers.sh 
+
+                    eval "$cmd" >&2 #output could be parsed from here...
+                )
+
+                echo done >&6 #todo: could pipe response from above back
             };;
         esac
     done

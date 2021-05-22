@@ -17,7 +17,7 @@
 
 @k() {
     IFS=: read context namespace <<< "$k8s"
-    [[ $context && $namespace ]] && 
+    [[ $context && $namespace ]] &&
         kubectl --context $context --namespace $namespace $@
 }
 

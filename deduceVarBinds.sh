@@ -131,7 +131,14 @@ main() {
 
                     @tty[[:space:]]*)
                         read -r _ arg <<< "$line"
-                        echo "tty $arg"
+
+                        local ctx=$(
+                            for k in ${!binds[@]}; do
+                                echo -n $k=${binds[$k]//$'\n'/$'\32'}$'\31'
+                            done
+                        )
+                        
+                        echo "tty $ctx $arg"
                         read v <&3 #todo: currently will just be 'done'
                     ;;
 
@@ -139,7 +146,8 @@ main() {
                         n=${line%%=*}
                         v=${line#*=}
                         echo "bind $n=$v"
-                        boundOuts[$n]="$v"
+                        boundOuts[$n]=$v
+                        binds[$n]=$v
                     ;;
 
                     *)
@@ -155,10 +163,6 @@ main() {
               [[ -z $cacheKey ]] && cacheKey=$(getCacheKey $b)
               setCache boundOuts $cacheKey ${attrs[cacheTill]}
             fi
-
-            for n in ${!boundOuts[@]}; do
-              binds[$n]=${boundOuts[$n]}
-            done
 
           fi
         fi
