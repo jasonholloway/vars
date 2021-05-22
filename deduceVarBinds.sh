@@ -131,7 +131,8 @@ main() {
                     ;;
 
                     @tty[[:space:]]*)
-                        echo "tty $line"
+                        read -r _ arg <<< "$line"
+                        echo "tty $arg"
                         read v <&3 #todo: currently will just be 'done'
                     ;;
 

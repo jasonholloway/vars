@@ -21,3 +21,11 @@ echo Hello, ${dog}!
 # n: sayMoo
 # in: cowName
 echo "${cowName}: Moo!"
+
+
+
+#+++++++++++++++++++
+# n: tryTTY
+# in: dog
+@tty echo $dog
+
