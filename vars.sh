@@ -106,7 +106,9 @@ main() {
                     read ctx cmd <<< "$line"
 
                     while IFS='=' read -d$'\31' -r n v; do
-                    export "$n=${v//$'\32'/ }"
+                        v=${v//$'\32'/ }
+                        v=${v//$'\30'/$'\n'}
+                        export "$n=$v"
                     done <<< "$ctx"
 
                     source $VARS_PATH/helpers.sh 

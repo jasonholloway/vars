@@ -115,7 +115,8 @@ main() {
                   echo "bind $i=$v"
               fi
               
-              export "$i=${v//$'\30'/$'\n'}"
+              v=${v//$'\30'/$'\n'}
+              export "$i=$v"
             done
 
             local body
