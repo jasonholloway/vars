@@ -36,8 +36,6 @@ export outFile="$HOME/.vars/out"
 
 export now=$(date +%s)
 
-source $VARS_PATH/helpers.sh
-
 main() {
   readBlocks "$filePaths"
   collectTargets
@@ -122,7 +120,15 @@ main() {
             local body
             getBody $b
 
-            lines=$(eval "$body")
+            #so here, we'd send the execution back to the frontend
+            #and we'd read the line outputs happily enough
+            #removing the need for a separate @tty command - simplification
+            #
+
+            lines=$(
+                source $VARS_PATH/helpers.sh
+                eval "$body"
+                )
 
             declare -A boundOuts=()
             declare -A attrs=()
