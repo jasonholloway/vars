@@ -15,6 +15,12 @@
     echo tty $@
 }
 
+@k() {
+    IFS=: read context namespace <<< "$k8s"
+    [[ $context && $namespace ]] && 
+        kubectl --context $context --namespace $namespace $@
+}
+
 @bcp() {
     local connString="$1"
     shift
