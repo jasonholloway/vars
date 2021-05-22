@@ -121,33 +121,40 @@ main() {
             lines=$(eval "$body" | awk '
               /^@\w+/ { print "cmd " $0; next }
               /^\W*\w+=/ { print "bind " $0; next }
+              /^tty / { print $0; next }
               { print "out " $0 }
             ')
 
             declare -A boundOuts=()
             declare -A attrs=()
 
-            while read -r type line; do
-              case $type in
-                cmd)
-                  read -r n v <<< "$line"
-                  attrs[${n:1}]="$v"
-                ;;
+            { while read -r type line; do
+                case $type in
+                    cmd)
+                        read -r n v <<< "$line"
+                        attrs[${n:1}]="$v"
+                    ;;
 
-                bind)
-                  n=${line%%=*}
-                  v=${line#*=}
-                  echo "bind $n=$v"
-                  boundOuts[$n]="$v"
-                ;;
+                    bind)
+                        n=${line%%=*}
+                        v=${line#*=}
+                        echo "bind $n=$v"
+                        boundOuts[$n]="$v"
+                    ;;
 
-                out)
-                  if [[ ! -z ${targetBlocks[$b]} ]]; then
-                    echo "out $line"
-                  fi 
-                ;;
-              esac
-            done <<< "$lines"
+                    tty)
+                        echo "tty $line"
+                        read v <&3 #todo: currently will just be 'done'
+                    ;;
+
+                    out)
+                    if [[ ! -z ${targetBlocks[$b]} ]]; then
+                        echo "out $line"
+                    fi 
+                    ;;
+                esac
+              done <<< "$lines"
+            } 3<&0
 
             if [[ ! -z ${attrs[cacheTill]} ]]; then
               [[ -z $cacheKey ]] && cacheKey=$(getCacheKey $b)

@@ -11,6 +11,10 @@
     echo @cacheTill "$@"
 }
 
+@tty() {
+    echo tty $@
+}
+
 @bcp() {
     local connString="$1"
     shift

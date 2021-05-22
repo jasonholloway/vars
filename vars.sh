@@ -85,8 +85,7 @@ main() {
             echo -e "${colBad}${line}${colNormal}" >&2
             ;;
 
-        pick)
-            {
+        pick) {
                 read name rawVals <<< "$line"
 
                 local val=$({
@@ -94,14 +93,18 @@ main() {
                 } | fzy --prompt "${name}> ")
 
                 echo $val >&6
-            }
-            ;;
+            };;
 
-        pin)
-            read key val <<< "$line"
-            $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
-            echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
-            ;;
+        pin) {
+                read key val <<< "$line"
+                $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
+                echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
+            };;
+
+        tty) {
+            eval "$line" >&2
+            echo done >&6 #todo: could pipe response from above back
+            };;
         esac
     done
 
