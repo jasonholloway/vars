@@ -101,22 +101,22 @@ main() {
                 echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
             };;
 
-        tty) {
+        run) {
                 (
-                    IFS=$'\x1C' read ctx cmd <<< "$line"
+                    IFS=$'\031' read -r assignBinds assignCmd <<< "$line"
+                    eval "$assignBinds"
+                    eval "$assignCmd"
 
-                    while IFS='=' read -d$'\31' -r n v; do
-                        v=${v//$'\32'/ }
-                        v=${v//$'\30'/$'\n'}
-                        export "$n=$v"
-                    done <<< "$ctx"
+                    for n in ${!binds[@]}; do
+                        export "$n=${binds[$n]}"
+                    done
 
                     source $VARS_PATH/helpers.sh 
 
-                    eval "$cmd" >&2 #output could be parsed from here...
-                )
+                    eval "$cmd"
 
-                echo done >&6 #todo: could pipe response from above back
+                    echo $'\023'
+                ) >&6
             };;
         esac
     done

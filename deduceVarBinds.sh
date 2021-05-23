@@ -119,16 +119,20 @@ main() {
 
             local body
             getBody $b
+            
+            {
+                lines=$(
+                    #below should be selected bindIns...
+                    #and caching can be moved to the runner
+                    cmd=$body
+                    echo "run ${binds[@]@A}"$'\031'"${cmd@A}" >&4
 
-            #so here, we'd send the execution back to the frontend
-            #and we'd read the line outputs happily enough
-            #removing the need for a separate @tty command - simplification
-            #
-
-            lines=$(
-                source $VARS_PATH/helpers.sh
-                eval "$body"
-                )
+                    while read -r l; do
+                        [[ $l == $'\023' ]] && break
+                        echo "$l"
+                    done
+                 )
+            } 4>&1
 
             declare -A boundOuts=()
             declare -A attrs=()
@@ -138,19 +142,6 @@ main() {
                     @set[[:space:]]+([[:word:]])[[:space:]]*)
                         read -r _ n v <<< "$line"
                         attrs[${n:1}]="$v"
-                    ;;
-
-                    @tty[[:space:]]*)
-                        read -r _ arg <<< "$line"
-
-                        local ctx=$(
-                            for k in ${!binds[@]}; do
-                                echo -n $k=${binds[$k]//$'\n'/$'\32'}$'\31'
-                            done
-                        )
-
-                        echo tty $ctx$'\x1C'$arg
-                        read v <&3 #todo: currently will just be 'done'
                     ;;
 
                     +([[:word:]])=*)
