@@ -97,7 +97,7 @@ main() {
           local cacheResult=1
           if [[ ${flags[$b]} =~ C && ! $isTargetBlock ]]; then
             cacheKey=$(getCacheKey $b)
-            tryGetCache binds $cacheKey
+            tryGetCache binds $cacheKey #but this should just be on bindIns!!!
             cacheResult=$?
           fi
 
@@ -116,14 +116,14 @@ main() {
               v=${v//$'\30'/$'\n'}
               export "$i=$v"
             done
-
-            local body
-            getBody $b
             
             {
                 lines=$(
                     #below should be selected bindIns...
                     #and caching can be moved to the runner
+                    local body
+                    getBody $b
+
                     cmd=$body
                     echo "run ${binds[@]@A}"$'\031'"${cmd@A}" >&4
 
