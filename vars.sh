@@ -115,6 +115,7 @@ main() {
 
                     eval "$cmd"
 
+                    echo
                     echo $'\023'
                 ) >&6
             };;

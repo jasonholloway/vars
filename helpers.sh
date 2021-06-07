@@ -1,5 +1,4 @@
 
-
 @curl() {
     curl -Ss -Lk \
          $([ ! -z $VARS_VERBOSE ] && echo "-v") \
