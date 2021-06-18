@@ -59,7 +59,7 @@ main() {
             if [[ $pinnedVal ]]; then
               binds[$n]=$pinnedVal
               boundIns[$n]=$pinnedVal
-              echo "bind! $n=$pinnedVal"
+              echo "bind! pinned $n=$pinnedVal"
             else
                 {
                     echo -n "pick $n "
@@ -79,7 +79,7 @@ main() {
               read v
               binds[$n]=$v
               boundIns[$n]=$v
-              echo "bind $n=$v"
+              echo "bind . $n=$v"
             fi
           fi
         done
@@ -110,7 +110,7 @@ main() {
                   echo "pick $i $v"
                   read v
                   binds[$i]=$v
-                  echo "bind $i=$v"
+                  echo "bind . $i=$v"
               fi
               
               v=${v//$'\30'/$'\n'}
@@ -147,7 +147,7 @@ main() {
                     +([[:word:]])=*)
                         n=${line%%=*}
                         v=${line#*=}
-                        echo "bind $n=$v"
+                        echo "bind $b $n=$v"
                         boundOuts[$n]=$v
                         binds[$n]=$v
                     ;;
@@ -414,7 +414,7 @@ tryGetCache() {
   while IFS=: read -r name encoded; do
     local val=$(echo $encoded | base64 -d)
     _binds[$name]="$val"
-    echo "bind\` $name=$val"
+    echo "bind\` . $name=$val"
 
   done <<< "$foundBinds"
   

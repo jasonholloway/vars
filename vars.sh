@@ -16,6 +16,7 @@ colBindValue='\033[0;35m'
 colGood='\033[0;32m'
 colBad='\033[0;31m'
 colNormal='\033[0m'
+colDimmest='\e[38;5;235m'
 
 main() {
   local CACHE=~/.vars/cache
@@ -56,10 +57,12 @@ main() {
             [[ ! $quietMode ]] && {
                 local d
 
-                if [[ ${#line} -gt 100 ]]; then
-                    d="$(echo "$line" | cut -c -100)..."
+                read src exp <<< "$line"
+
+                if [[ ${#exp} -gt 100 ]]; then
+                    d="$(echo "$exp" | cut -c -100)..."
                 else
-                    d="$line"
+                    d="$exp"
                 fi
 
                 key="${d%%=*}"
@@ -69,7 +72,11 @@ main() {
                     val='****'
                 }
 
-                echo -e "${colBindName}${type:4}${key}=${colBindValue}${val}${colNormal}" >&2
+                IFS='|' read path index <<< "$src"
+                shortPath=$(realpath --relative-to=$PWD $path) >&2
+                src=${shortPath}$([[ $index ]] && echo "|$index")
+
+                echo -e "${colBindName}${type:4}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
             }
             ;;
 
