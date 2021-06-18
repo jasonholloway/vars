@@ -16,7 +16,8 @@ colBindValue='\033[0;35m'
 colGood='\033[0;32m'
 colBad='\033[0;31m'
 colNormal='\033[0m'
-colDimmest='\e[38;5;235m'
+colDim='\e[38;5;240m'
+colDimmest='\e[38;5;236m'
 
 main() {
   local CACHE=~/.vars/cache
@@ -53,6 +54,15 @@ main() {
 
     while read -ru 5 type line; do
       case $type in
+        targets)
+            for src in $line; do
+                IFS='|' read path index <<< "$src"
+                shortPath=$(realpath --relative-to=$PWD $path) >&2
+                src=${shortPath}$([[ $index ]] && echo "|$index")
+
+                echo -e "${colDim}Running ${src}${colNormal}" >&2
+            done
+            ;;
         bind*)
             [[ ! $quietMode ]] && {
                 local d

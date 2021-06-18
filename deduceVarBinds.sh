@@ -42,6 +42,8 @@ main() {
   readPinned
   trimBlocks
 
+  echo "targets ${!targetBlocks[@]}"
+
   {
     for b in $(orderBlocks); do
         local isTargetBlock=
