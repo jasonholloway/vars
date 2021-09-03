@@ -2,18 +2,21 @@
 files="$1"
 
 main() {
-  scan "$files"
-}
+  while read -r file; do
+    [[ $file == "*.gpg" ]] && continue
 
-scan() {
-  files=$(for f in $@; do [[ ${f: -4} == ".gpg" ]] || echo "$f"; done)
+    echo "!!! $file"
+    cat "$file"
 
-  { awk '
-    /#\W+n:/ {print "B," $3}
-    /#\W+in:/ {for(i=3; i<=NF; i++) print "I," $i}
-    /#\W+out:/ {for(i=3; i<=NF; i++) print "O," $i}
-    ' <<< "$(cat $files)"
-  } | sort | uniq
+  done <<< "$files" |
+      awk '
+        /^!!! /     {file=$2}
+        /^#\W+n:/   {print "B," $3 "," file}
+        /^#\W+in:/  {for(i=3; i<=NF; i++) print "I," $i "," file}
+        /^#\W+out:/ {for(i=3; i<=NF; i++) print "O," $i "," file}
+      ' |
+      sort |
+      uniq
 }
 
 main "$@"
