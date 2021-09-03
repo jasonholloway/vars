@@ -79,6 +79,12 @@ main() {
                 }
 
               read v
+
+              if [[ $v == *! ]]; then
+                v=${v%*!}
+                echo "pin $n $v"
+              fi
+
               binds[$n]=$v
               boundIns[$n]=$v
               echo "bind . $n=$v"
