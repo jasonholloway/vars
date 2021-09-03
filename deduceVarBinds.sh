@@ -111,6 +111,12 @@ main() {
               if [[ ${v:0:1} == ¦ ]]; then
                   echo "pick $i $v"
                   read v
+
+                  if [[ $v == *! ]]; then
+                    v=${v%*!}
+                    echo "pin $i $v"
+                  fi
+              
                   binds[$i]=$v
                   echo "bind . $i=$v"
               fi
