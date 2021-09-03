@@ -45,7 +45,7 @@ main() {
     exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
     {
-        echo $(findFiles)
+        echo $(findFiles 1)
         echo ${blocks[@]}
         echo ${targets[@]}
         echo ${flags[@]}
@@ -182,7 +182,12 @@ parsePrep() {
 parseLs() {
   parse1 '^(ls|list)$' \
     && {
-      files=$(findFiles)
+      {
+        parse1 '^([0-9]+)$' \
+        && maxDepth=$w
+      } || maxDepth=1
+
+      files=$(findFiles $maxDepth)
       $VARS_PATH/list.sh "$files"
     }
 }
@@ -283,8 +288,9 @@ parseArg() {
       && echo "$w"
 }
 
+
 findFiles() {
-  "$VARS_PATH/listDotFiles.sh" '@*'
+  find ~+ -maxdepth $1 -name '@*'
 }
 
 deduce() {
