@@ -39,10 +39,16 @@ bindkey 'jvl' vars_choose
 
 
 vars_get() {
-  target=$(vars list | sed -n '/^O/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
+  targets=$(vars ls 2)
+
+  var=$(echo "$targets" | awk -F, '/^O/ { print $2 }' | fzy -q ""$1"" -l 20)
+
+  read dir target <<<"$(echo "$targets" | awk -F, '/^O/ && $2 == "'$var'" { print $3 " " $7 }')"
+
+  shortDir=$(realpath --relative-to=$PWD $dir)
 
   if [[ $? && ! -z $target ]]; then
-    BUFFER="vg $target"
+    BUFFER="(cd $shortDir && vg $target)"
     CURSOR=${#BUFFER}
     zle accept-line
   fi
@@ -81,10 +87,18 @@ bindkey 'jvr' vars_run
 
 
 vars_pinArbitrary() {
-  var=$(vars list | sed -n '/^I/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
+  # var=$(vars list | sed -n '/^I/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
+
+  targets=$(vars ls 2)
+
+  var=$(echo "$targets" | awk -F, '/^I/ { print $2 }' | sort | uniq | fzy -q ""$1"" -l 20)
+
+  read dir target <<<"$(echo "$targets" | awk -F, '/^I/ && $2 == "'$var'" { print $3 " " $7 }')"
+
+  shortDir=$(realpath --relative-to=$PWD $dir)
 
   if [[ $? && ! -z $var ]]; then
-    BUFFER="vp ${var}="
+    BUFFER="vp ${target}="
     CURSOR=${#BUFFER}
   fi
 
