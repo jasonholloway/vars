@@ -45,7 +45,7 @@ main() {
     exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
     {
-        echo $(findFiles 1)
+        echo $(findFiles 1 $PWD)
         echo ${blocks[@]}
         echo ${targets[@]}
         echo ${flags[@]}
@@ -187,7 +187,7 @@ parseLs() {
         && maxDepth=$w
       } || maxDepth=1
 
-      files=$(findFiles $maxDepth)
+      files=$(findFiles $maxDepth $PWD)
       $VARS_PATH/list.sh "$files"
     }
 }
@@ -290,7 +290,15 @@ parseArg() {
 
 
 findFiles() {
-  find ~+ -maxdepth $1 -name '@*'
+  depth=$1
+  shift
+  wds="$*"
+
+  for wd in $wds; do
+    (cd "$wd" && "$VARS_PATH/listDotFiles.sh" '@*' "$depth")
+  done |
+    sort |
+    uniq
 }
 
 deduce() {
@@ -310,7 +318,7 @@ readTargets() {
 }
 
 render() {
-  "$VARS_PATH/render.sh" "$(</dev/stdin)"
+  "$VARS_PATH/render.sh"
 }
 
 main $@

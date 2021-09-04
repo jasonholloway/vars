@@ -1,13 +1,11 @@
 #!/bin/bash
-shopt -s extglob
 
-for relGlob in "$@"; do
-	pp=""
-	echo "$PWD" \
-	| tr '/' '\n' \
-	| while read -r p; do \
-			pp="$pp$p/"; \
-			ls -d "$pp"$relGlob 2>/dev/null; \
-		done
+pattern="$1"
+peekDepth="${2:-1}"
+
+find ~+ -maxdepth "$peekDepth" -name "$pattern"
+
+while cd ..; do
+	find ~+ -maxdepth 1 -name "$pattern"
+	[[ $PWD = / ]] && exit 0
 done
-

@@ -57,10 +57,16 @@ bindkey 'jvg' vars_get
 
 
 vars_run() {
-  block=$(vars list | sed -n '/^B/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
+  targets=$(vars ls 2)
 
-  if [[ $? && ! -z $block ]]; then
-    BUFFER="vr $block"
+  block=$(echo "$targets" | awk -F, '/^B/ { print $2 }' | fzy -q ""$1"" -l 20)
+
+  read dir target <<<"$(echo "$targets" | awk -F, '/^B/ && $2 == "'$block'" { print $3 " " $7 }')"
+
+  shortDir=$(realpath --relative-to=$PWD $dir)
+
+  if [[ $? && ! -z $target ]]; then
+    BUFFER="(cd $shortDir && vr $target)"
     CURSOR=${#BUFFER}
     zle accept-line
   fi
