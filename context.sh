@@ -82,7 +82,8 @@ list() {
 }
 
 previous() {
-  "$VARS_PATH/render.sh" "$(sed -n 's/^out //p' <$outFile)"
+  sed -n 's/^out //p' <"$outFile" |
+    "$VARS_PATH/render.sh"
 }
 
 crop() {

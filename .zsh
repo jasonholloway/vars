@@ -91,14 +91,14 @@ vars_pinArbitrary() {
 
   targets=$(vars ls 2)
 
-  var=$(echo "$targets" | awk -F, '/^I/ { print $2 }' | sort | uniq | fzy -q ""$1"" -l 20)
+  var=$(echo "$targets" | awk -F, '/^I/ { print $7 }' | sort | uniq | fzy -q ""$1"" -l 20)
 
-  read dir target <<<"$(echo "$targets" | awk -F, '/^I/ && $2 == "'$var'" { print $3 " " $7 }')"
+  # read dir target <<<"$(echo "$targets" | awk -F, '/^I/ && $2 == "'$var'" { print $3 " " $7 }')"
 
-  shortDir=$(realpath --relative-to=$PWD $dir)
+  # shortDir=$(realpath --relative-to=$PWD $dir)
 
   if [[ $? && ! -z $var ]]; then
-    BUFFER="vp ${target}="
+    BUFFER="vp ${var}="
     CURSOR=${#BUFFER}
   fi
 

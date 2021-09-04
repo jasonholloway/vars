@@ -42,7 +42,7 @@ main() {
   readPinned
   trimBlocks
 
-  echo "targets ${!targetBlocks[@]}"
+  echo "targets ${!targetBlocks[*]}"
 
   {
     for b in $(orderBlocks); do
@@ -153,12 +153,12 @@ main() {
 
             { while read -r line; do
                 case "$line" in
-                    @set[[:space:]]+([[:word:]])[[:space:]]*)
+                    @set[[:space:]]+\([[:word:]]\)[[:space:]]*)
                         read -r _ n v <<< "$line"
                         attrs[${n:1}]="$v"
                     ;;
 
-                    +([[:word:]])=*)
+                    +\([[:word:]]\)=*)
                         n=${line%%=*}
                         v=${line#*=}
                         echo "bind $b $n=$v"
@@ -190,6 +190,11 @@ main() {
       if [[ ${v:0:1} == ¦ ]]; then
         echo "pick $t $v"
         read v
+
+        if [[ $v == *! ]]; then
+          v=${v%*!}
+          echo "pin $t $v"
+        fi
       fi
                 
       echo out $v
@@ -217,6 +222,14 @@ readPinned() {
     local t v
     IFS='=' read -r t v <<< "$adHoc"
     pinned[$t]=$v
+  done
+
+  for t in $targetNames; do
+    local p=${pinned[$t]}
+    if [[ $p ]]; then
+      binds[$t]=$p
+      echo "bind pinned $t=$p"
+    fi
   done
 }
 
@@ -275,18 +288,18 @@ trimBlocks() {
   local n b i
 
   local -A trimmables=()
-  for b in ${!blocks[@]}; do trimmables[$b]=1; done
+  for b in ${!blocks[*]}; do trimmables[$b]=1; done
 
-  for b in ${!targetBlocks[@]}; do
+  for b in ${!targetBlocks[*]}; do
     unset trimmables[$b]
     for i in ${ins[$b]}; do targets[$i]=1; done
   done
 
   local -A pending=()
-  for t in ${!targets[@]}; do pending[$t]=1; done
+  for t in ${!targets[*]}; do pending[$t]=1; done
 
   local -A supplying=()
-  for b in ${!blocks[@]}; do
+  for b in ${!blocks[*]}; do
     for t in ${outs[$b]}; do
       supplying[$t]="${supplying[$t]} $b"
     done
@@ -295,7 +308,7 @@ trimBlocks() {
   local -A seen=()
   
   while [ ${#pending[@]} -gt 0 ]; do
-    for t in ${!pending[@]}; do
+    for t in ${!pending[*]}; do
 
       if [[ -z ${pinned[$t]} ]]; then
         local bs=${supplying[$t]}
@@ -316,12 +329,12 @@ trimBlocks() {
     done
   done
 
-  for b in ${!trimmables[@]}; do
+  for b in ${!trimmables[*]}; do
     unset blocks[$b]
   done
 
   if [[ $prepMode ]]; then
-    for b in ${!targetBlocks[@]}; do
+    for b in ${!targetBlocks[*]}; do
       unset blocks[$b]
     done
   fi
@@ -329,7 +342,7 @@ trimBlocks() {
 
 orderBlocks() {
   local b
-  for b in ${!blocks[@]}; do
+  for b in ${!blocks[*]}; do
     for i in ${ins[$b]}; do
       echo "@$i $b"
     done

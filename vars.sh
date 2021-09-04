@@ -37,8 +37,8 @@ main() {
 
   [[ ! shouldRun -eq 1 ]] && exit 0
 
-  [[ ${flags[@]} =~ q || ! -t 1 ]] && local quietMode=1
-  [[ ${flags[@]} =~ v ]] && local verboseMode=1
+  [[ ${flags[*]} =~ q || ! -t 1 ]] && local quietMode=1
+  [[ ${flags[*]} =~ v ]] && local verboseMode=1
 
   {
     coproc { deduce; }
@@ -46,13 +46,14 @@ main() {
 
     {
         echo $(findFiles 1 $PWD)
-        echo ${blocks[@]}
-        echo ${targets[@]}
-        echo ${flags[@]}
-        echo ${adHocs[@]}
+        echo ${blocks[*]}
+        echo ${targets[*]}
+        echo ${flags[*]}
+        echo ${adHocs[*]}
     } >&6
 
     while read -ru 5 type line; do
+      # echo "+++ $type $line" >&2
       case $type in
         targets)
             for src in $line; do
