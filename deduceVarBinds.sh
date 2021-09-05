@@ -6,7 +6,6 @@ declare -A \
   blocks \
   blockLookup \
   blockFiles \
-  stashed \
   pinned \
   ins \
   outs \
@@ -16,20 +15,20 @@ declare -A \
   targetBlocks \
   targets
 
-read filePaths
-read targetBlockNames
-read targetNames
-read modes
-read adHocs
+read -r filePaths
+read -r targetBlockNames
+read -r targetNames
+read -r modes
+read -r adHocs
 
 [[ $modes =~ p ]] && export prepMode=1
 [[ $modes =~ v ]] && export debugMode=1
 
-export cacheDir=${CACHE:-$HOME/.vars/cache}
-mkdir -p $cacheDir
+export cacheDir="${CACHE:-$HOME/.vars/cache}"
+mkdir -p "$cacheDir"
 
-export pinnedDir=${PINNED:-$HOME/.vars/pinned}
-mkdir -p $pinnedDir
+export pinnedDir="${PINNED:-$HOME/.vars/pinned}"
+mkdir -p "$pinnedDir"
 
 export contextFile="$HOME/.vars/context"
 export outFile="$HOME/.vars/out"
@@ -37,15 +36,18 @@ export outFile="$HOME/.vars/out"
 export now=$(date +%s)
 
 main() {
-  readBlocks "$filePaths"
-  collectTargets
+  collectBlocks "$filePaths"
+  synthTargets
+  readBlocks
   readPinned
+  lookupTargetBlocks
   trimBlocks
 
   echo "targets ${!targetBlocks[*]}"
 
   {
     for b in $(orderBlocks); do
+        
         local isTargetBlock=
         [[ ${targetBlocks[$b]} == 1 ]] && isTargetBlock=1
         
@@ -153,12 +155,12 @@ main() {
 
             { while read -r line; do
                 case "$line" in
-                    @set[[:space:]]+\([[:word:]]\)[[:space:]]*)
+                    @set[[:space:]]+([[:word:]])[[:space:]]*)
                         read -r _ n v <<< "$line"
                         attrs[${n:1}]="$v"
                     ;;
 
-                    +\([[:word:]]\)=*)
+                    +([[:word:]])=*)
                         n=${line%%=*}
                         v=${line#*=}
                         echo "bind $b $n=$v"
@@ -182,22 +184,6 @@ main() {
 
           fi
         fi
-    done
-
-    for t in $targetNames; do
-      local v=${binds[$t]}
-
-      if [[ ${v:0:1} == ¦ ]]; then
-        echo "pick $t $v"
-        read v
-
-        if [[ $v == *! ]]; then
-          v=${v%*!}
-          echo "pin $t $v"
-        fi
-      fi
-                
-      echo out $v
     done
 
     # blurt to context file
@@ -233,7 +219,7 @@ readPinned() {
   done
 }
 
-readBlocks() {
+collectBlocks() {
   for file in $@; do
 
     local outline
@@ -247,39 +233,54 @@ readBlocks() {
 
       blockFiles[$n]=$file
       blocks[$n]=$part
-
-      while read -r line; do
-        case $line in
-          '# n:'*)
-            local shortName=$(trim ${line#\#*:})
-            blockLookup[$shortName]=$n
-            ;;
-          '# in:'*)
-            ins[$n]=${line#\#*:}
-          ;;
-          '# out:'*)
-            o=${line#\#*:}
-            outs[$n]="${outs[$n]} $o"
-          ;;
-          '# cache'*)
-            flags[$n]="${flags[$n]} C"
-          ;;
-        esac
-      done <<< "$part"
     done
   done
 }
 
-collectTargets() {
-  local n b
-
-  for n in $targetNames; do
-    targets[$n]=1
+readBlocks() {
+  for bid in ${!blocks[*]}; do
+    local part=${blocks[$bid]}
+    while read -r line; do
+      case $line in
+        '# n:'*)
+          local shortName=$(trim ${line#\#*:})
+          blockLookup[$shortName]=$bid
+          ;;
+        '# in:'*)
+          ins[$bid]=${line#\#*:}
+        ;;
+        '# out:'*)
+          o=${line#\#*:}
+          outs[$bid]="${outs[$bid]} $o"
+        ;;
+        '# cache'*)
+          flags[$bid]="${flags[$bid]} C"
+        ;;
+      esac
+    done <<< "$part"
   done
+}
 
-  for n in $targetBlockNames; do
-    for b in ${blockLookup[$n]}; do
-        targetBlocks[$b]=1
+synthTargets() {
+  local tn bid
+
+  for tn in $targetNames; do
+    local bid="get:$tn"
+    local body="
+# in: $tn
+echo \$$tn
+"
+
+    blocks[$bid]="$body"
+    bodies[$bid]="$body"
+    targetBlocks[$bid]=1
+  done
+}
+
+lookupTargetBlocks() {
+  for bn in $targetBlockNames; do
+    for bid in ${blockLookup[$bn]}; do
+      targetBlocks[$bid]=1
     done
   done
 }
@@ -460,8 +461,8 @@ setCache() {
 
   echo -e "$key\n$expiry" > "$file"
 
-  for n in ${!_binds[@]}; do
-    echo $n:$(echo "${_binds[$n]}" | base64 -w0) >> "$file"
+  for n in ${!_binds[*]}; do
+    echo "$n:$(echo "${_binds[$n]}" | base64 -w0)" >> "$file"
   done
 }
 
