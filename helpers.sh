@@ -10,6 +10,10 @@
     echo @set cacheTill "$@"
 }
 
+@bind() {
+    echo @bind "$@"
+}
+
 @tty() {
     echo @tty $@
 }

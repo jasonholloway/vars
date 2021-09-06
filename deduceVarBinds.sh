@@ -63,7 +63,8 @@ main() {
             if [[ $pinnedVal ]]; then
               binds[$n]=$pinnedVal
               boundIns[$n]=$pinnedVal
-              echo "bind! pinned $n=$pinnedVal"
+              echo "bind! pinned $n"
+              echo "$pinnedVal"$'\031'
             else
                 {
                     echo -n "pick $n "
@@ -89,7 +90,8 @@ main() {
 
               binds[$n]=$v
               boundIns[$n]=$v
-              echo "bind . $n=$v"
+              echo "bind . $n"
+              echo "$v"$'\031'
             fi
           fi
         done
@@ -126,7 +128,8 @@ main() {
                   fi
               
                   binds[$i]=$v
-                  echo "bind . $i=$v"
+                  echo "bind . $i"
+                  echo "$v"$'\031'
               fi
               
               v=${v//$'\30'/$'\n'}
@@ -139,8 +142,8 @@ main() {
                     #and caching can be moved to the runner
                     local body
                     getBody $b
-
                     cmd=$body
+
                     echo "run ${binds[@]@A}"$'\031'"${cmd@A}" >&4
 
                     while read -r l; do
@@ -160,10 +163,24 @@ main() {
                         attrs[${n:1}]="$v"
                     ;;
 
+                    @bind[[:space:]]+([[:word:]])[[:space:]]*)
+                        read -r _ n v <<< "$line"
+                        echo "bind $b $n"
+                        echo "$v"$'\031'
+                        boundOuts[$n]=$v
+                        binds[$n]=$v
+                    ;;
+
+                    @out*)
+                        read -r _  v <<< "$line"
+                        echo "out $v"
+                    ;;
+
                     +([[:word:]])=*)
                         n=${line%%=*}
                         v=${line#*=}
-                        echo "bind $b $n=$v"
+                        echo "bind $b $n"
+                        echo "$v"$'\031'
                         boundOuts[$n]=$v
                         binds[$n]=$v
                     ;;
@@ -214,7 +231,8 @@ readPinned() {
     local p=${pinned[$t]}
     if [[ $p ]]; then
       binds[$t]=$p
-      echo "bind pinned $t=$p"
+      echo "bind pinned $t"
+      echo "$p"$'\031'
     fi
   done
 }
@@ -268,7 +286,7 @@ synthTargets() {
     local bid="get:$tn"
     local body="
 # in: $tn
-echo \$$tn
+echo @out \$$tn
 "
 
     blocks[$bid]="$body"
@@ -442,7 +460,8 @@ tryGetCache() {
   while IFS=: read -r name encoded; do
     local val=$(echo $encoded | base64 -d)
     _binds[$name]="$val"
-    echo "bind\` . $name=$val"
+    echo "bind\` . $name"
+    echo "$val"$'\031'
 
   done <<< "$foundBinds"
   

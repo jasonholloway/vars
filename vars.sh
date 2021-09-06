@@ -66,21 +66,15 @@ main() {
             ;;
         bind*)
             [[ ! $quietMode ]] && {
-                local d
+                read -r src key <<< "$line"
+                read -r -u 5 -d $'\031' val
 
-                read src exp <<< "$line"
-
-                if [[ ${#exp} -gt 100 ]]; then
-                    d="$(echo "$exp" | cut -c -100)..."
-                else
-                    d="$exp"
+                if [[ ${#val} -gt 80 ]]; then
+                  val="$(echo "$val" | cut -c -80)..."
                 fi
 
-                key="${d%%=*}"
-                val="${d#*=}"
-
                 [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
-                    val='****'
+                  val='****'
                 }
 
                 IFS='|' read path index <<< "$src"
