@@ -1,7 +1,10 @@
 # out: firstName age
+# cache
 
 echo firstName=bob
 echo age=70
+
+@cacheTill 999999999999999999999999
 
 #++++++++++++++++++++++++
 # out: dog

@@ -160,7 +160,7 @@ main() {
                 case "$line" in
                     @set[[:space:]]+([[:word:]])[[:space:]]*)
                         read -r _ n v <<< "$line"
-                        attrs[${n:1}]="$v"
+                        attrs[$n]="$v"
                     ;;
 
                     @bind[[:space:]]+([[:word:]])[[:space:]]*)
@@ -453,14 +453,16 @@ tryGetCache() {
   [[ ! -e $file ]] && return 1
 
   IFS=$'\n' read -r -d '' foundKey foundExpiry foundBinds < "$file"
-  
+
   [[ "$key" != "$foundKey" ]] && return 1
   [[ "$now" > "$foundExpiry" ]] && return 1
 
   while IFS=: read -r name encoded; do
+    [[ -z $name ]] && continue
+      
     local val=$(echo $encoded | base64 -d)
     _binds[$name]="$val"
-    echo "bind\` . $name"
+    echo "bind\` cache:$hash $name"
     echo "$val"$'\031'
 
   done <<< "$foundBinds"
