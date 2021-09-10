@@ -81,7 +81,7 @@ main() {
                 }
 
               echo "@YIELD"
-              read v
+              read -r v
 
               if [[ $v == *! ]]; then
                 v=${v%*!}
@@ -120,7 +120,7 @@ main() {
               if [[ ${v:0:1} == ¦ ]]; then
                   echo "pick $i $v"
                   echo "@YIELD"
-                  read v
+                  read -r v
 
                   if [[ $v == *! ]]; then
                     v=${v%*!}

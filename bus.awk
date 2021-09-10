@@ -22,6 +22,8 @@ debug {
     print "* " $0 >"/dev/stderr"
 }
 
+/^@PUMP/ { next }
+
 /^@ASK/ {
     pushConv()
     to=$2
@@ -46,7 +48,7 @@ to {
     forward()
 }
 
-{ print; forward() }
+!to { print; forward() }
 
 
 function pushConv() {

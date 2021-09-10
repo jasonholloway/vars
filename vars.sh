@@ -59,7 +59,7 @@ main() {
       # echo "+++ $type $line" >&2
       case $type in
 
-        @PUMP) echo >&6;;
+        @PUMP) echo @PUMP >&6;;
           
         targets)
             for src in $line; do
@@ -73,7 +73,7 @@ main() {
         bound)
             [[ ! $quietMode ]] && {
                 read -r src key val <<< "$line"
-                #expand val here?
+                #unescape val here?? TODO
 
                 if [[ ${#val} -gt 80 ]]; then
                   val="$(echo "$val" | cut -c -80)..."
@@ -87,7 +87,12 @@ main() {
                 shortPath=$(realpath --relative-to=$PWD $path) >&2
                 src=${shortPath}$([[ $index ]] && echo "|$index")
 
-                echo -e "${colBindName}${type:4}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
+                case "$src" in
+                    cache*) key="\`$key";;
+                    pin*) key="!$key";;
+                esac
+
+                echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
             }
             ;;
 
