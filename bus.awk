@@ -3,18 +3,23 @@
 BEGIN {
   debug=0
   head=0
-  from="user"
+  from=""
   to=""
     
-  procs["deduce"]="/home/jason/src/vars/deduceVarBinds.sh"
+  procs["deduce"]="stdbuf -oL /home/jason/src/vars/deduceVarBinds.sh"
   procs["files"]="./files.sh"
 }
 
-from!="user" {
+from {
     if((procs[from] |& getline) <= 0) {
         print ERRNO >"/dev/stderr"
         exit
     }
+}
+
+debug {
+    print "["from", "to"]" >"/dev/stderr"
+    print "* " $0 >"/dev/stderr"
 }
 
 /^@ASK/ {
@@ -36,15 +41,13 @@ $0=="@END" {
     }
 }
 
-to=="user" {
-    print 
-    forward()
-}
-
 to {
     print |& procs[to]
     forward()
 }
+
+{ print; forward() }
+
 
 function pushConv() {
     convs[head]["from"]=from
@@ -67,7 +70,7 @@ function swapConv(_tmp) {
 
 function forward() {
     if(debug) { print "["from", "to"]" >"/dev/stderr" }
-    if(from != "user") { print "@PUMP" }
+    print "@PUMP"
     next
 }
 

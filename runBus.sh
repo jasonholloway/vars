@@ -1,11 +1,11 @@
 #!/bin/bash
 
 main() {
-	coproc { stdbuf -oL ./bus.awk; }
+	coproc { stdbuf -oL ./bus.awk ; }
 
-	# say @ASK deduce
-	# cat ./test.args >&${COPROC[1]}
-	# say @YIELD
+	say @ASK deduce
+	say "$(<./test.args)"
+	say @YIELD
 
 	while read -ru ${COPROC[0]}; do
 			case "$REPLY" in
@@ -16,7 +16,7 @@ main() {
 }
 
 say() {
-		echo "$@" >&${COPROC[1]}
+		echo "$*" >&${COPROC[1]}
 }
 
 main

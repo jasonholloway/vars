@@ -5,10 +5,12 @@ declare -A files fileBlocks bodies
 main() {
   while read -r type line; do
     case $type in
-      file) getRawFile "$line"; echo "@END" ;;
+      file) getRawFile "$line";;
       blocks) getBlocks "$line";;
       body) getBody "$line";;
     esac
+
+    echo "@END"
   done
 }
 

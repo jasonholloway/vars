@@ -63,8 +63,7 @@ main() {
             if [[ $pinnedVal ]]; then
               binds[$n]=$pinnedVal
               boundIns[$n]=$pinnedVal
-              echo "bound pinned $n"
-              echo "$pinnedVal"$'\031'
+              echo "bound pinned $n ${pinnedVal//$'\n'/$'\60'}"
             else
                 {
                     echo -n "pick $n "
@@ -81,6 +80,7 @@ main() {
                     echo
                 }
 
+              echo "@YIELD"
               read v
 
               if [[ $v == *! ]]; then
@@ -90,8 +90,7 @@ main() {
 
               binds[$n]=$v
               boundIns[$n]=$v
-              echo "bound . $n"
-              echo "$v"$'\031'
+              echo "bound . $n ${v//$'\n'/$'\60'}"
             fi
           fi
         done
@@ -120,6 +119,7 @@ main() {
 
               if [[ ${v:0:1} == ¦ ]]; then
                   echo "pick $i $v"
+                  echo "@YIELD"
                   read v
 
                   if [[ $v == *! ]]; then
@@ -128,8 +128,7 @@ main() {
                   fi
               
                   binds[$i]=$v
-                  echo "bound . $i"
-                  echo "$v"$'\031'
+                  echo "bound . $i ${v//$'\n'/$'\60'}"
               fi
               
               v=${v//$'\30'/$'\n'}
@@ -145,6 +144,7 @@ main() {
                     cmd=$body
 
                     echo "run ${binds[@]@A}"$'\031'"${cmd@A}" >&4
+                    echo "@YIELD" >&4
 
                     while read -r l; do
                         [[ $l == $'\023' ]] && break
@@ -165,8 +165,7 @@ main() {
 
                     @bind[[:space:]]+([[:word:]])[[:space:]]*)
                         read -r _ n v <<< "$line"
-                        echo "bound $b $n"
-                        echo "$v"$'\031'
+                        echo "bound $b $n ${v//$'\n'/$'\60'}"
                         boundOuts[$n]=$v
                         binds[$n]=$v
                     ;;
@@ -179,8 +178,7 @@ main() {
                     +([[:word:]])=*)
                         n=${line%%=*}
                         v=${line#*=}
-                        echo "bound $b $n"
-                        echo "$v"$'\031'
+                        echo "bound $b $n ${v//$'\n'/$'\60'}"
                         boundOuts[$n]=$v
                         binds[$n]=$v
                     ;;
@@ -231,8 +229,7 @@ readPinned() {
     local p=${pinned[$t]}
     if [[ $p ]]; then
       binds[$t]=$p
-      echo "bound pinned $t"
-      echo "$p"$'\031'
+      echo "bound pinned $t ${p//$'\n'/$'\60'}"
     fi
   done
 }
@@ -462,8 +459,7 @@ tryGetCache() {
       
     local val=$(echo $encoded | base64 -d)
     _binds[$name]="$val"
-    echo "bound cache:$hash $name"
-    echo "$val"$'\031'
+    echo "bound cache:$hash $name ${val//$'\n'/$'\60'}"
 
   done <<< "$foundBinds"
   

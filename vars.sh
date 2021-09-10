@@ -56,10 +56,10 @@ main() {
     } >&6
 
     while read -ru 5 type line; do
-      echo "+++ $type $line" >&2
+      # echo "+++ $type $line" >&2
       case $type in
 
-        "@PUMP") echo >&6;;
+        @PUMP) echo >&6;;
           
         targets)
             for src in $line; do
@@ -71,10 +71,9 @@ main() {
             done
             ;;
         bound)
-            set -x
             [[ ! $quietMode ]] && {
-                read -r src key <<< "$line"
-                read -ru 5 -d $'\031' val
+                read -r src key val <<< "$line"
+                #expand val here?
 
                 if [[ ${#val} -gt 80 ]]; then
                   val="$(echo "$val" | cut -c -80)..."
@@ -105,17 +104,19 @@ main() {
             ;;
 
         pick) {
-                read name rawVals <<< "$line"
+                read -r name rawVals <<< "$line"
 
                 local val=$({
                     sed 's/¦//; s/¦/\n/g' <<< "$rawVals"
                 } | fzy --prompt "${name}> ")
 
                 echo $val >&6
+                echo @YIELD >&6
             };;
 
         pin) {
-                read key val <<< "$line"
+                echo FLUMPS >&2
+                read -r key val <<< "$line"
                 $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
                 echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
             };;
@@ -123,6 +124,7 @@ main() {
         run) {
                 (
                     IFS=$'\031' read -r assignBinds assignCmd <<< "$line"
+                    
                     eval "$assignBinds"
                     eval "$assignCmd"
 
@@ -136,6 +138,8 @@ main() {
 
                     echo
                     echo $'\023'
+
+                    echo @YIELD
                 ) >&6
             };;
         esac
