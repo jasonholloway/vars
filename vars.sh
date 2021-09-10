@@ -41,11 +41,13 @@ main() {
   [[ ${flags[*]} =~ v ]] && local verboseMode=1
 
   {
-    # coproc { deduce; }
     coproc { stdbuf -oL $VARS_PATH/bus.awk; }
     exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
     {
+        echo @PROC deduce stdbuf -oL $VARS_PATH/deduceVarBinds.sh
+        echo @PROC files $VARS_PATH/files.sh
+
         echo @ASK deduce
         echo $(findFiles 1 $PWD)
         echo ${blocks[*]}
@@ -331,4 +333,4 @@ render() {
   "$VARS_PATH/render.sh"
 }
 
-main $@
+main "$@"

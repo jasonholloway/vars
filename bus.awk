@@ -5,9 +5,13 @@ BEGIN {
   head=0
   from=""
   to=""
-    
-  procs["deduce"]="stdbuf -oL /home/jason/src/vars/deduceVarBinds.sh"
-  procs["files"]="./files.sh"
+}
+
+/^@PROC / {
+    n=$2
+    $1=""; $2=""
+    procs[n]=$0
+    next
 }
 
 from {
@@ -15,11 +19,6 @@ from {
         print ERRNO >"/dev/stderr"
         exit
     }
-}
-
-debug {
-    print "["from", "to"]" >"/dev/stderr"
-    print "* " $0 >"/dev/stderr"
 }
 
 /^@PUMP/ { next }
@@ -30,12 +29,12 @@ debug {
     forward()
 }
 
-$0=="@YIELD" {
+/^@YIELD/ {
     swapConv()
     forward()
 }
 
-$0=="@END" {
+/^@END/ {
     if(head == 0) exit
     else {
       popConv()
