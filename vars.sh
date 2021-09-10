@@ -120,7 +120,6 @@ main() {
             };;
 
         pin) {
-                echo FLUMPS >&2
                 read -r key val <<< "$line"
                 $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
                 echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
