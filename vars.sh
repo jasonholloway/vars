@@ -41,20 +41,26 @@ main() {
   [[ ${flags[*]} =~ v ]] && local verboseMode=1
 
   {
-    coproc { deduce; }
+    # coproc { deduce; }
+    coproc { stdbuf -oL $VARS_PATH/bus.awk; }
     exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
     {
+        echo @ASK deduce
         echo $(findFiles 1 $PWD)
         echo ${blocks[*]}
         echo ${targets[*]}
         echo ${flags[*]}
         echo ${adHocs[*]}
+        echo @YIELD
     } >&6
 
     while read -ru 5 type line; do
-      # echo "+++ $type $line" >&2
+      echo "+++ $type $line" >&2
       case $type in
+
+        "@PUMP") echo >&6;;
+          
         targets)
             for src in $line; do
                 IFS='|' read path index <<< "$src"
@@ -64,10 +70,11 @@ main() {
                 echo -e "${colDim}Running ${src}${colNormal}" >&2
             done
             ;;
-        bind*)
+        bound)
+            set -x
             [[ ! $quietMode ]] && {
                 read -r src key <<< "$line"
-                read -r -u 5 -d $'\031' val
+                read -ru 5 -d $'\031' val
 
                 if [[ ${#val} -gt 80 ]]; then
                   val="$(echo "$val" | cut -c -80)..."

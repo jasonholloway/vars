@@ -12,6 +12,14 @@ echo dog=¦Bert¦Rex¦Biter¦Nobby
 
 
 
+#++++++++++++++++++++ map
+dog > food
+:	Bert > bones
+:	Rex > biscuits
+:	* > meat
+
+
+
 #+++++++++++++++++++++++
 # n: sayHello
 # in: dog

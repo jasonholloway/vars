@@ -1,0 +1,9 @@
+
+_macro_map() {
+  echo "HELLO from the macro read $*" >&2
+
+	echo -n "
+echo blah blah blah!!!! >&2
+"$'\031'
+}
+

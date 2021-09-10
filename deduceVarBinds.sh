@@ -63,7 +63,7 @@ main() {
             if [[ $pinnedVal ]]; then
               binds[$n]=$pinnedVal
               boundIns[$n]=$pinnedVal
-              echo "bind! pinned $n"
+              echo "bound pinned $n"
               echo "$pinnedVal"$'\031'
             else
                 {
@@ -90,7 +90,7 @@ main() {
 
               binds[$n]=$v
               boundIns[$n]=$v
-              echo "bind . $n"
+              echo "bound . $n"
               echo "$v"$'\031'
             fi
           fi
@@ -128,7 +128,7 @@ main() {
                   fi
               
                   binds[$i]=$v
-                  echo "bind . $i"
+                  echo "bound . $i"
                   echo "$v"$'\031'
               fi
               
@@ -165,7 +165,7 @@ main() {
 
                     @bind[[:space:]]+([[:word:]])[[:space:]]*)
                         read -r _ n v <<< "$line"
-                        echo "bind $b $n"
+                        echo "bound $b $n"
                         echo "$v"$'\031'
                         boundOuts[$n]=$v
                         binds[$n]=$v
@@ -179,7 +179,7 @@ main() {
                     +([[:word:]])=*)
                         n=${line%%=*}
                         v=${line#*=}
-                        echo "bind $b $n"
+                        echo "bound $b $n"
                         echo "$v"$'\031'
                         boundOuts[$n]=$v
                         binds[$n]=$v
@@ -231,7 +231,7 @@ readPinned() {
     local p=${pinned[$t]}
     if [[ $p ]]; then
       binds[$t]=$p
-      echo "bind pinned $t"
+      echo "bound pinned $t"
       echo "$p"$'\031'
     fi
   done
@@ -462,7 +462,7 @@ tryGetCache() {
       
     local val=$(echo $encoded | base64 -d)
     _binds[$name]="$val"
-    echo "bind\` cache:$hash $name"
+    echo "bound cache:$hash $name"
     echo "$val"$'\031'
 
   done <<< "$foundBinds"
