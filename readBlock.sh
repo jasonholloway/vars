@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "${VARS_PATH:-.}/common.sh"
+source ${VARS_PATH:-.}/common.sh
 
 main() {
 		local type line
@@ -9,13 +9,10 @@ main() {
 
 		while hear type line; do
 				case "$type" in
-						"readBlock")
+						"read")
 
 
 								;;
-				esac
-
-				say "@END"
 		done
 }
 

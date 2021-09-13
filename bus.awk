@@ -1,17 +1,17 @@
 #!/usr/bin/awk -f
 
 BEGIN {
-  debug=0
-  head=0
-  from=""
-  to=""
-}
+  RED="\33[0;31m"
+  NC="\33[0m"
 
-/^@PROC / {
-    n=$2
-    $1=""; $2=""
-    procs[n]=$0
-    next
+  debug=1
+  head=0
+
+  split(PROCS,specs,";")
+  for(i in specs) {
+      split(specs[i],p,":")
+      procs[p[1]]=p[2]
+  }
 }
 
 from {
@@ -21,7 +21,12 @@ from {
     }
 }
 
-/^@PUMP/ { next }
+debug {
+    print "["from" -> "to"] "$0" ("PROCINFO["pid"]")" >"/dev/stderr"
+}
+
+
+/^@PUMP/ || /^@$/ { forward() }
 
 /^@ASK/ {
     pushConv()
@@ -29,12 +34,12 @@ from {
     forward()
 }
 
-/^@YIELD/ {
+/^@YIELD/ || /^@Y$/ {
     swapConv()
     forward()
 }
 
-/^@END/ {
+/^@END$/ || /^@E$/ {
     if(head == 0) exit
     else {
       popConv()
@@ -47,8 +52,7 @@ to {
     forward()
 }
 
-!to { print; forward() }
-
+!to { print $0; forward() }
 
 function pushConv() {
     convs[head]["from"]=from
@@ -70,8 +74,7 @@ function swapConv(_tmp) {
 }
 
 function forward() {
-    if(debug) { print "["from", "to"]" >"/dev/stderr" }
-    print "@PUMP"
+    if(debug) print RED"["from" -> "to"]"NC" ("PROCINFO["pid"]")" >"/dev/stderr"
+    if(from) print "@PUMP"
     next
 }
-

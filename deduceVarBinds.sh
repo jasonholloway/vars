@@ -45,6 +45,9 @@ main() {
 
   echo "targets ${!targetBlocks[*]}"
 
+  echo "@ASK files"
+  echo "@END"
+
   {
     for b in $(orderBlocks); do
         
@@ -140,7 +143,7 @@ main() {
                     #below should be selected bindIns...
                     #and caching can be moved to the runner
                     local body
-                    getBody $b
+                    getBody $b >&4
                     cmd=$body
 
                     echo "run ${binds[@]@A}"$'\031'"${cmd@A}" >&4
@@ -371,64 +374,6 @@ orderBlocks() {
   | sed '/^@/d'
 }
 
-getBody() {
-  local b=$1
-
-  if [[ ! -v bodies[$b] ]]; then
-    local path=${b%|*}
-    local file
-    getFile $path
-
-    local i=0
-    local IFS=$'\x02'
-    for part in $file; do
-      i=$((i + 1))
-      local bb="$path|$i"
-      bodies[$bb]=$part
-    done
-  fi
-
-  body=${bodies[$b]}
-}
-
-getOutline() {
-  local path=$1
-  local file
-
-  if [[ ${path: -4} == .gpg ]]; then
-    local lastMod=$(stat -c %Y $path)
-    local shadowPath="$cacheDir/S$(base64 -w0 <<< "$path$lastMod")"
-
-    if [[ -e $shadowPath ]]; then
-      outline="$(<"$shadowPath")"
-    else
-      getFile $path
-      outline="$(sed -n '/^#\|\x02/p' <<< "$file")"
-      echo "$outline" > "$shadowPath"
-    fi
-  else
-    getFile $path
-    outline=$file
-  fi
-}
-
-getFile() {
-  local path=$1
-  
-  if [[ ! -v files[$path] ]]; then
-    local raw
-
-    if [[ ${path: -4} == .gpg ]]; then
-      raw=$(gpg -dq --pinentry-mode loopback <"$path")
-    else
-      raw=$(<"$path")
-    fi
-
-    files[$path]=$(sed 's/^#+.*/\x02/' <<< "$raw")
-  fi
-
-  file=${files[$path]}
-}
 
 getCacheKey() {
   local b=$1
@@ -488,6 +433,75 @@ trim() {
     var="${var#"${var%%[![:space:]]*}"}"
     var="${var%"${var##*[![:space:]]}"}"   
     printf '%s' "$var"
+}
+
+
+getBody() {
+  local b=$1
+
+  echo "@ASK files"
+  echo "body $b"
+  echo "@YIELD"
+  read -r escapedBody
+
+  body=${escapedBody//\\n/$'\n'}
+  
+  # echo "getBody $b" >&2
+
+  # if [[ ! -v bodies[$b] ]]; then
+  #   local path=${b%|*}
+  #   local file
+  #   getFile $path
+
+  #   local i=0
+  #   local IFS=$'\x02'
+  #   for part in $file; do
+  #     i=$((i + 1))
+  #     local bb="$path|$i"
+  #     bodies[$bb]=$part
+  #   done
+  # fi
+
+  # body=${bodies[$b]}
+}
+
+getOutline() {
+  local path=$1
+  local file
+
+  if [[ ${path: -4} == .gpg ]]; then
+    local lastMod=$(stat -c %Y $path)
+    local shadowPath="$cacheDir/S$(base64 -w0 <<< "$path$lastMod")"
+
+    if [[ -e $shadowPath ]]; then
+      outline="$(<"$shadowPath")"
+    else
+      getFile $path
+      outline="$(sed -n '/^#\|\x02/p' <<< "$file")"
+      echo "$outline" > "$shadowPath"
+    fi
+  else
+    getFile $path
+    outline=$file
+  fi
+}
+
+getFile() {
+  local path=$1
+  
+  if [[ ! -v files[$path] ]]; then
+    local raw
+
+    if [[ ${path: -4} == .gpg ]]; then
+      raw=$(gpg -dq --pinentry-mode loopback <"$path")
+    else
+      raw=$(<"$path")
+    fi
+
+    files[$path]=$(sed 's/^#+.*/\x02/' <<< "$raw")
+  fi
+
+  file=${files[$path]}
 }
 
 main "$@"
