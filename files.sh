@@ -3,7 +3,6 @@
 source "${VARS_PATH:-.}/common.sh"
 
 declare -A rawFiles files bodies
-declare fid rawFile
 
 main() {
   local type line
@@ -12,73 +11,78 @@ main() {
     
   while hear type line; do
     case $type in
-      raw) getRawFile "$line";;
-      file) getBlocks "$line";;
-      body) getBody "$line";;
       find) findFiles;;
+      raw) getRawFile "$line";;
+      outline) getOutlines "$line";;
+      body) getBody "$line";;
     esac
 
     say "@END"
   done
 }
 
-getBody() {
-  local bid=$1
-  loadBody $bid
-  encode "${bodies[$bid]}"
-}
-
-getBlocks() {
+getOutlines() {
   local fid=$1
-  loadBlocks $fid
+  loadFile "$fid"
   echo "${files[$fid]}"
 }
 
-getRawFile() {
-  local path=$1
-  loadRawFile $path
-  echo "$fid"
-  echo "$rawFile"
+getBody() {
+  local bid=$1
+  IFS='|' read -r fid i <<<"$bid"
+  loadFile "$fid"
+
+  local body="${bodies[$bid]}"
+  encode body body
+  echo "$body"
 }
 
-loadBlocks() {
+loadFile() {
   local fid=$1
 
   [[ -v "files[$fid]" ]] && return
 
   {
-    local acc=""
+    local -a acc=()
+    local i=0
 
-    read -r fid
+    while read -r -d$'\x02' block; do
+
+      local bid="$fid|$i"
+      local outline bodyHints body
+
+      encode block block
+
+      say "@ASK blocks"
+      say "readBlock"
+      say "$block"
+      say "@YIELD"
+      hear outline
+      hear bodyHints
+      hear body
+
+      acc+=("$bid;$outline")
+      bodies[$bid]="$bodyHints"$'\n'"$body"
+      i=$((i+1))
+
+    done
 
     {
-      local i=0
-      while read -r -d$'\x02' block; do
+      IFS=$'\n'
+      files[$fid]="${acc[*]}"
+    }
 
-        local bid="$fid|$i"
-        local outline body
-
-        say "@ASK blocks"
-        say "readBlock"
-        say "$block"
-        say "@YIELD"
-        hear outline
-        hear body
-        say "@END"
-
-        acc+="$bid"$'\n'"$outline"$'\n'
-        bodies[$bid]="$body"
-        i=$((i+1))
-      done
-    } < <(sed -e '/^#+/i\\x02' -e '$a\\x02' | tr $'\n' $'\36')
-
-    files[$fid]="$acc"
-
-  } < <(getRawFile "$fid")
+  } < <(
+      getRawFile "$fid" |
+            sed -e '/^#+/i\\x02' -e '$a\\x02'
+       )
 }
 
-loadRawFile() {
+getRawFile() {
   local fid=$1
+  local path
+
+  IFS=',' read -r path _ <<<"$fid"
 
   if [[ ! -v "rawFiles[$fid]" ]]; then
     rawFiles[$fid]=$(
@@ -90,14 +94,7 @@ loadRawFile() {
       )
   fi
 
-  rawFile="${rawFiles[$fid]}"
-}
-
-loadBody() {
-  local bid=$1
-  IFS='|' read -r file i <<<"$bid"
-  IFS=',' read -r path _ <<<"$file"
-  loadBlocks "$path"
+  echo "${rawFiles[$fid]}"
 }
 
 findFiles() {

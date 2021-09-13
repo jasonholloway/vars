@@ -15,10 +15,14 @@ hear() {
 
 
 encode() {
-    echo "${1//$'\n'/$'\x30'}"
+  local -n input=$1
+  local -n output=$2
+	output="${input//$'\n'/$'\36'}"
 }
 
 decode() {
-    echo "${1//$'\x30'/$'\n'}"
+  local -n input=$1
+  local -n output=$2
+	output="${input//$'\36'/$'\n'}"
 }
 
