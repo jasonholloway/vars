@@ -50,7 +50,7 @@ readBlock() {
   } <<< "$block"
 
   {
-    IFS=,
+    local IFS=,
     say "${names[*]};${ins[*]};${outs[*]};${flags[*]}"
   }
 
@@ -59,6 +59,22 @@ readBlock() {
 }
 
 main "$@"
+
+
+
+
+# fids <- files.find
+# outlines <- files.outline <- fids
+#
+# outlines -> |
+# targets  -> |
+#       deducer.deduce <> files.body
+#             |        <> runner.run
+#             |-> output
+#
+#
+
+
 
 #
 # blocks above will extract the outline and the body

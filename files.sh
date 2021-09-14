@@ -22,9 +22,15 @@ main() {
 }
 
 getOutlines() {
-  local fid=$1
-  loadFile "$fid"
-  echo "${files[$fid]}"
+  local fids=$*
+  local -a outlines=()
+
+  for fid in $fids; do
+    loadFile "$fid"
+    outlines+=("${files[$fid]}")
+  done
+
+  echo "${outlines[*]}"
 }
 
 getBody() {
@@ -67,10 +73,7 @@ loadFile() {
 
     done
 
-    {
-      IFS=$'\n'
-      files[$fid]="${acc[*]}"
-    }
+    files[$fid]="${acc[*]}"
 
   } < <(
       getRawFile "$fid" |
