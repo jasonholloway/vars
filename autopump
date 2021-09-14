@@ -1,0 +1,24 @@
+#!/bin/bash
+cmd="$*"
+
+coproc { stdbuf -oL bash -c "$cmd"; }
+exec 3<&${COPROC[0]} 4>&${COPROC[1]}
+
+while read -ru 3 line; do
+		if [[ $line == "@PUMP" ]]; then
+				echo "@" >&4
+		else
+				echo "$line"
+		fi
+done </dev/null &
+
+while read -r line; do
+		if [[ ${line:0:1} == "!" ]]; then
+				IFS=$'!' read -r proc cmd <<<"${line:1}"
+				echo "@ASK $proc"
+				echo "$cmd"
+				echo "@Y"
+		else
+				echo "$line"
+		fi
+done >&4
