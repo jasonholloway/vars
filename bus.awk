@@ -15,7 +15,7 @@ BEGIN {
     }
 }
 
-from {
+from && procs[from] {
     if((procs[from] |& getline) <= 0) {
         print ERRNO >"/dev/stderr"
         exit
@@ -48,7 +48,7 @@ debug1 {
     }
 }
 
-to {
+to && procs[to] {
     print |& procs[to]
     forward()
 }
