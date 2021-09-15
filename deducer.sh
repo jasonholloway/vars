@@ -21,7 +21,7 @@ main() {
 								;;
 				esac
 
-				say "@END"
+				say "@YIELD"
 		done
 }
 
@@ -37,9 +37,6 @@ deduce() {
   say "targets ${!targetBlocks[*]}"
 
   plan=$(orderBlocks)
-
-  echo "PLAN" >&2
-  echo "$plan" >&2
   
   { runBlocks "$plan" | tee "$outFile"; } <<<"$plan"
 }
@@ -259,13 +256,13 @@ runBlocks() {
       esac
     done
 
-    while vn in ${!boundOuts[*]}; do
+    for vn in ${!boundOuts[*]}; do
       v=${boundOuts[$vn]}
       binds[$vn]=$v
       say "bound $bid $vn ${v//$'\n'/$'\60'}"
     done
 
-    say "fin"
+    # say "fin"
   done
 
   say "fin"

@@ -50,19 +50,15 @@ main() {
 
     local fids outlines type line 
 
-    # TODO PUMPING!!!!
-
     say "@ASK files"
     say "find"
     say "@YIELD"
     hear fids
-    say "@END"
-    echo "FIDS $fids" >&2
-    say "@ASK files"
     say "outline $fids"
     say "@YIELD"
     hear outlines
     say "@END"
+
     say "@ASK deducer"
     say "deduce"
     say "$outlines"
@@ -72,11 +68,14 @@ main() {
     say "@YIELD"
 
     while hear type line; do
-      echo "+++ $type $line" >&2
+      # echo "+++ $type $line" >&2
       case "$type" in
 
-        @PUMP) echo @PUMP >&6;;
-          
+        fin)
+            say "@END"
+            break
+            ;;
+
         targets)
             for src in $line; do
                 IFS='|' read path index <<< "$src"

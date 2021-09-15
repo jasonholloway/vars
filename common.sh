@@ -9,20 +9,18 @@ say() {
 }
 
 hear() {
-	local line
+	local _l
 
-  while read -ru 5 line; do
-		if [[ $line == "@PUMP" ]]; then
-				say "@PUMP"
-				continue
-		fi
-
-		break
+	while read -ru 5 _l; do
+		case "$_l" in
+			'@PUMP')
+					say "@PUMP";;
+			*)
+					read -r "$@" <<<"$_l"
+					break;;
+		esac
 	done
-
-	read -r "$@" <<<"$line"
 }
-
 
 
 encode() {

@@ -11,7 +11,7 @@ main() {
     
   while hear type line; do
     case $type in
-      find) findFiles;;
+      find) findFiles >&6;;
       raw) getRawFile "$line";;
       outline) getOutlines "$line";;
       body) getBody "$line";;
@@ -24,13 +24,13 @@ main() {
 getOutlines() {
   local fids=$*
   local -a outlines=()
-
+  
   for fid in $fids; do
     loadFile "$fid"
     outlines+=("${files[$fid]}")
   done
 
-  echo "${outlines[*]}"
+  say "${outlines[*]}"
 }
 
 getBody() {

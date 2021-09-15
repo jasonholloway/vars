@@ -3,20 +3,20 @@
 source "${VARS_PATH:-.}/common.sh"
 
 main() {
-		local type block
-		
-		setupBus
+  local type block
 
-		while hear type _; do
-				case "$type" in
-						"readBlock")
-                hear block
-                readBlock "$block"
-								;;
-				esac
+  setupBus
 
-				say "@END"
-		done
+  while hear type _; do
+    case "$type" in
+        "readBlock")
+            hear block
+            readBlock "$block"
+            ;;
+    esac
+
+    say "@END"
+  done
 }
 
 readBlock() {
@@ -49,10 +49,10 @@ readBlock() {
 
   } <<< "$block"
 
-  {
+  (
     local IFS=,
     say "${names[*]};${ins[*]};${outs[*]};${flags[*]}"
-  }
+  )
 
   say "bash" #hints for interpretation
   say "$body"
