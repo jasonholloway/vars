@@ -3,6 +3,8 @@ shopt -s extglob
 
 : ${VARS_PATH:?VARS_PATH must be set!}
 
+source "${VARS_PATH:-.}/common.sh"
+
 declare -a words=($@)
 declare -a blocks=()
 declare -a targets=()
@@ -41,25 +43,37 @@ main() {
   [[ ${flags[*]} =~ v ]] && local verboseMode=1
 
   {
-    coproc { stdbuf -oL $VARS_PATH/bus.awk; }
+    coproc {
+      stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.sh"
+    }
     exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
-    {
-        echo @PROC deduce stdbuf -oL $VARS_PATH/deduceVarBinds.sh
-        echo @PROC files $VARS_PATH/files.sh
+    local fids outlines type line 
 
-        echo @ASK deduce
-        echo $(findFiles 1 $PWD)
-        echo ${blocks[*]}
-        echo ${targets[*]}
-        echo ${flags[*]}
-        echo ${adHocs[*]}
-        echo @YIELD
-    } >&6
+    # TODO PUMPING!!!!
 
-    while read -ru 5 type line; do
-      # echo "+++ $type $line" >&2
-      case $type in
+    say "@ASK files"
+    say "find"
+    say "@YIELD"
+    hear fids
+    say "@END"
+    echo "FIDS $fids" >&2
+    say "@ASK files"
+    say "outline $fids"
+    say "@YIELD"
+    hear outlines
+    say "@END"
+    say "@ASK deducer"
+    say "deduce"
+    say "$outlines"
+    say "${blocks[*]}"
+    say "${targets[*]}"
+    say "${flags[*]}"
+    say "@YIELD"
+
+    while hear type line; do
+      echo "+++ $type $line" >&2
+      case "$type" in
 
         @PUMP) echo @PUMP >&6;;
           
@@ -129,13 +143,14 @@ main() {
 
         run) {
                 (
-                    IFS=$'\031' read -r assignBinds assignCmd <<< "$line"
+                    IFS=$'\031' read -r assignBinds bid <<< "$line"
                     
                     eval "$assignBinds"
-                    eval "$assignCmd"
 
-                    for n in ${!binds[@]}; do
-                        export "$n=${binds[$n]}"
+                    # we need tummon the block here
+
+                    for n in ${!boundIns[*]}; do
+                      export "$n=${boundIns[$n]}"
                     done
 
                     source $VARS_PATH/helpers.sh 

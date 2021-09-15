@@ -17,7 +17,7 @@ main() {
       body) getBody "$line";;
     esac
 
-    say "@END"
+    say "@YIELD"
   done
 }
 

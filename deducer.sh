@@ -37,6 +37,10 @@ deduce() {
   say "targets ${!targetBlocks[*]}"
 
   plan=$(orderBlocks)
+
+  echo "PLAN" >&2
+  echo "$plan" >&2
+  
   { runBlocks "$plan" | tee "$outFile"; } <<<"$plan"
 }
 

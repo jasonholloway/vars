@@ -9,7 +9,18 @@ say() {
 }
 
 hear() {
-  read -r "$@" <&5
+	local line
+
+  while read -ru 5 line; do
+		if [[ $line == "@PUMP" ]]; then
+				say "@PUMP"
+				continue
+		fi
+
+		break
+	done
+
+	read -r "$@" <<<"$line"
 }
 
 
