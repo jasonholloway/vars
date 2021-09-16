@@ -141,26 +141,61 @@ main() {
             };;
 
         run) {
-                (
-                    IFS=$'\031' read -r assignBinds bid <<< "$line"
-                    
+                IFS=$'\031' read -r assignBinds bid <<< "$line"
+
+                say "@ASK files"
+                say "body $bid"
+                say "@YIELD"
+                hear body
+                say "@END"
+
+                decode body body
+                
+                hint="${v%%$'\n'*}"
+                # should be bash above!
+
+                output=$(
                     eval "$assignBinds"
-
-                    # we need tummon the block here
-
                     for n in ${!boundIns[*]}; do
-                      export "$n=${boundIns[$n]}"
+                        export "$n=${boundIns[$n]}"
                     done
 
                     source $VARS_PATH/helpers.sh 
 
-                    eval "$cmd"
+                    eval "${body#*$'\n'}"
+                    )
 
-                    echo
-                    echo $'\023'
+                while read -r line; do
+                    case "$line" in
+                        @set[[:space:]]+([[:word:]])[[:space:]]*)
+                            read -r _ n v <<< "$line"
+                            attrs[$n]="$v"
+                        ;;
 
-                    echo @YIELD
-                ) >&6
+                        @bind[[:space:]]+([[:word:]])[[:space:]]*)
+                            read -r _ vn v <<< "$line"
+                            say bind $vn $v
+                        ;;
+
+                        @out*)
+                            read -r _  v <<< "$line"
+                            echo $v
+                        ;;
+
+                        +([[:word:]])=*)
+                            vn=${line%%=*}
+                            v=${line#*=}
+                            say bind $vn $v
+                        ;;
+
+                        *)
+                            echo $line  #this was previously only let through if target block
+                        ;;
+                    esac
+                done <<< "$output"
+               
+                say fin
+                say @YIELD
             };;
         esac
     done

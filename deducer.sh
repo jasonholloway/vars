@@ -222,37 +222,23 @@ runBlocks() {
     say "run ${boundIns[@]@A}"$'\031'"${bid}"
     say "@YIELD"
 
-    # Read the output
-    while hear line; do
-      [[ $line == $'\023' ]] && break
+    while hear type line; do
+      case "$type" in
+          'bind')
+              read -r vn v <<<"$line"
+              decode v v
+              boundOuts[$vn]=$v
 
-      case "$line" in
-          @set[[:space:]]+([[:word:]])[[:space:]]*)
-              read -r _ n v <<< "$line"
+              echo bind! $vn $v >&2
+          ;;
+
+          'set')
+              echo set! >&2
+              read -r n v <<< "$line"
               attrs[$n]="$v"
           ;;
 
-          @bind[[:space:]]+([[:word:]])[[:space:]]*)
-              read -r _ vn v <<< "$line"
-              boundOuts[$vn]=$v
-          ;;
-
-          @out*)
-              read -r _  v <<< "$line"
-              say "out $v"    #TODO should be collected and sent after???
-          ;;
-
-          +([[:word:]])=*)
-              vn=${line%%=*}
-              v=${line#*=}
-              boundOuts[$vn]=$v
-          ;;
-
-          *)
-              if [[ ${targetBlocks[$bid]} ]]; then
-                say "out $line"
-              fi 
-          ;;
+          'fin') break;;
       esac
     done
 
