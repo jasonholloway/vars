@@ -7,7 +7,7 @@ exec 3<&${COPROC[0]} 4>&${COPROC[1]}
 
 while read -ru 3 line; do
 		if [[ $line == "@PUMP" ]]; then
-				echo "@" >&4
+				echo "@PUMP" >&4
 		else
 				echo "$line" >"$lastFile"
 				echo "$line"

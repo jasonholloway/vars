@@ -105,7 +105,7 @@ findFiles() {
 	local peekDepth=2
 
 	while read -r fid; do
-			echo -n "${fid%%.*} "
+			echo -n "${fid%.*} "
 	done < <(
 			{ find ~+ -maxdepth "$peekDepth" -name "$pattern" -printf "%p,%T@\n"
 
