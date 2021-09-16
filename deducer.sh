@@ -7,7 +7,6 @@ export pinnedDir="${PINNED:-$HOME/.vars/pinned}"
 mkdir -p "$pinnedDir"
 
 export contextFile="$HOME/.vars/context"
-export outFile="$HOME/.vars/out"
 
 main() {
 		local type line
@@ -37,8 +36,7 @@ deduce() {
   say "targets ${!targetBlocks[*]}"
 
   plan=$(orderBlocks)
-  
-  { runBlocks "$plan" | tee "$outFile"; } <<<"$plan"
+  runBlocks <<<"$plan"
 }
 
 readInputs() {
@@ -228,8 +226,6 @@ runBlocks() {
               read -r vn v <<<"$line"
               decode v v
               boundOuts[$vn]=$v
-
-              echo bind! $vn $v >&2
           ;;
 
           'set')

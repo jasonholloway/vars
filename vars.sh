@@ -21,8 +21,10 @@ colNormal='\033[0m'
 colDim='\e[38;5;240m'
 colDimmest='\e[38;5;236m'
 
+outFile="$HOME/.vars/out"
+CACHE="$HOME/.vars/cache"
+
 main() {
-  local CACHE=~/.vars/cache
   mkdir -p $CACHE
 
   parseMany parseFlag \
@@ -142,61 +144,76 @@ main() {
 
         run) {
                 IFS=$'\031' read -r assignBinds bid <<< "$line"
+								isTarget=1
+								
+								{ if [[ $isTarget ]]; then cat; fi;
+								} < <(
+										case "$bid" in
+												get:*)
+														vn="${bid##*:}"
 
-                say "@ASK files"
-                say "body $bid"
-                say "@YIELD"
-                hear body
-                say "@END"
+														(
+																eval "$assignBinds"
+																echo ${boundIns[$vn]}
+														)
+												;;
+												*)
+														say "@ASK files"
+														say "body $bid"
+														say "@YIELD"
+														hear body
+														say "@END"
 
-                decode body body
-                
-                hint="${v%%$'\n'*}"
-                # should be bash above!
+														decode body body
 
-                output=$(
-                    eval "$assignBinds"
-                    for n in ${!boundIns[*]}; do
-                        export "$n=${boundIns[$n]}"
-                    done
+														hint="${body%%$'\n'*}"
 
-                    source $VARS_PATH/helpers.sh 
+														(
+																eval "$assignBinds"
+																for n in ${!boundIns[*]}; do
+																		export "$n=${boundIns[$n]}"
+																done
 
-                    eval "${body#*$'\n'}"
-                    )
+																source $VARS_PATH/helpers.sh 
 
-                while read -r line; do
-                    case "$line" in
-                        @set[[:space:]]+([[:word:]])[[:space:]]*)
-                            read -r _ n v <<< "$line"
-                            attrs[$n]="$v"
-                        ;;
+																eval "${body#*$'\n'}"
+														) |
+																while read -r line; do
+																		case "$line" in
+																				@bind[[:space:]]+([[:word:]])[[:space:]]*)
+																						read -r _ vn v <<< "$line"
+																						say bind $vn $v
+																				;;
 
-                        @bind[[:space:]]+([[:word:]])[[:space:]]*)
-                            read -r _ vn v <<< "$line"
-                            say bind $vn $v
-                        ;;
+																				@set[[:space:]]+([[:word:]])[[:space:]]*)
+																						read -r _ n v <<< "$line"
+																						say set $n $v
+																				;;
 
-                        @out*)
-                            read -r _  v <<< "$line"
-                            echo $v
-                        ;;
+																				@out*)
+																						read -r _  v <<< "$line"
+																						echo $v
+																				;;
 
-                        +([[:word:]])=*)
-                            vn=${line%%=*}
-                            v=${line#*=}
-                            say bind $vn $v
-                        ;;
+																				+([[:word:]])=*)
+																						vn=${line%%=*}
+																						v=${line#*=}
+																						say bind $vn $v
+																				;;
 
-                        *)
-                            echo $line  #this was previously only let through if target block
-                        ;;
-                    esac
-                done <<< "$output"
+																				*)
+																						echo $line  #this was previously only let through if target block
+																				;;
+																		esac
+																done
+												;;
+										esac
+								)
+
                
                 say fin
                 say @YIELD
-            };;
+            } | tee "$outFile";;
         esac
     done
 
