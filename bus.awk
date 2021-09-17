@@ -4,7 +4,7 @@ BEGIN {
     RED="\33[0;31m"
     NC="\33[0m"
 
-    debug1=1
+    debug1=0
     debug2=0
 
     head=0

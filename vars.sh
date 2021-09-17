@@ -145,71 +145,71 @@ main() {
         run) {
                 IFS=$'\031' read -r blockType assignBinds bid <<< "$line"
 								
-								{
-                  if [[ $blockType == target ]]; then cat; fi;
-								} < <(
-										case "$bid" in
-												get:*)
-														vn="${bid##*:}"
+                case "$bid" in
+                    get:*)
+                        vn="${bid##*:}"
 
-														(
-																eval "$assignBinds"
-																echo ${boundIns[$vn]}
-														)
-												;;
-												*)
-														say "@ASK files"
-														say "body $bid"
-														say "@YIELD"
-														hear body
-														say "@END"
+                        (
+                            eval "$assignBinds"
+                            echo ${boundIns[$vn]}
+                        )
+                    ;;
+                    *)
+                        say "@ASK files"
+                        say "body $bid"
+                        say "@YIELD"
+                        hear body
+                        say "@END"
 
-														decode body body
+                        decode body body
 
-														hint="${body%%$'\n'*}"
+                        hint="${body%%$'\n'*}"
 
-														(
-																eval "$assignBinds"
-																for n in ${!boundIns[*]}; do
-																		export "$n=${boundIns[$n]}"
-																done
+                        (
+                            eval "$assignBinds"
+                            for n in ${!boundIns[*]}; do
+                                export "$n=${boundIns[$n]}"
+                            done
 
-																source $VARS_PATH/helpers.sh 
+                            source $VARS_PATH/helpers.sh 
 
-																eval "${body#*$'\n'}"
-														) |
-																while read -r line; do
-																		case "$line" in
-																				@bind[[:space:]]+([[:word:]])[[:space:]]*)
-																						read -r _ vn v <<< "$line"
-																						say bind $vn $v
-																				;;
+                            eval "${body#*$'\n'}"
+                        ) |
+                            while read -r line; do
+                                case "$line" in
+                                    @bind[[:space:]]+([[:word:]])[[:space:]]*)
+                                        read -r _ vn v <<< "$line"
+                                        say bind $vn $v
+                                    ;;
 
-																				@set[[:space:]]+([[:word:]])[[:space:]]*)
-																						read -r _ n v <<< "$line"
-																						say set $n $v
-																				;;
+                                    @set[[:space:]]+([[:word:]])[[:space:]]*)
+                                        read -r _ n v <<< "$line"
+                                        say set $n $v
+                                    ;;
 
-																				@out*)
-																						read -r _  v <<< "$line"
-																						echo $v
-																				;;
+                                    @out*)
+                                        read -r _  v <<< "$line"
+                                        echo $v
+                                    ;;
 
-																				+([[:word:]])=*)
-																						vn=${line%%=*}
-																						v=${line#*=}
-																						say bind $vn $v
-																				;;
+                                    +([[:word:]])=*)
+                                        vn=${line%%=*}
+                                        v=${line#*=}
+                                        say bind $vn $v
+                                    ;;
 
-																				*)
-																						echo $line  #this was previously only let through if target block
-																				;;
-																		esac
-																done
-												;;
-										esac
-								)
-
+                                    *)
+                                        echo $line  #this was previously only let through if target block
+                                    ;;
+                                esac
+                            done
+                    ;;
+                esac |
+                    while read -r line; do
+                        if [[ $blockType == "target" ]]; then
+                            echo "$line"
+                        fi
+                    done
                
                 say fin
                 say @YIELD
