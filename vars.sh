@@ -205,11 +205,7 @@ main() {
                             done
                     ;;
                 esac |
-                    while read -r line; do
-                        if [[ $blockType == "target" ]]; then
-                            echo "$line"
-                        fi
-                    done
+                    { [[ $blockType == "target" ]] && cat; }
                
                 say fin
                 say @YIELD
