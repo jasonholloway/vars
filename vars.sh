@@ -143,10 +143,10 @@ main() {
             };;
 
         run) {
-                IFS=$'\031' read -r assignBinds bid <<< "$line"
-								isTarget=1
+                IFS=$'\031' read -r blockType assignBinds bid <<< "$line"
 								
-								{ if [[ $isTarget ]]; then cat; fi;
+								{
+                  if [[ $blockType == target ]]; then cat; fi;
 								} < <(
 										case "$bid" in
 												get:*)

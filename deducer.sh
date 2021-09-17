@@ -155,11 +155,10 @@ orderBlocks() {
 }
 
 runBlocks() {
-  local bid vn v menu isTargetBlock isNeeded source
+  local bid vn v isTargetBlock isNeeded source blockType
   local -A binds boundIns boundOuts attrs
     
   while read -r bid; do
-    cacheKey=
     boundIns=()
     boundOuts=()
     attrs=()
@@ -216,8 +215,11 @@ runBlocks() {
       fi
     done
 
+    blockType=node
+    [[ ${targetBlocks[$bid]} ]] && blockType=target
+
     # Run the block!
-    say "run ${boundIns[@]@A}"$'\031'"${bid}"
+    say "run ${blockType}"$'\031'"${boundIns[*]@A}"$'\031'"${bid}"
     say "@YIELD"
 
     while hear type line; do
@@ -229,7 +231,6 @@ runBlocks() {
           ;;
 
           'set')
-              echo set! >&2
               read -r n v <<< "$line"
               attrs[$n]="$v"
           ;;
