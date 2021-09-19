@@ -10,8 +10,8 @@ declare -a blocks=()
 declare -a targets=()
 declare -a flags=()
 declare -a adHocs=()
+declare -a cmds=()
 declare w
-declare shouldRun
 
 colBindName='\033[0;36m'
 colBindValue='\033[0;35m'
@@ -39,183 +39,186 @@ main() {
     || parseCache
     }
 
-  [[ ! shouldRun -eq 1 ]] && exit 0
-
   [[ ${flags[*]} =~ q || ! -t 1 ]] && local quietMode=1
   [[ ${flags[*]} =~ v ]] && local verboseMode=1
 
-  {
-    coproc {
-      stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.sh"
-    }
-    exec 5<&${COPROC[0]} 6>&${COPROC[1]}
+  if [[ ${#cmds[@]} -gt 0 ]]; then
+    {
+      coproc {
+        stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.sh"
+      }
+      exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
-    local fids outlines type line 
+      eval "${cmds[@]}"
 
-    say "@ASK files"
-    say "find"
-    say "@YIELD"
-    hear fids
-    say "outline $fids"
-    say "@YIELD"
-    hear outlines
-    say "@END"
+      exec 5<&- 6>&-
+    } | render
+  fi
+}
 
-    say "@ASK deducer"
-    say "deduce"
-    say "$outlines"
-    say "${blocks[*]}"
-    say "${targets[*]}"
-    say "${flags[*]}"
-    say "@YIELD"
+run() {
+  local fids outlines type line 
 
-    while hear type line; do
-      # echo "+++ $type $line" >&2
-      case "$type" in
+  say "@ASK files"
+  say "find"
+  say "@YIELD"
+  hear fids
+  say "outline $fids"
+  say "@YIELD"
+  hear outlines
+  say "@END"
 
-        fin)
-            say "@END"
-            break
-            ;;
+  say "@ASK deducer"
+  say "deduce"
+  say "$outlines"
+  say "${blocks[*]}"
+  say "${targets[*]}"
+  say "${flags[*]}"
+  say "@YIELD"
 
-        targets)
-            for src in $line; do
-                IFS='|' read path index <<< "$src"
-                shortPath=$(realpath --relative-to=$PWD $path) >&2
-                src=${shortPath}$([[ $index ]] && echo "|$index")
+  while hear type line; do
+    # echo "+++ $type $line" >&2
+    case "$type" in
 
-                echo -e "${colDim}Running ${src}${colNormal}" >&2
-            done
-            ;;
-        bound)
-            [[ ! $quietMode ]] && {
-                read -r src key val <<< "$line"
-                #unescape val here?? TODO
+      fin)
+          say "@END"
+          break
+          ;;
 
-                if [[ ${#val} -gt 80 ]]; then
-                  val="$(echo "$val" | cut -c -80)..."
-                fi
+      targets)
+          for src in $line; do
+              IFS='|' read path index <<< "$src"
+              shortPath=$(realpath --relative-to=$PWD $path) >&2
+              src=${shortPath}$([[ $index ]] && echo "|$index")
 
-                [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
-                  val='****'
-                }
+              echo -e "${colDim}Running ${src}${colNormal}" >&2
+          done
+          ;;
+      bound)
+          [[ ! $quietMode ]] && {
+              read -r src key val <<< "$line"
+              #unescape val here?? TODO
 
-                IFS='|' read path index <<< "$src"
-                shortPath=$(realpath --relative-to=$PWD $path) >&2
-                src=${shortPath}$([[ $index ]] && echo "|$index")
+              if [[ ${#val} -gt 80 ]]; then
+                val="$(echo "$val" | cut -c -80)..."
+              fi
 
-                case "$src" in
-                    cache*) key="\`$key";;
-                    pin*) key="!$key";;
-                esac
+              [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
+                val='****'
+              }
 
-                echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
-            }
-            ;;
+              IFS='|' read path index <<< "$src"
+              shortPath=$(realpath --relative-to=$PWD $path) >&2
+              src=${shortPath}$([[ $index ]] && echo "|$index")
 
-        out)
-            if [[ $quietMode ]]; then
-                echo -n "$line"
-            else 
-                echo "$line"
-            fi
-            ;;
+              case "$src" in
+                  cache*) key="\`$key";;
+                  pin*) key="!$key";;
+              esac
 
-        warn)
-            echo -e "${colBad}${line}${colNormal}" >&2
-            ;;
+              echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
+          }
+          ;;
 
-        pick) {
-                read -r name rawVals <<< "$line"
+      out)
+          if [[ $quietMode ]]; then
+              echo -n "$line"
+          else 
+              echo "$line"
+          fi
+          ;;
 
-                local val=$({
-                    sed 's/¦//; s/¦/\n/g' <<< "$rawVals"
-                } | fzy --prompt "${name}> ")
+      warn)
+          echo -e "${colBad}${line}${colNormal}" >&2
+          ;;
 
-                echo $val >&6
-                echo @YIELD >&6
-            };;
+      pick) {
+              read -r name rawVals <<< "$line"
 
-        pin) {
-                read -r key val <<< "$line"
-                $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
-                echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
-            };;
+              local val=$({
+                  sed 's/¦//; s/¦/\n/g' <<< "$rawVals"
+              } | fzy --prompt "${name}> ")
 
-        run) {
-                IFS=$'\031' read -r blockType assignBinds bid <<< "$line"
-								
-                case "$bid" in
-                    get:*)
-                        vn="${bid##*:}"
+              echo $val >&6
+              echo @YIELD >&6
+          };;
 
-                        (
-                            eval "$assignBinds"
-                            echo ${boundIns[$vn]}
-                        )
-                    ;;
-                    *)
-                        say "@ASK files"
-                        say "body $bid"
-                        say "@YIELD"
-                        hear body
-                        say "@END"
+      pin) {
+              read -r key val <<< "$line"
+              $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
+              echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
+          };;
 
-                        decode body body
+      run) {
+              IFS=$'\031' read -r blockType assignBinds bid <<< "$line"
 
-                        hint="${body%%$'\n'*}"
+              case "$bid" in
+                  get:*)
+                      vn="${bid##*:}"
 
-                        (
-                            eval "$assignBinds"
-                            for n in ${!boundIns[*]}; do
-                                export "$n=${boundIns[$n]}"
-                            done
+                      (
+                          eval "$assignBinds"
+                          echo ${boundIns[$vn]}
+                      )
+                  ;;
+                  *)
+                      say "@ASK files"
+                      say "body $bid"
+                      say "@YIELD"
+                      hear body
+                      say "@END"
 
-                            source $VARS_PATH/helpers.sh 
+                      decode body body
 
-                            eval "${body#*$'\n'}"
-                        ) |
-                            while read -r line; do
-                                case "$line" in
-                                    @bind[[:space:]]+([[:word:]])[[:space:]]*)
-                                        read -r _ vn v <<< "$line"
-                                        say bind $vn $v
-                                    ;;
+                      hint="${body%%$'\n'*}"
 
-                                    @set[[:space:]]+([[:word:]])[[:space:]]*)
-                                        read -r _ n v <<< "$line"
-                                        say set $n $v
-                                    ;;
+                      (
+                          eval "$assignBinds"
+                          for n in ${!boundIns[*]}; do
+                              export "$n=${boundIns[$n]}"
+                          done
 
-                                    @out*)
-                                        read -r _  v <<< "$line"
-                                        echo $v
-                                    ;;
+                          source $VARS_PATH/helpers.sh 
 
-                                    +([[:word:]])=*)
-                                        vn=${line%%=*}
-                                        v=${line#*=}
-                                        say bind $vn $v
-                                    ;;
+                          eval "${body#*$'\n'}"
+                      ) |
+                          while read -r line; do
+                              case "$line" in
+                                  @bind[[:space:]]+([[:word:]])[[:space:]]*)
+                                      read -r _ vn v <<< "$line"
+                                      say bind $vn $v
+                                  ;;
 
-                                    *)
-                                        echo $line  #this was previously only let through if target block
-                                    ;;
-                                esac
-                            done
-                    ;;
-                esac |
-                    { [[ $blockType == "target" ]] && cat; }
-               
-                say fin
-                say @YIELD
-            } | tee "$outFile";;
-        esac
-    done
+                                  @set[[:space:]]+([[:word:]])[[:space:]]*)
+                                      read -r _ n v <<< "$line"
+                                      say set $n $v
+                                  ;;
 
-    exec 5<&- 6>&-
+                                  @out*)
+                                      read -r _  v <<< "$line"
+                                      echo $v
+                                  ;;
 
-  } | render
+                                  +([[:word:]])=*)
+                                      vn=${line%%=*}
+                                      v=${line#*=}
+                                      say bind $vn $v
+                                  ;;
+
+                                  *)
+                                      echo $line  #this was previously only let through if target block
+                                  ;;
+                              esac
+                          done
+                  ;;
+              esac |
+                  { [[ $blockType == "target" ]] && cat; }
+
+              say fin
+              say @YIELD
+          } | tee "$outFile";;
+      esac
+  done
 }
 
 shift1() {
@@ -237,20 +240,29 @@ parseMany() {
 parseGet() {
   parse1 '^(g|ge|get)$' \
     && parseNames targets \
-    && shouldRun=1
+    && {
+      for t in $targets; do
+        blocks+=("get:$t")
+      done
+      cmds+=("run")
+    }
 }
 
 parseRun() {
   parse1 '^(r|ru|run)$' \
     && parseNames blocks \
-    && shouldRun=1
+    && {
+      cmds+=("run")
+    }
 }
 
 parsePrep() {
   parse1 '^(p|prep)$' \
     && flags+=(p) \
     && parseNames blocks \
-    && shouldRun=1
+    && {
+      cmds+=("run")
+    }
 }
 
 parseLs() {
