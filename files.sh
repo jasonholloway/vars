@@ -1,5 +1,7 @@
 #!/bin/bash 
 
+cacheDir="$HOME/.vars/cache"
+
 source "${VARS_PATH:-.}/common.sh"
 
 declare -A rawFiles files bodies
@@ -22,15 +24,37 @@ main() {
 }
 
 getOutlines() {
-  local fids=$*
+  local fids fidHash cacheFile outlineList
+
+  fids=$*
+
+  fidHash=$(echo "$fids" | sha1sum)
+  cacheFile="$cacheDir/outlines-${fidHash%% *}"
+
+  if [[ -e $cacheFile ]]; then
+    {
+      local foundFids
+      read -r foundFids
+      if [[ $foundFids == "$fids" ]]; then
+        read -r outlineList
+        say "$outlineList"
+        return
+      fi
+    } <"$cacheFile"
+  fi
+
   local -a outlines=()
+
+  loadFiles "$fids"
   
   for fid in $fids; do
-    loadFile "$fid"
     outlines+=("${files[$fid]}")
   done
 
-  say "${outlines[*]}"
+  outlineList="${outlines[*]}"
+  echo "$fids"$'\n'"$outlineList" >"$cacheFile"
+
+  say "$outlineList"
 }
 
 getBody() {
@@ -43,42 +67,80 @@ getBody() {
   echo "$body"
 }
 
+loadFiles() {
+  local fids="$*"
+    
+  for fid in $fids; do
+    loadFile "$fid"
+  done
+}
+
 loadFile() {
-  local fid=$1
+  local fid bid fidHash cacheFile line i
+  local -A acBodies
+  local -a acOutlines
+
+  fid=$1
 
   [[ -v "files[$fid]" ]] && return
 
-  {
-    local -a acc=()
-    local i=0
+  fidHash=$(echo "$fid" | sha1sum)
+  cacheFile="$cacheDir/file-${fidHash%% *}"
+  
+  if [[ -e $cacheFile ]]; then
+      {
+          read -r line
+          if [[ $line == "$fid" ]]; then
 
-    while read -r -d$'\x02' block; do
+              read -r line
+              eval "$line"
+              
+              read -r line
+              eval "$line"
+          fi
+      } <"$cacheFile"
+  fi
 
-      local bid="$fid|$i"
-      local outline bodyHints body
+  if [[ ! -v "acOutlines[@]" || ! -v "acBodies[@]" ]]; then
+      {
+        local i=0
 
-      encode block block
+        while read -r -d$'\x02' block; do
+          local bid="$fid|$i"
+          local outline bodyHints body
 
-      say "@ASK blocks"
-      say "readBlock"
-      say "$block"
-      say "@YIELD"
-      hear outline
-      hear bodyHints
-      hear body
+          encode block block
 
-      acc+=("$bid;$outline")
-      bodies[$bid]="$bodyHints"$'\n'"$body"
-      i=$((i+1))
+          say "@ASK blocks"
+          say "readBlock"
+          say "$block"
+          say "@YIELD"
+          hear outline
+          hear bodyHints
+          hear body
 
-    done
+          acOutlines+=("$bid;$outline")
+          acBodies[$bid]="$bodyHints"$'\n'"$body"
+          i=$((i+1))
+        done
 
-    files[$fid]="${acc[*]}"
+        {
+            echo "$fid"
+            echo "${acOutlines[*]@A}"
+            [[ ! $fid =~ .gpg ]] && echo "${acBodies[*]@A}"
+        } >"$cacheFile"
 
-  } < <(
-      getRawFile "$fid" |
-            sed -e '/^#+/i\\x02' -e '$a\\x02'
-       )
+      } < <(
+          getRawFile "$fid" |
+                sed -e '/^#+/i\\x02' -e '$a\\x02'
+          )
+  fi
+
+  files[$fid]=${acOutlines[*]}
+
+  for bid in ${!acBodies[*]}; do
+    bodies[$bid]=${acBodies[$bid]}
+  done
 }
 
 getRawFile() {
