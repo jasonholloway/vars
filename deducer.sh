@@ -166,7 +166,7 @@ runBlocks() {
     isTargetBlock=
     [[ ${targetBlocks[$bid]} ]] && isTargetBlock=1
 
-    # Can skip if nothing needed - could this be done before above input binding?? TODO
+    # Can skip if nothing needed
     isNeeded=$isTargetBlock
     for vn in ${outs[$bid]}; do [[ -z ${binds[$vn]} ]] && isNeeded=1; done
     [[ ! $isNeeded ]] && continue
@@ -181,6 +181,7 @@ runBlocks() {
         v=${pinned[$vn]}
         if [[ $v ]]; then source=pinned
         else
+          #yield to history-dredging process here... TODO
           v=$(
             if [[ -e $contextFile ]]; then
                 tac $contextFile |

@@ -22,10 +22,12 @@ colDim='\e[38;5;240m'
 colDimmest='\e[38;5;236m'
 
 outFile="$HOME/.vars/out"
-CACHE="$HOME/.vars/cache"
+cacheDir="$HOME/.vars/cache"
+
+now=$(date +%s)
 
 main() {
-  mkdir -p $CACHE
+  mkdir -p $cacheDir
 
   parseMany parseFlag \
   && {
@@ -152,67 +154,105 @@ run() {
       run) {
               IFS=$'\031' read -r blockType assignBinds bid <<< "$line"
 
-              case "$bid" in
-                  get:*)
-                      vn="${bid##*:}"
+              # But should only try the cache if we've flagged it as a cacheable block...
+              # TODO
 
-                      (
-                          eval "$assignBinds"
-                          echo ${boundIns[$vn]}
-                      )
-                  ;;
-                  *)
-                      say "@ASK files"
-                      say "body $bid"
-                      say "@YIELD"
-                      hear body
-                      say "@END"
+              # also todo:
+              # we want to do the below in a Runner, but with set pty via an arg
+              # the Runner will then make sure the pty is used for stdin on the running subshell
+              # this lets us delegate deeply into the broker
 
-                      decode body body
+              {
+                local cacheKey cacheHash cacheFile
 
-                      hint="${body%%$'\n'*}"
+                cacheKey="$bid $assignBinds"
+                cacheHash=$(echo "$cacheKey" | sha1sum)
+                cacheFile="$cacheDir/run-${cacheHash%% *}"
 
-                      (
-                          eval "$assignBinds"
-                          for n in ${!boundIns[*]}; do
-                              export "$n=${boundIns[$n]}"
-                          done
+                if [[ -e $cacheFile ]]; then
+                    {
+                        read -r line
+                        if [[ $line == $cacheKey ]]; then
 
-                          source $VARS_PATH/helpers.sh 
+                            read -r line
+                            if [[ $line > $now ]]; then
+                                echo "cache woo" >&2
+                                #load up file
+                                #continue
+                            fi
+                        fi
+                    } <"$cacheFile"
+                fi
 
-                          eval "${body#*$'\n'}"
-                      ) |
-                          while read -r line; do
-                              case "$line" in
-                                  @bind[[:space:]]+([[:word:]])[[:space:]]*)
-                                      read -r _ vn v <<< "$line"
-                                      say bind $vn $v
-                                  ;;
+                case "$bid" in
+                    get:*)
+                        vn="${bid##*:}"
 
-                                  @set[[:space:]]+([[:word:]])[[:space:]]*)
-                                      read -r _ n v <<< "$line"
-                                      say set $n $v
-                                  ;;
+                        (
+                            eval "$assignBinds"
+                            echo ${boundIns[$vn]}
+                        )
+                    ;;
+                    *)
+                        say "@ASK files"
+                        say "body $bid"
+                        say "@YIELD"
+                        hear body
+                        say "@END"
 
-                                  @out*)
-                                      read -r _  v <<< "$line"
-                                      echo $v
-                                  ;;
+                        decode body body
 
-                                  +([[:word:]])=*)
-                                      vn=${line%%=*}
-                                      v=${line#*=}
-                                      say bind $vn $v
-                                  ;;
+                        hint="${body%%$'\n'*}"
 
-                                  *)
-                                      echo $line  #this was previously only let through if target block
-                                  ;;
-                              esac
-                          done
-                  ;;
-              esac |
-                  { [[ $blockType == "target" ]] && cat; }
+                        (
+                            eval "$assignBinds"
+                            for n in ${!boundIns[*]}; do
+                                export "$n=${boundIns[$n]}"
+                            done
+
+                            source $VARS_PATH/helpers.sh 
+
+                            eval "${body#*$'\n'}"
+                        )
+                    ;;
+                esac
+              } |
+                  # cacheFile to be populated here
+                  # but only if cache flag is set
+                  # and only if @cacheTill has given us a new expiry
+                  #
+                  # so: if cache flag set, then we tee all to temp file
+                  # at end, given flag and set cacheTill, then we move the data into the cache, suitably keyed
+              { cat; } |
+              while read -r line; do
+                  case "$line" in
+                      @bind[[:space:]]+([[:word:]])[[:space:]]*)
+                          read -r _ vn v <<< "$line"
+                          say bind $vn $v
+                      ;;
+
+                      @set[[:space:]]+([[:word:]])[[:space:]]*)
+                          read -r _ n v <<< "$line"
+                          say set $n $v
+                      ;;
+
+                      @out*)
+                          read -r _  v <<< "$line"
+                          echo $v
+                      ;;
+
+                      +([[:word:]])=*)
+                          vn=${line%%=*}
+                          v=${line#*=}
+                          say bind $vn $v
+                      ;;
+
+                      *)
+                          echo $line  #this was previously only let through if target block
+                      ;;
+                  esac
+              done |
+              { [[ $blockType == "target" ]] && cat; }
 
               say fin
               say @YIELD
@@ -336,9 +376,9 @@ parseCache() {
   parse1 '^cache$' \
     && (
       (parse1 '^clear$' \
-        && rm -rf $CACHE/* \
+        && rm -rf $cacheDir/* \
         && echo cleared cache!) \
-      || find $CACHE -type d
+      || find $cacheDir -type d
     )
 }
 
