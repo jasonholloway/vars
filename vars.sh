@@ -178,7 +178,7 @@ run() {
                   if [[ $isCacheable && ! $runFlags =~ T && -e $cacheFile ]]; then
                       {
                           read -r line
-                          if [[ $line == $cacheKey ]]; then
+                          if [[ "$line" == "$cacheKey" ]]; then
 
                               read -r line
                               if [[ $line > $now ]]; then
