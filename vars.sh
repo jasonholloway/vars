@@ -152,7 +152,7 @@ run() {
           };;
 
       run) {
-              local cacheKey cacheHash cacheFile
+              local cacheFile
               local runFlags blockFlags
 
               IFS=$'\031' read -r runFlags assignBinds outline <<< "$line"
@@ -162,9 +162,8 @@ run() {
               [[ $blockFlags =~ C ]] && isCacheable=1
 
               if [[ $isCacheable ]]; then
-                  cacheKey="$bid $assignBinds"
-                  cacheHash=$(echo "$cacheKey" | sha1sum)
-                  cacheFile="$cacheDir/run-${cacheHash%% *}"
+                  local hash=$(echo "$bid $assignBinds" | sha1sum)
+                  cacheFile="$cacheDir/R-${hash%% *}"
               fi
               
               # also todo:
@@ -178,14 +177,10 @@ run() {
                   if [[ $isCacheable && ! $runFlags =~ T && -e $cacheFile ]]; then
                       {
                           read -r line
-                          if [[ "$line" == "$cacheKey" ]]; then
-
-                              read -r line
-                              if [[ $line > $now ]]; then
-                                  echo @fromCache
-                                  cat
-                                  runIt=
-                              fi
+                          if [[ $line > $now ]]; then
+                              echo @fromCache
+                              cat
+                              runIt=
                           fi
                       } <"$cacheFile"
                   fi
@@ -247,7 +242,6 @@ run() {
                                   esac
                               done
 
-                              echo $cacheKey >"$cacheFile"
                               echo $cacheTill >>"$cacheFile"
                               printf "%s\n" "${buff[@]}" >>"$cacheFile"
                           else

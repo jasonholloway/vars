@@ -24,22 +24,18 @@ main() {
 }
 
 getOutlines() {
-  local fids fidHash cacheFile outlineList
+  local fids hash cacheFile outlineList
 
   fids=$*
 
-  fidHash=$(echo "$fids" | sha1sum)
-  cacheFile="$cacheDir/outlines-${fidHash%% *}"
+  hash=$(echo "$fids" | sha1sum)
+  cacheFile="$cacheDir/O-${hash%% *}"
 
   if [[ -e $cacheFile ]]; then
     {
-      local foundFids
-      read -r foundFids
-      if [[ $foundFids == "$fids" ]]; then
-        read -r outlineList
-        say "$outlineList"
-        return
-      fi
+      read -r outlineList
+      say "$outlineList"
+      return
     } <"$cacheFile"
   fi
 
@@ -52,8 +48,7 @@ getOutlines() {
   done
 
   outlineList="${outlines[*]}"
-  echo "$fids"$'\n'"$outlineList" >"$cacheFile"
-
+  echo "$outlineList" >"$cacheFile"
   say "$outlineList"
 }
 
@@ -76,7 +71,7 @@ loadFiles() {
 }
 
 loadFile() {
-  local fid bid fidHash cacheFile line i
+  local fid bid hash cacheFile line i
   local -A acBodies
   local -a acOutlines
 
@@ -84,21 +79,17 @@ loadFile() {
 
   [[ -v "files[$fid]" ]] && return
 
-  fidHash=$(echo "$fid" | sha1sum)
-  cacheFile="$cacheDir/file-${fidHash%% *}"
+  hash=$(echo "$fid" | sha1sum)
+  cacheFile="$cacheDir/F-${hash%% *}"
   
   if [[ -e $cacheFile ]]; then
-      {
-          read -r line
-          if [[ $line == "$fid" ]]; then
+    {
+      read -r line
+      eval "$line"
 
-              read -r line
-              eval "$line"
-              
-              read -r line
-              eval "$line"
-          fi
-      } <"$cacheFile"
+      read -r line
+      eval "$line"
+    } <"$cacheFile"
   fi
 
   if [[ ! -v "acOutlines[@]" || ! -v "acBodies[@]" ]]; then
@@ -125,7 +116,6 @@ loadFile() {
         done
 
         {
-            echo "$fid"
             echo "${acOutlines[*]@A}"
             [[ ! $fid =~ .gpg ]] && echo "${acBodies[*]@A}"
         } >"$cacheFile"
