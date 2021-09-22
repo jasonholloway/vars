@@ -1,10 +1,10 @@
 # out: firstName age
 # cache
 
-echo firstName=bob
+echo firstName=bob$(date +%s)
 echo age=70
 
-@cacheTill 999999999999999999999999
+@cacheFor 5
 
 #++++++++++++++++++++++++
 # out: dog
@@ -26,6 +26,10 @@ dog > food
 echo Hello, ${dog}!
 
 
+#+++++++++++++++++++++++
+# n: greet
+# in: firstName
+echo yo, $firstName
 
 
 #+++++++++++++++++++

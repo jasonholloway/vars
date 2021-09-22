@@ -26,7 +26,7 @@ main() {
 
 deduce() {
   local plan
-  local -A blocks blockNames targetBlocks modes pinned ins outs flags
+  local -A blocks blockNames targetBlocks modes pinned ins outs flags outlines
   local now=$(date +%s)
 
   readInputs
@@ -48,6 +48,7 @@ readInputs() {
     IFS=';' read -r bid rawBlockNames rawIns rawOuts rawFlags <<<"$outline" 
 
     blocks[$bid]=1
+    outlines[$bid]=$outline
 
     for n in ${rawBlockNames//,/ }; do
         blockNames[$n]="$bid"
@@ -72,6 +73,7 @@ readInputs() {
   for n in $raw; do
       vbid="get:$n"
       blocks[$vbid]=1
+      outlines[$vbid]=$vbid
       targetBlocks[$vbid]=1
       ins[$vbid]="$n"
   done
@@ -155,7 +157,8 @@ orderBlocks() {
 }
 
 runBlocks() {
-  local bid vn v isTargetBlock isNeeded source blockType
+  local bid vn v isTargetBlock isNeeded source
+  local -a flags
   local -A binds boundIns boundOuts attrs
     
   while read -r bid; do
@@ -216,11 +219,11 @@ runBlocks() {
       fi
     done
 
-    blockType=node
-    [[ ${targetBlocks[$bid]} ]] && blockType=target
+    flags=()
+    [[ ${targetBlocks[$bid]} ]] && flags+=(T)
 
     # Run the block!
-    say "run ${blockType}"$'\031'"${boundIns[*]@A}"$'\031'"${bid}"
+    say "run ${flags[*]}"$'\031'"${boundIns[*]@A}"$'\031'"${outlines[$bid]}"
     say "@YIELD"
 
     while hear type line; do

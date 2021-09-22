@@ -7,7 +7,11 @@
 }
 
 @cacheTill() {
-    echo @set cacheTill "$@"
+    echo @cacheTill "$@"
+}
+
+@cacheFor() {
+    echo @cacheFor "$@"
 }
 
 @bind() {
