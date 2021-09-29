@@ -39,16 +39,18 @@ bindkey 'jvl' vars_choose
 
 
 vars_get() {
-  targets=$(vars ls 2)
+  allTargets=$(vars ls 2)
 
-  var=$(echo "$targets" | awk -F, '/^O/ { print $2 }' | fzy -q ""$1"" -l 20)
+  chosen=$(echo "$allTargets" | awk -F\; '$1 == "O" { print $2 }' | fzy -q ""$1"" -l 20)
 
-  read dir target <<<"$(echo "$targets" | awk -F, '/^O/ && $2 == "'$var'" { print $3 " " $7 }')"
+  fid=$(echo "$allTargets" | awk -F\; '$1 == "O" && $2 == "'$chosen'" { print $3 }')
 
+  IFS=\, read -r file _ <<<"$fid"
+  dir=$(dirname "$file")
   shortDir=$(realpath --relative-to=$PWD $dir)
 
-  if [[ $? && ! -z $target ]]; then
-    BUFFER="(cd $shortDir && vg $target)"
+  if [[ $? && ! -z $chosen ]]; then
+    BUFFER="(cd $shortDir && vg $chosen)"
     CURSOR=${#BUFFER}
     zle accept-line
   fi
@@ -63,16 +65,17 @@ bindkey 'jvg' vars_get
 
 
 vars_run() {
-  targets=$(vars ls 2)
+  allTargets=$(vars ls 2)
 
-  block=$(echo "$targets" | awk -F, '/^B/ { print $2 }' | fzy -q ""$1"" -l 20)
+  chosen=$(echo "$allTargets" | awk -F\; '$1 == "B" { print $2 }' | fzy -q ""$1"" -l 20)
 
-  read dir target <<<"$(echo "$targets" | awk -F, '/^B/ && $2 == "'$block'" { print $3 " " $7 }')"
-
+  fid=$(echo "$allTargets" | awk -F\; '$1 == "B" && $2 == "'$chosen'" { print $3 }')
+  IFS=\, read -r file _ <<<"$fid"
+  dir=$(dirname "$file")
   shortDir=$(realpath --relative-to=$PWD $dir)
 
-  if [[ $? && ! -z $target ]]; then
-    BUFFER="(cd $shortDir && vr $target)"
+  if [[ $? && ! -z $chosen ]]; then
+    BUFFER="(cd $shortDir && vr $chosen)"
     CURSOR=${#BUFFER}
     zle accept-line
   fi

@@ -296,6 +296,45 @@ run() {
   done
 }
 
+list() {
+  local fids outlines type line 
+
+  say "@ASK files"
+  say "find"
+  say "@YIELD"
+  hear fids
+  say "outline $fids"
+  say "@YIELD"
+  hear outlines
+  say "@END"
+
+  for outline in $outlines; do
+      IFS=\; read -r fid names _ outs <<<"$outline"
+
+      local IFS=\,
+
+      for name in $names; do
+          echo "B;$name;$fid"
+      done
+
+      for out in $outs; do
+          echo "O;$out;$fid"
+      done
+  done | sort | uniq
+
+  # say "@ASK deducer"
+  # say "deduce"
+  # say "$outlines"
+  # say "${blocks[*]}"
+  # say "${targets[*]}"
+  # say "${flags[*]}"
+  # say "@YIELD"
+
+  # local maxDepth=$1
+  # files=$(findFiles $maxDepth $PWD)
+  # $VARS_PATH/list.sh "$files"
+}
+
 shift1() {
   i=$((i + 1))
 }
@@ -348,8 +387,7 @@ parseLs() {
         && maxDepth=$w
       } || maxDepth=1
 
-      files=$(findFiles $maxDepth $PWD)
-      $VARS_PATH/list.sh "$files"
+      cmds+=("list $maxDepth")
     }
 }
 
