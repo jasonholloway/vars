@@ -43,17 +43,20 @@ vars_get() {
 
   chosen=$(echo "$allTargets" | awk -F\; '{ print $1 }' | fzy -q ""$1"" -l 20)
 
-  while read -r line; do
-      [[ $line =~ ^$chosen';' ]] && {
-          IFS=\; read -r _ shortDir target _ <<<"$line"
-      }
-  done <<<"$allTargets"
+  [[ $? -eq 0 ]] &&
+  {
+    while read -r line; do
+        [[ $line =~ ^$chosen';' ]] && {
+            IFS=\; read -r _ shortDir target _ <<<"$line"
+        }
+    done <<<"$allTargets"
 
-  if [[ $? && ! -z $target ]]; then
-    BUFFER="(cd $shortDir && vg $target)"
-    CURSOR=${#BUFFER}
-    zle accept-line
-  fi
+    if [[ ! -z $target ]]; then
+      BUFFER="(cd $shortDir && vg $target)"
+      CURSOR=${#BUFFER}
+      zle accept-line
+    fi
+  }
 
   zle reset-prompt
 }
@@ -69,17 +72,20 @@ vars_run() {
 
   chosen=$(echo "$allTargets" | awk -F\; '{ print $1 }' | fzy -q ""$1"" -l 20)
 
-  while read -r line; do
-      [[ $line =~ ^$chosen';' ]] && {
-          IFS=\; read -r _ shortDir target _ <<<"$line"
-      }
-  done <<<"$allTargets"
+  [[ $? -eq 0 ]] &&
+  {
+    while read -r line; do
+        [[ $line =~ ^$chosen';' ]] && {
+            IFS=\; read -r _ shortDir target _ <<<"$line"
+        }
+    done <<<"$allTargets"
 
-  if [[ $? && ! -z $target ]]; then
-    BUFFER="(cd $shortDir && vr $target)"
-    CURSOR=${#BUFFER}
-    zle accept-line
-  fi
+    if [[ ! -z $target ]]; then
+      BUFFER="(cd $shortDir && vr $target)"
+      CURSOR=${#BUFFER}
+      zle accept-line
+    fi
+  }
 
   zle reset-prompt
 }
@@ -95,7 +101,7 @@ vars_pinArbitrary() {
 
   var=$(echo "$allTargets" | awk -F\; '{ print $1 }' | sort | uniq | fzy -q ""$1"" -l 20)
 
-  if [[ $? && ! -z $var ]]; then
+  if [[ $? -eq 0 && ! -z $var ]]; then
     BUFFER="vp ${var}="
     CURSOR=${#BUFFER}
   fi
