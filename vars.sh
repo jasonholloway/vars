@@ -516,35 +516,6 @@ parseArg() {
       && echo "$w"
 }
 
-
-findFiles() {
-  depth=$1
-  shift
-  wds="$*"
-
-  for wd in $wds; do
-    (cd "$wd" && "$VARS_PATH/listDotFiles.sh" '@*' "$depth")
-  done |
-    sort |
-    uniq
-}
-
-deduce() {
-  "$VARS_PATH/deduceVarBinds.sh" "$@"
-}
-
-readBlocks() {
-  for a in $@
-    do [[ $a =~ ^[^¦] ]] && echo $a
-  done
-}
-
-readTargets() {
-  for a in $@
-    do [[ $a =~ ^¦ ]] && echo ${a:1}
-  done
-}
-
 render() {
   "$VARS_PATH/render.sh"
 }
