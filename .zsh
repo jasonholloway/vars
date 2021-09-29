@@ -39,18 +39,18 @@ bindkey 'jvl' vars_choose
 
 
 vars_get() {
-  allTargets=$(vars ls 2)
+  allTargets=$(vars list outs rel)
 
-  chosen=$(echo "$allTargets" | awk -F\; '$1 == "O" { print $2 }' | fzy -q ""$1"" -l 20)
+  chosen=$(echo "$allTargets" | awk -F\; '{ print $1 }' | fzy -q ""$1"" -l 20)
 
-  fid=$(echo "$allTargets" | awk -F\; '$1 == "O" && $2 == "'$chosen'" { print $3 }')
+  while read -r line; do
+      [[ $line =~ ^$chosen';' ]] && {
+          IFS=\; read -r _ shortDir target _ <<<"$line"
+      }
+  done <<<"$allTargets"
 
-  IFS=\, read -r file _ <<<"$fid"
-  dir=$(dirname "$file")
-  shortDir=$(realpath --relative-to=$PWD $dir)
-
-  if [[ $? && ! -z $chosen ]]; then
-    BUFFER="(cd $shortDir && vg $chosen)"
+  if [[ $? && ! -z $target ]]; then
+    BUFFER="(cd $shortDir && vg $target)"
     CURSOR=${#BUFFER}
     zle accept-line
   fi
@@ -65,17 +65,18 @@ bindkey 'jvg' vars_get
 
 
 vars_run() {
-  allTargets=$(vars ls 2)
+  allTargets=$(vars list blocks rel)
 
-  chosen=$(echo "$allTargets" | awk -F\; '$1 == "B" { print $2 }' | fzy -q ""$1"" -l 20)
+  chosen=$(echo "$allTargets" | awk -F\; '{ print $1 }' | fzy -q ""$1"" -l 20)
 
-  fid=$(echo "$allTargets" | awk -F\; '$1 == "B" && $2 == "'$chosen'" { print $3 }')
-  IFS=\, read -r file _ <<<"$fid"
-  dir=$(dirname "$file")
-  shortDir=$(realpath --relative-to=$PWD $dir)
+  while read -r line; do
+      [[ $line =~ ^$chosen';' ]] && {
+          IFS=\; read -r _ shortDir target _ <<<"$line"
+      }
+  done <<<"$allTargets"
 
-  if [[ $? && ! -z $chosen ]]; then
-    BUFFER="(cd $shortDir && vr $chosen)"
+  if [[ $? && ! -z $target ]]; then
+    BUFFER="(cd $shortDir && vr $target)"
     CURSOR=${#BUFFER}
     zle accept-line
   fi
@@ -90,15 +91,9 @@ bindkey 'jvr' vars_run
 
 
 vars_pinArbitrary() {
-  # var=$(vars list | sed -n '/^I/p' | cut -d, -f2 | fzy -q ""$1"" -l 20)
+  allTargets=$(vars list ins)
 
-  targets=$(vars ls 2)
-
-  var=$(echo "$targets" | awk -F, '/^I/ { print $7 }' | sort | uniq | fzy -q ""$1"" -l 20)
-
-  # read dir target <<<"$(echo "$targets" | awk -F, '/^I/ && $2 == "'$var'" { print $3 " " $7 }')"
-
-  # shortDir=$(realpath --relative-to=$PWD $dir)
+  var=$(echo "$allTargets" | awk -F\; '{ print $1 }' | sort | uniq | fzy -q ""$1"" -l 20)
 
   if [[ $? && ! -z $var ]]; then
     BUFFER="vp ${var}="

@@ -297,7 +297,7 @@ run() {
 }
 
 list() {
-  local fids outlines type line 
+  local fids outlines names outs ins
 
   say "@ASK files"
   say "find"
@@ -308,31 +308,51 @@ list() {
   hear outlines
   say "@END"
 
+  local IFS=$' '
   for outline in $outlines; do
-      IFS=\; read -r fid names _ outs <<<"$outline"
+      IFS=\; read -r bid names ins outs <<<"$outline"
 
-      local IFS=\,
-
+      local IFS=$','
       for name in $names; do
-          echo "B;$name;$fid"
+          echo "B;$name;$bid"
+      done
+
+      for inp in $ins; do
+          echo "I;$inp;$bid"
       done
 
       for out in $outs; do
-          echo "O;$out;$fid"
+          echo "O;$out;$bid"
       done
+
   done | sort | uniq
+}
 
-  # say "@ASK deducer"
-  # say "deduce"
-  # say "$outlines"
-  # say "${blocks[*]}"
-  # say "${targets[*]}"
-  # say "${flags[*]}"
-  # say "@YIELD"
+filterList() {
+    local type=$1
+    while read -r line; do
+        [[ ${line:0:2} == "$type;" ]] && echo "${line:2}"
+    done
+}
 
-  # local maxDepth=$1
-  # files=$(findFiles $maxDepth $PWD)
-  # $VARS_PATH/list.sh "$files"
+relativizeList() {
+    local -A relDirs=()
+    
+    while read -r line; do
+        IFS=\; read -r name bid _ <<<"$line"
+        IFS=\| read -r fid _ <<<"$bid"
+        IFS=\, read -r file _ <<<"$fid"
+
+        relDir=${relDirs[$file]}
+
+        if [[ ! $relDir ]]; then
+          dir=$(dirname "$file")
+          relDir=$(realpath --relative-to="$PWD" "$dir")
+          relDirs[$file]=$relDir
+        fi
+
+        echo "$relDir/$name;$relDir;$line"
+    done
 }
 
 shift1() {
@@ -382,13 +402,22 @@ parsePrep() {
 parseLs() {
   parse1 '^(ls|list)$' \
     && {
-      {
-        parse1 '^([0-9]+)$' \
-        && maxDepth=$w
-      } || maxDepth=1
+      cmds+=("list")
 
-      cmds+=("list $maxDepth")
-    }
+      {
+        parse1 '^(b|bl|block|blocks)' \
+          && cmds+=("| filterList B")
+      } || {
+        parse1 '^(o|out|outs)' \
+          && cmds+=("| filterList O")
+      } || {
+        parse1 '^(i|in|ins)' \
+          && cmds+=("| filterList I")
+      }
+
+      parse1 '^rel' \
+        && cmds+=("| relativizeList")
+  }
 }
 
 parsePin() {
