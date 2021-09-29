@@ -6,7 +6,7 @@ BEGIN {
 /^ *$/ || /^#/ { next }
 
 # header
-! /^ *:/ {
+! /^ *;/ {
     split($0, parts, / *> */)
     split(parts[1], ins, / *, */)
     split(parts[2], outs, / *, */)
@@ -17,8 +17,8 @@ BEGIN {
 }
 
 # rule
-/^ *:/ {
-    gsub("^\\s*:\\s*", "")
+/^ *;/ {
+    gsub("^\\s*;\\s*", "")
     rules[ruleI++]=$0
 }
 
