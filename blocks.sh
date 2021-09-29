@@ -52,6 +52,7 @@ readBlock() {
           '# in: '*)  for n in ${line:6}; do ins+=($n); done ;;
           '# out: '*) for n in ${line:7}; do outs+=($n); done ;;
           '# cache'*) flags+=("C") ;;
+          '')         ;;
           '#'*)       ;;
           *)          body0="$line"$'\n'; break ;;
         esac
