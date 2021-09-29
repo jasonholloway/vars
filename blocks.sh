@@ -28,31 +28,45 @@ readBlock() {
   local -a ins=()
   local -a outs=()
   local -a flags=()
-  local body
+  local body macro
 
   {
-    local body0=""
-      
-    while read -r line; do
-      case "$line" in
-        '# n: '*)   for n in ${line:5}; do names+=($n); done ;;
-        '# in: '*)  for n in ${line:6}; do ins+=($n); done ;;
-        '# out: '*) for n in ${line:7}; do outs+=($n); done ;;
-        '# cache'*) flags+=("C") ;;
-        '#'*)       ;;
-        *)          body0="$line"$'\n'; break ;;
-      esac
-    done
+    if read -r line && [[ $line =~ ^#\++ ]]; then
+        read -r _ macro <<<"$line"
+        block=$(while read -r line; do echo "$line"; done)
+    fi
+  } <<<"$block"
 
-    body="${body0}$(cat)"
-    encode body body
+  case $macro in
+      map)
+          block="$(awk -f "$VARS_PATH/macros/map.awk" <<<"$block")"
+      ;;
+  esac
 
-  } <<< "$block"
+  {
+      local body0=""
+
+      while read -r line; do
+        case "$line" in
+          '# n: '*)   for n in ${line:5}; do names+=($n); done ;;
+          '# in: '*)  for n in ${line:6}; do ins+=($n); done ;;
+          '# out: '*) for n in ${line:7}; do outs+=($n); done ;;
+          '# cache'*) flags+=("C") ;;
+          '#'*)       ;;
+          *)          body0="$line"$'\n'; break ;;
+        esac
+      done
+
+      body="${body0}$(cat)"
+
+  } <<<"$block"
 
   (
     local IFS=,
     say "${names[*]};${ins[*]};${outs[*]};${flags[*]}"
   )
+
+	encode body body
 
   say "bash" #hints for interpretation
   say "$body"

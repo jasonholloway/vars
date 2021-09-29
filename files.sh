@@ -31,7 +31,7 @@ getOutlines() {
   hash=$(echo "$fids" | sha1sum)
   cacheFile="$cacheDir/O-${hash%% *}"
 
-  if [[ -e $cacheFile ]]; then
+  if [[ -e $cacheFile && ! $DISABLE_VARS_CACHE ]]; then
     {
       read -r outlineList
       say "$outlineList"
@@ -82,7 +82,7 @@ loadFile() {
   hash=$(echo "$fid" | sha1sum)
   cacheFile="$cacheDir/F-${hash%% *}"
   
-  if [[ -e $cacheFile ]]; then
+  if [[ -e $cacheFile && ! $DISABLE_VARS_CACHE ]]; then
     {
       read -r line
       eval "$line"

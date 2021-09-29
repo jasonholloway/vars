@@ -1,19 +1,7 @@
-# in: firstName surname age
-# out: hat plop
-# cache
-
-now=$(date +%s)
-case "$age" in
-  7)
-			echo hat=baseball
-			;;
-
-	70)
-			echo hat=flatcap
-			;;
-esac 
-
-echo "@cacheTill $((now + 60))"
+#++++++++++++ map
+age > hat,cat
+: 7 > baseball,timbo
+: 70 > flatcap,dave
 
 
 #++++ bash
