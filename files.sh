@@ -142,7 +142,7 @@ getRawFile() {
   if [[ ! -v "rawFiles[$fid]" ]]; then
     rawFiles[$fid]=$(
       if [[ ${path: -4} == .gpg ]]; then
-        gpg -dq --pinentry-mode loopback <"$path"
+        gpg2 -dq --pinentry-mode loopback <"$path"
       else
         cat "$path"
       fi
