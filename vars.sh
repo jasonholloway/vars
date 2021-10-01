@@ -173,8 +173,9 @@ run() {
 
               {
                   runIt=1
-                  
-                  if [[ $isCacheable && ! $runFlags =~ T && -e $cacheFile ]]; then
+
+                  # && ! $runFlags =~ T 
+                  if [[ $isCacheable && -e $cacheFile ]]; then
                       {
                           read -r line
                           if [[ $line > $now ]]; then
