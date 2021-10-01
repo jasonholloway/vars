@@ -49,6 +49,12 @@ from {
 debug1 { print PROCINFO["pid"]" ["from" -> "to"] "$0 >"/dev/stderr" }
 
 
+/^@ERROR/ {
+    gsub("^@ERROR\\s+", "")
+
+    print "error"
+    print $0
+}
 
 /^@ASK/ {
     talkTo=$2

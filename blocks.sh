@@ -27,8 +27,9 @@ readBlock() {
   local -a names=()
   local -a ins=()
   local -a outs=()
+  local -a pins=()
   local -a flags=()
-  local body macro
+  local body macro n v
 
   {
     if read -r line && [[ $line =~ ^#\++ ]]; then
@@ -51,12 +52,15 @@ readBlock() {
           '# n: '*)   for n in ${line:5}; do names+=($n); done ;;
           '# in: '*)  for n in ${line:6}; do ins+=($n); done ;;
           '# out: '*) for n in ${line:7}; do outs+=($n); done ;;
+          '# pin: '*) pins+=(${line:7}) ;;
           '# cache'*) flags+=("C") ;;
           '')         ;;
           '#'*)       ;;
           *)          body0="$line"$'\n'; break ;;
         esac
       done
+
+      [[ ${#pins[@]} -gt 0 ]] && flags+=("P")
 
       body="${body0}$(cat)"
 
@@ -67,10 +71,18 @@ readBlock() {
     say "${names[*]};${ins[*]};${outs[*]};${flags[*]}"
   )
 
-	encode body body
+  for p in "${pins[@]}"; do
+    IFS='=' read -r n v <<<"$p"
+    say "pin $n"
+    encode v v
+    say "$v"
+  done
 
-  say "bash" #hints for interpretation
+	encode body body
+  say "body bash" #"say body bash"
   say "$body"
+
+  say "fin"
 }
 
 main "$@"

@@ -8,6 +8,11 @@ say() {
   echo "$@" >&6
 }
 
+error() {
+	say "@ERROR $*"
+	exit 1
+}
+
 hear() {
 	local _l
 

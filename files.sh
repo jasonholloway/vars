@@ -4,19 +4,20 @@ cacheDir="$HOME/.vars/cache"
 
 source "${VARS_PATH:-.}/common.sh"
 
-declare -A rawFiles files bodies
+declare -A rawFiles files blocks
 
 main() {
-  local type line
+  local type rest
     
   setupBus
     
-  while hear type line; do
+  while hear type rest; do
     case $type in
       find) findFiles >&6;;
-      raw) getRawFile "$line";;
-      outline) getOutlines "$line";;
-      body) getBody "$line";;
+      raw) getRawFile "$rest";;
+      outline) getOutlines "$rest";;
+      body) getBody "$rest";;
+      pins) getPins "$rest";;
     esac
 
     say "@YIELD"
@@ -54,12 +55,41 @@ getOutlines() {
 
 getBody() {
   local bid=$1
+  local fid type rest body
+  
   IFS='|' read -r fid i <<<"$bid"
   loadFile "$fid"
 
-  local body="${bodies[$bid]}"
-  encode body body
-  echo "$body"
+  while read -r type rest; do
+    case "$type" in
+        body)
+          say "$rest"
+          read -r body
+          say "$body"
+          break
+        ;;
+    esac
+  done <<<"${blocks[$bid]}"
+}
+
+getPins() {
+  local bid=$1
+  local fid type rest val
+  
+  IFS='|' read -r fid i <<<"$bid"
+  loadFile "$fid"
+
+  while read -r type rest; do
+    case "$type" in
+        pin)
+          say "$rest"
+          read -r val
+          say "$val"
+        ;;
+    esac
+  done <<<"${blocks[$bid]}"
+
+  say "fin"
 }
 
 loadFiles() {
@@ -72,7 +102,7 @@ loadFiles() {
 
 loadFile() {
   local fid bid hash cacheFile line i
-  local -A acBodies
+  local -A acBlocks
   local -a acOutlines
 
   fid=$1
@@ -92,7 +122,7 @@ loadFile() {
     } <"$cacheFile"
   fi
 
-  if [[ ! -v "acOutlines[@]" || ! -v "acBodies[@]" ]]; then
+  if [[ ! -v "acOutlines[@]" || ! -v "acBlocks[@]" ]]; then
       {
         local i=0
 
@@ -106,18 +136,23 @@ loadFile() {
           say "readBlock"
           say "$block"
           say "@YIELD"
-          hear outline
-          hear bodyHints
-          hear body
 
+          hear outline
           acOutlines+=("$bid;$outline")
-          acBodies[$bid]="$bodyHints"$'\n'"$body"
+
+          acBlocks[$bid]=$(
+            while hear line; do
+                [[ $line == fin ]] && break
+                echo "$line"
+            done
+          )
+
           i=$((i+1))
         done
 
         {
             echo "${acOutlines[*]@A}"
-            [[ ! $fid =~ .gpg ]] && echo "${acBodies[*]@A}"
+            [[ ! $fid =~ .gpg ]] && echo "${acBlocks[*]@A}"
         } >"$cacheFile"
 
       } < <(
@@ -128,8 +163,8 @@ loadFile() {
 
   files[$fid]=${acOutlines[*]}
 
-  for bid in ${!acBodies[*]}; do
-    bodies[$bid]=${acBodies[$bid]}
+  for bid in ${!acBlocks[*]}; do
+    blocks[$bid]="${acBlocks[$bid]}"
   done
 }
 

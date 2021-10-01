@@ -87,6 +87,12 @@ run() {
           break
           ;;
 
+      error)
+          hear line
+          echo "$line" >&2
+          exit 1
+          ;;
+
       targets)
           for src in $line; do
               IFS='|' read path index <<< "$src"
@@ -173,7 +179,6 @@ run() {
 
               {
                   runIt=1
-
                   # && ! $runFlags =~ T 
                   if [[ $isCacheable && -e $cacheFile ]]; then
                       {
@@ -200,12 +205,11 @@ run() {
                               say "@ASK files"
                               say "body $bid"
                               say "@YIELD"
+                              hear hint
                               hear body
                               say "@END"
 
                               decode body body
-
-                              hint="${body%%$'\n'*}"
 
                               (
                                   eval "$assignBinds"
@@ -215,7 +219,7 @@ run() {
 
                                   source $VARS_PATH/helpers.sh 
 
-                                  eval "${body#*$'\n'}"
+                                  eval "$body"
                               )
                           ;;
                       esac |

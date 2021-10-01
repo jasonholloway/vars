@@ -30,9 +30,15 @@ echo yo, $firstName
 
 #+++++++++++++++++++
 # n: sayMoo
-# in: cowName
-echo "${cowName}: Moo!"
+# in: cowName breed
+# pin: breed=Hereford
+echo "${cowName}: Moo! (${cowName}'s breed is _${breed}_!)"
 
+
+
+#+++++++++++++++++++++
+# out: cowName
+@bind cowName ¦Daisy¦Betsy¦Kev
 
 
 #+++++++++++++++++++

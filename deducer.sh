@@ -30,10 +30,13 @@ deduce() {
   local now=$(date +%s)
 
   readInputs
-  readPinned
-
+  readUserPins
   trimBlocks
+
   say "targets ${!targetBlocks[*]}"
+
+  readBlockPins
+  trimBlocks
 
   plan=$(orderBlocks)
   runBlocks <<<"$plan"
@@ -85,12 +88,44 @@ readInputs() {
   done
 }
 
-readPinned() {
+readUserPins() {
   local file vn
+
+  # todo: try finding just inputs
+
   for file in "$pinnedDir"/*; do
-    if [[ -e $file ]]; then
+    if [[ -e $file ]]; then # is this really needed???
       vn=${file#"$pinnedDir"/}
       pinned[$vn]=$(base64 -d "$file") # should be lazily bash-decoded! TODO
+    fi
+  done
+}
+
+readBlockPins() {
+  local bid vn v
+  local -A blockPinned=()
+
+  for bid in "${!blocks[@]}"; do
+    if [[ ${flags[$bid]} =~ P ]]; then
+      say "@ASK files"
+      say "pins $bid"
+      say "@YIELD"
+
+      while hear line; do
+        [[ $line == fin ]] && break
+
+        vn="$line"
+        hear v
+
+        if [[ ${blockPinned[$vn]} ]]; then
+          error "clash of blockPins for $vn: $v vs ${blockPinned[$vn]}"
+        fi
+
+        blockPinned[$vn]=$v
+        pinned[$vn]=$v
+      done
+
+      say "@END"
     fi
   done
 }
