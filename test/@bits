@@ -41,6 +41,19 @@ echo "${cowName}: Moo! (${cowName}'s breed is _${breed}_!)"
 @bind cowName ¦Daisy¦Betsy¦Kev
 
 
+#+++++++++++++++++++++
+# n: curl
+# in: cowName
+@curl \
+  -X POST localhost:8080 \
+	-H "Content-Type: application/x-www-form-urlencoded" \
+	--data-urlencode "client_id=$client" \
+	--data-urlencode "client_secret=$_secret" \
+	--data-urlencode "grant_type=$grantType" \
+	--data-urlencode "apikey=$_apiKey" \
+	--data-urlencode "scopes=$scope"
+
+
 #+++++++++++++++++++
 # n: tty1
 # in: dog age

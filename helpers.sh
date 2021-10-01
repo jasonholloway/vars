@@ -1,9 +1,25 @@
+#!/bin/bash
 
 @curl() {
-    curl -Ss -Lk \
-         $([ ! -z $VARS_VERBOSE ] && echo "-v") \
-         $([ ! -z $VARS_PROXY ] && echo "--proxy $VARS_PROXY") \
-         "$@"
+		local args=("$@")
+    local line
+
+		{ while read -r line; do
+				line=${line//$'\r'/}
+				[[ -z $line ]] && { echo "" >&2; } && break
+				echo "HEADER $line" >&2
+			done
+
+			while read -r line; do
+				echo "BODY $line" >&2
+				echo "$line"
+			done
+		} <<<$(
+			curl -Ss -Lk -i \
+					$([[ $VARS_VERBOSE ]] && echo "-v") \
+					$([[ $VARS_PROXY ]] && echo "--proxy $VARS_PROXY") \
+					"${args[@]}"
+			)
 }
 
 @cacheTill() {
