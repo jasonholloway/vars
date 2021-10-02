@@ -1,7 +1,7 @@
 #++++++++++++ map
 age > hat,cat
-: 7 > baseball,timbo
-: 70 > flatcap,dave
+; 7 > baseball,timbo
+; 70 > flatcap,dave
 
 
 #++++ bash
@@ -11,3 +11,8 @@ age > hat,cat
 echo surname=Boggins 
 
 
+#++++++
+# n: curl
+# in: age
+
+@curl localhost:9999

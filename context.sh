@@ -83,6 +83,7 @@ list() {
 
 previous() {
   "$VARS_PATH/render.sh" <"$outFile"
+  return 0
 }
 
 crop() {

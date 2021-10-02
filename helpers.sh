@@ -1,25 +1,63 @@
 #!/bin/bash
 
 @curl() {
-		local args=("$@")
     local line
 
-		{ while read -r line; do
-				line=${line//$'\r'/}
-				[[ -z $line ]] && { echo "" >&2; } && break
-				echo "HEADER $line" >&2
-			done
-
-			while read -r line; do
-				echo "BODY $line" >&2
-				echo "$line"
-			done
-		} <<<$(
-			curl -Ss -Lk -i \
+		resp=$(curl -Ss -Lk -i \
 					$([[ $VARS_VERBOSE ]] && echo "-v") \
 					$([[ $VARS_PROXY ]] && echo "--proxy $VARS_PROXY") \
-					"${args[@]}"
-			)
+					"$@" 2>&1)
+
+		{
+			local mode=start
+			local move=1
+			local schema status isError
+
+			while true; do
+				[[ $move ]] && { read -r line || break; }
+				move=
+
+				line=${line//$'\r'/}
+
+				case $mode in
+						start)
+							if [[ $line =~ ^HTTP ]]; then
+									mode=http
+							else
+									mode=error
+							fi
+						;;
+
+						http)
+							read -r schema status _ <<<"$line"
+							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+							mode=header
+							move=1
+						;;
+
+						header)
+							[[ -z $line ]] && mode=body
+							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+							move=1
+						;;
+
+						body)
+							echo "$line" 
+							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+							move=1
+						;;
+
+						error)
+							echo "$line" >&2
+							isError=1
+							move=1
+						;;
+				esac
+			done
+
+			[[ $isError ]] && return 1
+
+		} <<<"$resp"
 }
 
 @cacheTill() {
