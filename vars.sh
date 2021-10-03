@@ -198,7 +198,7 @@ run() {
 
                               (
                                   eval "$assignBinds"
-                                  echo ${boundIns[$vn]}
+                                  echo @out ${boundIns[$vn]}
                               )
                           ;;
                           *)
