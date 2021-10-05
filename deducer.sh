@@ -258,11 +258,15 @@ runBlocks() {
     [[ ${targetBlocks[$bid]} ]] && flags+=(T)
 
     # Run the block!
+
+    say "@ASK runner"
     say "run ${flags[*]}"$'\031'"${boundIns[*]@A}"$'\031'"${outlines[$bid]}"
     say "@YIELD"
-
+    say "@END"
     while hear type line; do
       case "$type" in
+          'fin') break;;
+
           'bind')
               read -r vn v <<<"$line"
               decode v v
@@ -274,7 +278,7 @@ runBlocks() {
               attrs[$n]="$v"
           ;;
 
-          'fin') break;;
+          *) say "$type $line";;
       esac
     done
 
@@ -283,8 +287,6 @@ runBlocks() {
       binds[$vn]=$v
       say "bound $bid $vn ${v//$'\n'/$'\60'}"
     done
-
-    # say "fin"
   done
 
   say "fin"

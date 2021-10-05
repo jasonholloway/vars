@@ -42,6 +42,16 @@ echo "${cowName}: Moo! (${cowName}'s breed is _${breed}_!)"
 
 
 #+++++++++++++++++++++
+# n: less
+# out: blah
+less /etc/hosts >"$(tty)"
+
+#+++++++++++++++++++++
+# n: vim
+# out: blah
+vim ~/.vars/out >"$(tty)"
+
+#+++++++++++++++++++++
 # n: curl
 # in: cowName
 @curl \

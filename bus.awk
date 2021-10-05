@@ -46,7 +46,7 @@ from {
 # Non-roots can't pump (?)
 /^@PUMP/ { next }
 
-debug1 { print PROCINFO["pid"]" ["from" -> "to"] "$0 >"/dev/stderr" }
+debug1 { print PROCINFO["pid"]" "head"["from" -> "to"] "$0 >"/dev/stderr" }
 
 
 /^@ERROR/ {

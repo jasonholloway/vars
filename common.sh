@@ -22,9 +22,11 @@ hear() {
 					say "@PUMP";;
 			*)
 					read -r "$@" <<<"$_l"
-					break;;
+					return 0;;
 		esac
 	done
+
+	return 1
 }
 
 
