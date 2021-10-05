@@ -194,10 +194,10 @@ findFiles() {
 	while read -r fid; do
 			echo -n "${fid%.*} "
 	done < <(
-			{ find ~+ -maxdepth "$peekDepth" -name "$pattern" -printf "%p,%T@\n"
+			{ find ~+ -maxdepth "$peekDepth" ! -readable -prune -o -name "$pattern" -printf "%p,%T@\n"
 
           while cd ..; do
-            find ~+ -maxdepth 1 -name "$pattern" -printf "%p,%T@\n"
+            find ~+ -maxdepth 1 ! -readable -prune -o -name "$pattern" -printf "%p,%T@\n"
             [[ $PWD = / ]] && exit 0
           done
       } | sort

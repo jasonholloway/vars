@@ -21,10 +21,8 @@ colNormal='\033[0m'
 colDim='\e[38;5;240m'
 colDimmest='\e[38;5;236m'
 
-outFile="$HOME/.vars/out"
 cacheDir="$HOME/.vars/cache"
 
-now=$(date +%s)
 pts=$(tty)
 
 main() {
