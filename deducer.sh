@@ -9,24 +9,25 @@ mkdir -p "$pinnedDir"
 export contextFile="$HOME/.vars/context"
 
 main() {
-		local type line
-		
-		setupBus
+  local type line
 
-		while hear type line; do
-				case "$type" in
-						"deduce")
-                deduce
-								;;
-				esac
+  setupBus
 
-				say "@YIELD"
-		done
+  while hear type line; do
+    case "$type" in
+      "deduce")
+          deduce
+          ;;
+    esac
+
+    say "@YIELD"
+  done
 }
 
 deduce() {
   local plan
-  local -A blocks blockNames targetBlocks modes pinned ins outs flags outlines
+  local x=1
+  local -A blocks blockNames targetBlocks modes pinned ins outs suppliers flags outlines
   local now=$(date +%s)
 
   readInputs
@@ -34,6 +35,8 @@ deduce() {
   trimBlocks
 
   say "targets ${!targetBlocks[*]}"
+
+  visitBlocks ${!targetBlocks[@]}
 
   readBlockPins
   trimBlocks
@@ -43,7 +46,7 @@ deduce() {
 }
 
 readInputs() {
-  local raw bid n vbid
+  local raw bid n vn vbid
 
   # Unpack outlines
   hear raw
@@ -54,13 +57,16 @@ readInputs() {
     outlines[$bid]=$outline
 
     for n in ${rawBlockNames//,/ }; do
-        blockNames[$n]="$bid"
+      blockNames[$n]="$bid"
     done
 
     ins[$bid]="${rawIns//,/ }"
     outs[$bid]="${rawOuts//,/ }"
     flags[$bid]="${rawFlags//,/ }"
 
+    for vn in ${outs[$bid]}; do
+      suppliers[$vn]+=" $bid"
+    done
   done
 
   # Set target blocks
@@ -101,12 +107,104 @@ readUserPins() {
   done
 }
 
+visitBlocks() {
+  local bid n b
+
+  for bid in "$@"
+  do
+    for n in ${ins[$bid]}; do
+      visitBlocks ${suppliers[$n]}
+    done
+
+    if [[ ${flags[$bid]} =~ P ]]
+    then
+      local -A p=()
+      getPins $bid
+
+      local -A mapped=()
+      for n in ${!p[@]}; do
+         mapped[$n]="${n}%$((x++))"
+      done
+      
+      rewritePinned $bid
+
+      # for n in ${outs[$bid]}; do
+      #   suppliers[$n]=$newBid
+      # done
+    fi
+  done
+}
+
+rewritePinned() {
+  local bid=$1
+  local n m newBid
+
+  for n in ${ins[$bid]}; do
+    rewritePinned ${suppliers[$n]} 
+  done
+
+  newBid="shim:"
+
+  for n in ${ins[$bid]}; do
+    m=${mapped[$n]}
+    [[ $m ]] && newBid+="$m>$n"
+  done
+
+  if [[ ${#newBid} -gt 5 ]]
+  then
+    newBid+=":${bid}:"
+
+    for n in ${outs[$bid]}; do
+        m=${mapped[$n]}
+
+        if [[ ! $m ]]; then
+          m="${n}%$((x++))"
+          mapped[$n]=$m
+        fi
+
+        newBid+="$n>$m"
+    done
+
+    mapped[$bid]=$newBid
+
+    # todo: below...
+    ins[$newBid]=""
+    outs[$newBid]=""
+    suppliers[""]=$newBid
+    flags[$newBid]="" #all except P
+
+    # todo: outs shouldn't be mapped on root!
+
+    echo "$bid -> $newBid" >&2
+  fi
+}
+
+getPins() {
+  local bid=$1
+
+  say "@ASK files"
+  say "pins $bid"
+  say "@YIELD"
+
+  while hear line; do
+    [[ $line == fin ]] && break
+
+    vn="$line"
+    hear v
+
+    p[$vn]=$v
+  done
+
+  say "@END"
+}
+
 readBlockPins() {
   local bid vn v
   local -A blockPinned=()
 
   for bid in "${!blocks[@]}"; do
     if [[ ${flags[$bid]} =~ P ]]; then
+        
       say "@ASK files"
       say "pins $bid"
       say "@YIELD"
@@ -132,14 +230,10 @@ readBlockPins() {
 
 trimBlocks() {
   local bid vn ivn
-  local -A trimmables pending supplying seen
+  local -A trimmables pending seen
 
   for bid in ${!blocks[*]}; do
     trimmables[$bid]=1
-
-    for vn in ${outs[$bid]}; do
-      supplying[$vn]+=" $bid"
-    done
   done
 
   for bid in ${!targetBlocks[*]}; do
@@ -154,7 +248,7 @@ trimBlocks() {
     for vn in ${!pending[*]}; do
 
       if [[ -z ${pinned[$vn]} ]]; then
-        for bid in ${supplying[$vn]}; do
+        for bid in ${suppliers[$vn]}; do
           unset "trimmables[$bid]"
 
           for ivn in ${ins[$bid]}; do
@@ -188,6 +282,7 @@ orderBlocks() {
     done
   done \
   | tsort \
+  | tee /dev/stderr \
   | sed '/^@/d'
 }
 
