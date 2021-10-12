@@ -21,22 +21,33 @@
 
 				case $mode in
 						start)
-							if [[ $line =~ ^HTTP ]]; then
-									mode=http
-							else
-									mode=error
-							fi
+						  case $line in
+								HTTP*) mode=http ;;
+								*) mode=error ;;
+						  esac
 						;;
 
 						http)
-							read -r schema status _ <<<"$line"
+							read -r schema status rest <<<"$line"
 							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
-							mode=header
+
+							if [[ $rest =~ "Connection Established" ]]; then
+								mode=proxyHeader
+						  else
+								mode=header
+							fi
+
 							move=1
 						;;
 
 						header)
 							[[ -z $line ]] && mode=body
+							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+							move=1
+						;;
+
+						proxyHeader)
+							[[ -z $line ]] && mode=start
 							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
 							move=1
 						;;
@@ -48,7 +59,6 @@
 						;;
 
 						error)
-							echo "$line" >&2
 							isError=1
 							move=1
 						;;
