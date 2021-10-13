@@ -26,7 +26,7 @@ main() {
 
 deduce() {
   local plan
-  local x=1
+  local x=0
   local -A blocks blockNames targetBlocks modes pinned ins outs suppliers flags outlines
   local now=$(date +%s)
 
@@ -38,7 +38,13 @@ deduce() {
 
   visitBlocks ${!targetBlocks[@]}
 
-  readBlockPins
+  for n in "${!suppliers[@]}"; do
+    log "SUP $n from ${suppliers[$n]}"
+  done
+
+  # below needed to make thing actually work after rewriting...
+  # readBlockPins
+
   trimBlocks
 
   plan=$(orderBlocks)
@@ -108,10 +114,12 @@ readUserPins() {
 }
 
 visitBlocks() {
-  local bid n b
+  local bid n
 
   for bid in "$@"
   do
+    log "VIS ${outlines[$bid]}"
+
     for n in ${ins[$bid]}; do
       visitBlocks ${suppliers[$n]}
     done
@@ -121,61 +129,85 @@ visitBlocks() {
       local -A p=()
       getPins $bid
 
+      ((x++))
+
       local -A mapped=()
       for n in ${!p[@]}; do
-         mapped[$n]="${n}%$((x++))"
+         mapped[$n]="${n}#$x"
       done
       
-      rewritePinned $bid
-
-      # for n in ${outs[$bid]}; do
-      #   suppliers[$n]=$newBid
-      # done
+      rewritePinned $bid t
     fi
   done
 }
 
 rewritePinned() {
   local bid=$1
-  local n m newBid
+  local terminus=$2
+  local -a newIns newOuts
+  local -A inMaps outMaps
+  local n m p newBid rewrite
 
   for n in ${ins[$bid]}; do
     rewritePinned ${suppliers[$n]} 
   done
 
   newBid="shim:"
+  newIns=()
+  newOuts=()
+  inMaps=()
+  outMaps=()
+  rewrite=
 
   for n in ${ins[$bid]}; do
     m=${mapped[$n]}
-    [[ $m ]] && newBid+="$m>$n"
+
+    if [[ $m ]]; then
+      inMaps[$m]=$n
+      newIns+=($m)
+      rewrite=1
+    else
+      newIns+=($n)
+    fi
   done
 
-  if [[ ${#newBid} -gt 5 ]]
+  newBid+=$(IFS=,; echo $(for m in "${!inMaps[@]}"; do echo "$m>${inMaps[$m]}"; done))
+
+  if [[ $rewrite ]]
   then
     newBid+=":${bid}:"
 
-    for n in ${outs[$bid]}; do
+    if [[ $terminus ]]; then
+      newOuts=(${outs[$bid]})
+    else
+      for n in ${outs[$bid]}; do
         m=${mapped[$n]}
 
         if [[ ! $m ]]; then
-          m="${n}%$((x++))"
+          m="${n}#$x"
           mapped[$n]=$m
         fi
 
-        newBid+="$n>$m"
-    done
+        outMaps[$n]=$m
+        newOuts+=($m)
+      done
+    fi
+
+    newBid+=$(IFS=,; echo $(for n in "${!outMaps[@]}"; do echo "$n>${outMaps[$n]}"; done))
+
+    log "REW $bid -> $newBid"
 
     mapped[$bid]=$newBid
+    blocks[$newBid]=1
+    outlines[$newBid]=$newBid
 
-    # todo: below...
-    ins[$newBid]=""
-    outs[$newBid]=""
-    suppliers[""]=$newBid
-    flags[$newBid]="" #all except P
+    ins[$newBid]=${newIns[@]}
+    outs[$newBid]=${newOuts[@]}
+    flags[$newBid]="" # todo: all except P
 
-    # todo: outs shouldn't be mapped on root!
-
-    echo "$bid -> $newBid" >&2
+    for n in ${newOuts[@]}; do
+      suppliers[$n]=$newBid
+    done
   fi
 }
 
@@ -231,6 +263,9 @@ readBlockPins() {
 trimBlocks() {
   local bid vn ivn
   local -A trimmables pending seen
+  trimmables=()
+  pending=()
+  seen=()
 
   for bid in ${!blocks[*]}; do
     trimmables[$bid]=1
@@ -265,6 +300,7 @@ trimBlocks() {
   done
 
   for bid in ${!trimmables[*]}; do
+    log "DEL $bid"
     unset "blocks[$bid]"
   done
 }
@@ -273,6 +309,8 @@ orderBlocks() {
   local bid vn
 
   for bid in ${!blocks[*]}; do
+    log "ORD $bid"
+      
     for vn in ${ins[$bid]}; do
       echo "@$vn $bid"
     done
@@ -394,6 +432,10 @@ runBlocks() {
       fi
     done
   } >> "$contextFile"
+}
+
+log() {
+  echo "$@" >&2
 }
 
 main "$@"

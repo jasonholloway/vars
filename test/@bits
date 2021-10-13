@@ -64,15 +64,68 @@ vim ~/.vars/out >"$(tty)"
 	--data-urlencode "scopes=$scope"
 
 
-#+++++++++++++++++++
-# n: tty1
-# in: dog age
-@tty 'echo DOG1 $dog $age $(tty)' 
-@tty 'echo DOG2 $dog $age $(tty) >&2' 
-@tty 'echo DOG3 $(@curl google.com) >&2' 
+# #+++++++++++++++++++
+# # n: tty1
+# # in: dog age
+# @tty 'echo DOG1 $dog $age $(tty)' 
+# @tty 'echo DOG2 $dog $age $(tty) >&2' 
+# @tty 'echo DOG3 $(@curl google.com) >&2' 
 
 
-#+++++++++++++++++++
-# n: tty_noContext
-echo hello >&2
-@tty 'echo HELLO! $(tty) >&2' 
+# #+++++++++++++++++++
+# # n: tty_noContext
+# echo hello >&2
+# @tty 'echo HELLO! $(tty) >&2' 
+
+
+
+#+++++++++++
+# out: prefix
+@bind prefix "www."
+
+#+++++++++++
+# out: site
+@bind site ¦google¦sorted¦gerbils
+
+
+#++++++++++++
+# in: prefix site
+# out: url
+@bind url ${prefix}${site}.com
+
+
+#++++++++++++
+# in: url
+# out: ip
+# cache
+ip=$(dig +short -4 $url)
+@bind ip $ip
+@cacheTill 9999999999999
+
+
+#+++++++++++
+# pin: site=sorted
+# in: ip
+# out: sortedIp
+@bind sortedIp $ip
+
+#+++++++++++
+# pin: site=google
+# in: ip
+# out: googleIp
+@bind googleIp $ip
+
+
+#++++++++++
+# in: sortedIp googleIp
+# out: bothIps
+@bind bothIps "sorted:$sortedIp google:$googleIp"
+
+
+#++++++++++
+# in: sortedIp:ip{site=sorted} googleIp:ip{site=google}
+# out: bothIpsIdeal
+@bind bothIps "sorted:$sortedIp google:$googleIp"
+
+
+

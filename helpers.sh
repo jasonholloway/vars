@@ -72,9 +72,9 @@
     echo @bind "$@"
 }
 
-@tty() {
-    echo @tty $@
-}
+# @tty() {
+#     eval "$@" >$(tty)
+# }
 
 @k() {
     IFS=: read context namespace <<< "$k8s"

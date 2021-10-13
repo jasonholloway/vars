@@ -62,6 +62,31 @@ run() {
 												echo @out ${boundIns[$vn]}
 										)
 								;;
+								shim:*)
+										local inMaps bid2 outMaps
+										IFS=':' read -r _ inMaps bid2 outMaps <<<"$bid"
+
+										say "@ASK files"
+										say "body $bid2"
+										say "@YIELD"
+										hear hint
+										hear body
+										say "@END"
+
+										decode body body
+
+										(
+												eval "$assignBinds"
+
+												for n in ${!boundIns[*]}; do
+														export "$n=${boundIns[$n]}"
+												done
+
+												source $VARS_PATH/helpers.sh 
+
+												eval "$body" <"$pts"
+										)
+								;;
 								*)
 										say "@ASK files"
 										say "body $bid"
