@@ -31,6 +31,11 @@ run() {
 		IFS=$'\031' read -r runFlags assignBinds outline <<< "$*"
 		IFS=';' read -r bid _ _ blockFlags <<< "$outline"
 
+		# TODO
+		# shims should be unpacked before the ensuiong pipeline
+		# which wil also allow us to cache em
+		# TODO
+
 		isCacheable=
 		[[ $blockFlags =~ C ]] && isCacheable=1
 
@@ -63,8 +68,13 @@ run() {
 										)
 								;;
 								shim:*)
-										local inMaps bid2 outMaps
-										IFS=':' read -r _ inMaps bid2 outMaps <<<"$bid"
+										local rawInMaps bid2 rawOutMaps m
+										local -A inMaps outMaps
+										
+										IFS=':' read -r _ rawInMaps bid2 rawOutMaps <<<"$bid"
+
+										readAssocArray inMaps "$rawInMaps"
+										readAssocArray outMaps "$rawOutMaps"
 
 										say "@ASK files"
 										say "body $bid2"
@@ -76,16 +86,35 @@ run() {
 										decode body body
 
 										(
-												eval "$assignBinds"
+											eval "$assignBinds"
 
-												for n in ${!boundIns[*]}; do
-														export "$n=${boundIns[$n]}"
-												done
+											for n in ${!boundIns[*]}; do
+												m=${inMaps[$n]}
+												[[ ! $m ]] && m=$n
+													
+												export "$m=${boundIns[$n]}"
+											done
 
-												source $VARS_PATH/helpers.sh 
+											source $VARS_PATH/helpers.sh 
 
-												eval "$body" <"$pts"
-										)
+											eval "$body" <"$pts"
+										) |
+											while read -r line; do
+												case $line in
+													@bind*)
+															read _ n v <<<"$line"
+
+															m=${outMaps[$n]}
+															[[ ! $m ]] && m=$n
+
+															echo "@bind $m $v"
+													;;
+
+													*)
+															echo "$line"
+													;;
+												esac
+											done
 								;;
 								*)
 										say "@ASK files"
@@ -190,6 +219,19 @@ run() {
 			}
 
 		say fin
+}
+
+readAssocArray() {
+	local -n _r=$1
+	local raw=$2
+	local IFS=${3:-,}
+	local sep=${4:->}
+	local p l r
+
+	for p in $raw; do 
+		IFS=$sep read l r <<<"$p"
+		_r[$l]=$r
+	done
 }
 
 main "$@"

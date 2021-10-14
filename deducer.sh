@@ -114,7 +114,7 @@ readUserPins() {
 }
 
 visitBlocks() {
-  local bid n
+  local bid n m
 
   for bid in "$@"
   do
@@ -133,7 +133,9 @@ visitBlocks() {
 
       local -A mapped=()
       for n in ${!p[@]}; do
-         mapped[$n]="${n}#$x"
+        m="${n}#$x"
+        mapped[$n]=$m
+        pinned[$m]=${p[$n]}
       done
       
       rewritePinned $bid t
@@ -171,7 +173,7 @@ rewritePinned() {
     fi
   done
 
-  newBid+=$(IFS=,; echo $(for m in "${!inMaps[@]}"; do echo "$m>${inMaps[$m]}"; done))
+  newBid+=$(writeAssocArray inMaps)
 
   if [[ $rewrite ]]
   then
@@ -193,7 +195,7 @@ rewritePinned() {
       done
     fi
 
-    newBid+=$(IFS=,; echo $(for n in "${!outMaps[@]}"; do echo "$n>${outMaps[$n]}"; done))
+    newBid+=$(writeAssocArray outMaps)
 
     log "REW $bid -> $newBid"
 
@@ -320,7 +322,6 @@ orderBlocks() {
     done
   done \
   | tsort \
-  | tee /dev/stderr \
   | sed '/^@/d'
 }
 
@@ -435,7 +436,16 @@ runBlocks() {
 }
 
 log() {
-  echo "$@" >&2
+  :
+  #echo "$@" >&2
+}
+
+writeAssocArray() {
+  local -n _r=$1
+  local IFS=${2:-,}
+  local sep=${3:->}
+  local n
+  echo $(for n in "${!_r[@]}"; do echo "${n}${sep}${_r[$n]}"; done)
 }
 
 main "$@"

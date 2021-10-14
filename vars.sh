@@ -116,6 +116,13 @@ run() {
               }
 
               IFS='|' read path index <<< "$src"
+
+              case $path in
+                shim:*)
+                  IFS=: read _ _ path _ <<<"$path" 
+                  ;;
+              esac
+              
               shortPath=$(realpath --relative-to=$PWD $path) >&2
               src=${shortPath}$([[ $index ]] && echo "|$index")
 
