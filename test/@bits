@@ -129,3 +129,15 @@ ip=$(dig +short -4 $url)
 
 
 
+
+#
+# the ideal way of specifying pins requires parsing and understanding at the point of block-reading
+# rather than in the middle of deducing
+# such a block would be read by blocks.sh
+# which would have to synthesize blocks named uid:'ip{site=sorted}' and uid:ip{site=google}
+#
+#
+#
+#
+
+
