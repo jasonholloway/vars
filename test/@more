@@ -1,0 +1,5 @@
+
+#++++++++++++
+# in: prefix moo<site
+# out: baa>url2
+@bind baa ${prefix}${moo}.com

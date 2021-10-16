@@ -18,6 +18,7 @@ main() {
       outline) getOutlines "$rest";;
       body) getBody "$rest";;
       pins) getPins "$rest";;
+      block) getBlock "$rest";;
     esac
 
     say "@YIELD"
@@ -62,7 +63,7 @@ getBody() {
 
   while read -r type rest; do
     case "$type" in
-        body)
+        run)
           say "$rest"
           read -r body
           say "$body"
@@ -88,6 +89,18 @@ getPins() {
         ;;
     esac
   done <<<"${blocks[$bid]}"
+
+  say "fin"
+}
+
+getBlock() {
+  local bid=$1
+  local fid
+  
+  IFS='|' read -r fid _ <<<"$bid"
+  loadFile "$fid"
+
+  say "${blocks[$bid]}"
 
   say "fin"
 }
@@ -147,7 +160,7 @@ loadFile() {
             done
           )
 
-          i=$((i+1))
+          ((i++))
         done
 
         {

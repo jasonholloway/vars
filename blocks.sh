@@ -27,9 +27,11 @@ readBlock() {
   local -a names=()
   local -a ins=()
   local -a outs=()
+  local -a inMaps=()
+  local -a outMaps=()
   local -a pins=()
   local -a flags=()
-  local body macro n v
+  local body macro n v i from to
 
   {
     if read -r line && [[ $line =~ ^#\++ ]]; then
@@ -60,16 +62,48 @@ readBlock() {
         esac
       done
 
-      [[ ${#pins[@]} -gt 0 ]] && flags+=("P")
-
-      body="${body0}$(cat)"
+      local rest
+      read -d0 -r rest
+      body="${body0}${rest}"
 
   } <<<"$block"
+
+  #process inMaps
+  for i in "${!ins[@]}"; do
+    n=${ins[$i]}
+    if [[ $n =~ ^(.+)\<(.+)$ ]]; then
+        to=${BASH_REMATCH[1]}
+        from=${BASH_REMATCH[2]}
+        ins[$i]=$from
+        inMaps+=("$from $to")
+    fi
+  done
+
+  #process outMaps
+  for i in "${!outs[@]}"; do
+    n=${outs[$i]}
+    if [[ $n =~ ^(.+)\>(.+)$ ]]; then
+        from=${BASH_REMATCH[1]}
+        to=${BASH_REMATCH[2]}
+        outs[$i]=$to
+        outMaps+=("$from $to")
+    fi
+  done
+
+  [[ ${#pins[@]} -gt 0 ]] && flags+=("P")
 
   (
     local IFS=,
     say "${names[*]};${ins[*]};${outs[*]};${flags[*]}"
   )
+
+  for p in "${ins[@]}"; do
+    say "in $p"
+  done
+
+  for p in "${inMaps[@]}"; do
+    say "mapIn $p"
+  done
 
   for p in "${pins[@]}"; do
     IFS='=' read -r n v <<<"$p"
@@ -79,8 +113,16 @@ readBlock() {
   done
 
 	encode body body
-  say "body bash" #"say body bash"
+  say "run bash"
   say "$body"
+
+  for p in "${outMaps[@]}"; do
+    say "mapOut $p"
+  done
+
+  for p in "${outs[@]}"; do
+    say "out $p"
+  done
 
   say "fin"
 }

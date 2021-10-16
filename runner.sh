@@ -27,6 +27,7 @@ main() {
 run() {
     local cacheFile
     local runFlags blockFlags
+    local line
 
     IFS=$'\031' read -r runFlags assignBinds outline <<< "$*"
     IFS=';' read -r bid _ _ blockFlags <<< "$outline"
@@ -126,34 +127,69 @@ run() {
                       done
                 ;;
                 *)
-                    say "@ASK files"
-                    say "body $bid"
-                    say "@YIELD"
-                    hear hint
-                    hear body
-                    say "@END"
+                    local -A outs=()
+                    local -A outMaps=()
 
-                    decode body body
+                    say "@ASK files"
+                    say "block $bid"
+                    say "@YIELD"
 
                     (
                         eval "$assignBinds"
 
-                        local v
+                        local v type rest from to
                         local i=1
 
+                        while hear type rest; do
+                            case "$type" in
+                                "in")
+                                    boundIns["A$((i++))"]=${boundIns[$rest]}
+                                ;;
+                                "mapIn")
+                                    read -r from to <<<"$rest"
+                                    boundIns[$to]=${boundIns[$from]}
+                                ;;
+                                "run")
+                                    hear body
+                                    decode body body
+                                    ;;
+                                "mapOut")
+                                    read -r from to <<<"$rest"
+                                    outMaps[$from]=$to
+                                    ;;
+                                "out")
+                                    outs[$rest]=1
+                                    ;;
+                                "fin")
+                                    say "@END"
+                                    break
+                                    ;;
+                            esac
+                        done
+
                         for n in ${!boundIns[*]}; do
-                            v=${boundIns[$n]}
-                            export "A$((i++))=${v}"
-                            
                             if [[ $n =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]
                             then
-                                export "$n=$v"
+                                export "$n=${boundIns[$n]}"
                             fi
                         done
 
                         source $VARS_PATH/helpers.sh 
 
-                        eval "$body" <"$pts"
+                        while read -r line; do
+                          case $line in
+                            @bind*)
+                                read _ n v <<<"$line"
+
+                                m=${outMaps[$n]}
+                                [[ ! $m ]] && m=$n
+
+                                echo "@bind $m $v"
+                            ;;
+
+                            *)  echo "$line" ;;
+                          esac
+                        done < <(eval "$body" <"$pts")
                     )
                 ;;
             esac \

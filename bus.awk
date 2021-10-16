@@ -12,7 +12,7 @@ BEGIN {
     buff["read"]=10000
     buff["write"]=10000
 
-    split(PROCS,specs,";")
+    split(PROCS,specs,",")
     for(i in specs) {
         split(specs[i],p,":")
         procs[p[1]]=p[2]
