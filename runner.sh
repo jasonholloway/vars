@@ -88,14 +88,20 @@ run() {
                     (
                       eval "$assignBinds"
 
+                      local v i
+                      i=1
+
                       for n in ${!boundIns[*]}; do
                         m=${inMaps[$n]}
 
                         [[ ! $m ]] \
                             && m=$n
 
+                        v=${boundIns[$n]}
+                        export "A$((i++))=$v"
+
                         [[ $m =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
-                            && export "$m=${boundIns[$n]}"
+                            && export "$m=$v"
                       done
 
                       source $VARS_PATH/helpers.sh 
@@ -132,10 +138,16 @@ run() {
                     (
                         eval "$assignBinds"
 
+                        local v
+                        local i=1
+
                         for n in ${!boundIns[*]}; do
+                            v=${boundIns[$n]}
+                            export "A$((i++))=${v}"
+                            
                             if [[ $n =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]
                             then
-                                export "$n=${boundIns[$n]}"
+                                export "$n=$v"
                             fi
                         done
 
