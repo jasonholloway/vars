@@ -2,27 +2,96 @@
 
 source "${VARS_PATH:-.}/common.sh"
 
+declare -A outlines=()
+declare -A blocks=()
+
 main() {
-  local type block
+  local type rest
 
   setupBus
 
-  while hear type _; do
+  while hear type rest; do
     case "$type" in
-        "readBlock")
-            hear block
-            readBlock "$block"
-            ;;
+      "outline")  outlineFiles "$rest" ;;
+      "block")    getBlock "$rest" ;;
+      "pins")     getPins "$rest";;
     esac
 
-    say "@END"
+    say "@YIELD"
   done
 }
 
-readBlock() {
-  local block="$1"
+getPins() {
+  local bid=$1
+  local fid type rest val
+  
+  IFS='|' read -r fid i <<<"$bid"
+  readFiles "$fid"
 
-  decode block block
+  while read -r type rest; do
+    case "$type" in
+        pin)
+          say "$rest"
+          read -r val
+          say "$val"
+        ;;
+    esac
+  done <<<"${blocks[$bid]}"
+
+  say "fin"
+}
+
+outlineFiles() {
+  local -a fids=($@)
+  local -a acc=()
+  local bid section
+
+  readFiles "${fids[*]}"
+
+  for bid in "${bids[@]}"
+  do
+    acc+=(${outlines[$bid]})
+  done
+  
+  say "${acc[*]}"
+}
+
+getBlock() {
+  local bid=$1
+
+  IFS='|' read -r fid _ <<<"$bid"
+  readFiles "$fid"
+
+  say "${blocks[$bid]}"
+  say fin
+}
+
+readFiles() {
+  local fids=($@)
+  local bid section
+
+  say "@ASK files"
+  say "chop ${fids[*]}"
+  say "@YIELD"
+
+  while hear bid
+  do
+      [[ $bid == fin ]] && break
+      
+      hear section
+      decode section section
+
+      readSection "$bid" "$section"
+
+      bids+=($bid)
+  done
+
+  say "@END"
+}
+
+readSection() {
+  local bid=$1
+  local section=$2
 
   local -a names=()
   local -a ins=()
@@ -31,18 +100,18 @@ readBlock() {
   local -a outMaps=()
   local -a pins=()
   local -a flags=()
-  local body macro n v i from to
+  local line body macro n v i from to
 
   {
     if read -r line && [[ $line =~ ^#\++ ]]; then
         read -r _ macro <<<"$line"
-        block=$(while read -r line; do echo "$line"; done)
+        section=$(IFS=; while read -r line; do echo "$line"; done)
     fi
-  } <<<"$block"
+  } <<<"$section"
 
   case $macro in
       map)
-          block="$(awk -f "$VARS_PATH/macros/map.awk" <<<"$block")"
+          section="$(awk -f "$VARS_PATH/macros/map.awk" <<<"$section")"
       ;;
   esac
 
@@ -63,10 +132,11 @@ readBlock() {
       done
 
       local rest
-      read -d0 -r rest
+      IFS= read -d '' -r rest
+
       body="${body0}${rest}"
 
-  } <<<"$block"
+  } <<<"$section"
 
   #process inMaps
   for i in "${!ins[@]}"; do
@@ -92,67 +162,39 @@ readBlock() {
 
   [[ ${#pins[@]} -gt 0 ]] && flags+=("P")
 
-  (
+  outlines[$bid]=$(
     local IFS=,
-    say "${names[*]};${ins[*]};${outs[*]};${flags[*]}"
+    echo "${bid};${names[*]};${ins[*]};${outs[*]};${flags[*]}"
   )
 
-  for p in "${ins[@]}"; do
-    say "in $p"
-  done
+  blocks[$bid]=$(
+    for p in "${ins[@]}"; do
+      echo "in $p"
+    done
 
-  for p in "${inMaps[@]}"; do
-    say "mapIn $p"
-  done
+    for p in "${inMaps[@]}"; do
+      echo "mapIn $p"
+    done
 
-  for p in "${pins[@]}"; do
-    IFS='=' read -r n v <<<"$p"
-    say "pin $n"
-    encode v v
-    say "$v"
-  done
+    for p in "${pins[@]}"; do
+      IFS='=' read -r n v <<<"$p"
+      echo "pin $n"
+      encode v v
+      echo "$v"
+    done
 
-	encode body body
-  say "run bash"
-  say "$body"
+    encode body body
+    echo "run bash"
+    echo "$body"
 
-  for p in "${outMaps[@]}"; do
-    say "mapOut $p"
-  done
+    for p in "${outMaps[@]}"; do
+      echo "mapOut $p"
+    done
 
-  for p in "${outs[@]}"; do
-    say "out $p"
-  done
-
-  say "fin"
+    for p in "${outs[@]}"; do
+      echo "out $p"
+    done
+  )
 }
 
 main "$@"
-
-
-
-
-# fids <- files.find
-# outlines <- files.outline <- fids
-#
-# outlines -> |
-# targets  -> |
-#       deducer.deduce <> files.body
-#             |        <> runner.run
-#             |-> output
-#
-#
-
-
-
-#
-# blocks above will extract the outline and the body
-# the body is just grist for whatever the correct interpreter is
-# it will be stored within files
-#
-#
-#    outlines <<< FILES -> BLOCKS
-#    we want outlines served to the deducer up front as block specs
-#
-#    outline >>> RUNNER -> FILES
-#

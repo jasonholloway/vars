@@ -216,7 +216,7 @@ rewritePinned() {
 getPins() {
   local bid=$1
 
-  say "@ASK files"
+  say "@ASK blocks"
   say "pins $bid"
   say "@YIELD"
 
@@ -239,7 +239,7 @@ readBlockPins() {
   for bid in "${!blocks[@]}"; do
     if [[ ${flags[$bid]} =~ P ]]; then
         
-      say "@ASK files"
+      say "@ASK blocks"
       say "pins $bid"
       say "@YIELD"
 

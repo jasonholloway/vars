@@ -34,7 +34,12 @@ run() {
 
     # TODO
     # shims should be unpacked before the ensuiong pipeline
-    # which wil also allow us to cache em
+    # which wil also allow us to cache em !!!!!!!!!!!!!!!!!
+    #
+    # getting blocks to decode them creates a caching problem, as the real cachable unit is within the shim
+    # what matters isn't the bid, but the run block and the bound ins!!! TODO
+    # these boundIns also need whittling down to exactly what the body needs TODO
+    # this means the cache flag doesn't really need to be on the outline, as we need the hash of the body from the block
     # TODO
 
     isCacheable=
@@ -130,7 +135,7 @@ run() {
                     local -A outs=()
                     local -A outMaps=()
 
-                    say "@ASK files"
+                    say "@ASK blocks"
                     say "block $bid"
                     say "@YIELD"
 

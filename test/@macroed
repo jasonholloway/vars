@@ -4,3 +4,25 @@ dog > food
 ;	Rex > biscuits
 ;	* > meat
 
+
+#+++++++++++++++
+# in: env
+# out: k8s
+case $env in
+    feature*)
+        echo k8s=sorted-pro-aks-dev-01:feature
+        ;;
+    preprod)
+        echo k8s=sorted-pro-aks-dev-01:preprod
+        ;;
+    sandbox)
+        echo k8s=sorted-pro-aks-production-02:sandbox
+        ;;
+    perf*)
+        echo k8s=sorted-pro-aks-performance-01:performance
+        ;;
+    prod*)
+        echo k8s=sorted-pro-aks-production-02:production
+        ;;
+esac
+

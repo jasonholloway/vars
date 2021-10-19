@@ -64,6 +64,9 @@ run() {
   say "find"
   say "@YIELD"
   hear fids
+  say "@END"
+
+  say "@ASK blocks"
   say "outline $fids"
   say "@YIELD"
   hear outlines
@@ -175,6 +178,9 @@ list() {
   say "find"
   say "@YIELD"
   hear fids
+  say "@END"
+
+  say "@ASK blocks"
   say "outline $fids"
   say "@YIELD"
   hear outlines
