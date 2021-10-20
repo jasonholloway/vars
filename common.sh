@@ -42,3 +42,24 @@ decode() {
 	output="${input//$'\36'/$'\n'}"
 }
 
+
+writeAssocArray() {
+  local -n _r=$1
+  local IFS=${2:-,}
+  local sep=${3:->}
+  local n
+  echo $(for n in "${!_r[@]}"; do echo "${n}${sep}${_r[$n]}"; done)
+}
+
+readAssocArray() {
+  local -n _r=$1
+  local raw=$2
+  local IFS=${3:-,}
+  local sep=${4:->}
+  local p l r
+
+  for p in $raw; do 
+    IFS=$sep read l r <<<"$p"
+    _r[$l]=$r
+  done
+}

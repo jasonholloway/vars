@@ -145,6 +145,8 @@ visitBlocks() {
 
 rewritePinned() {
   local bid=$1
+  [[ ! $bid ]] && return
+
   local terminus=$2
   local -a newIns newOuts
   local -A inMaps outMaps
@@ -210,6 +212,12 @@ rewritePinned() {
     for n in ${newOuts[@]}; do
       suppliers[$n]=$newBid
     done
+
+    if [[ ${targetBlocks[$bid]} ]]; then
+        unset "targetBlocks[$bid]"
+        targetBlocks[$newBid]=1
+    fi
+
   fi
 }
 
@@ -225,6 +233,8 @@ getPins() {
 
     vn="$line"
     hear v
+
+    log PIN $vn $v
 
     p[$vn]=$v
   done
@@ -255,6 +265,8 @@ readBlockPins() {
 
         blockPinned[$vn]=$v
         pinned[$vn]=$v
+
+        log BPIN $vn $v
       done
 
       say "@END"
@@ -437,15 +449,7 @@ runBlocks() {
 
 log() {
   :
-  #echo "$@" >&2
-}
-
-writeAssocArray() {
-  local -n _r=$1
-  local IFS=${2:-,}
-  local sep=${3:->}
-  local n
-  echo $(for n in "${!_r[@]}"; do echo "${n}${sep}${_r[$n]}"; done)
+  # echo "$@" >&2
 }
 
 main "$@"

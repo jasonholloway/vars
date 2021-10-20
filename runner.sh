@@ -4,6 +4,7 @@ shopt -s extglob
 source "${VARS_PATH:-.}/common.sh"
 
 pts=${1:?need to pass pts}
+[[ $pts =~ not ]] && pts=/dev/null
 
 outFile="$HOME/.vars/out"
 cacheDir="$HOME/.vars/cache"
@@ -32,11 +33,7 @@ run() {
     IFS=$'\031' read -r runFlags assignBinds outline <<< "$*"
     IFS=';' read -r bid _ _ blockFlags <<< "$outline"
 
-    # TODO
-    # shims should be unpacked before the ensuiong pipeline
-    # which wil also allow us to cache em !!!!!!!!!!!!!!!!!
-    #
-    # getting blocks to decode them creates a caching problem, as the real cachable unit is within the shim
+    # TODO cache results based on actual block data, not bids
     # what matters isn't the bid, but the run block and the bound ins!!! TODO
     # these boundIns also need whittling down to exactly what the body needs TODO
     # this means the cache flag doesn't really need to be on the outline, as we need the hash of the body from the block
@@ -53,245 +50,164 @@ run() {
     {
         runIt=1
         if [[ $isCacheable && -e $cacheFile ]]; then
-            {
-                read -r line
-                if [[ $line > $now ]]; then
-                    echo @fromCache
-                    cat
-                    runIt=
-                fi
-            } <"$cacheFile"
+          {
+            read -r line
+            if [[ $line > $now ]]; then
+              echo @fromCache
+              cat
+              runIt=
+            fi
+          } <"$cacheFile"
         fi
 
         if [[ $runIt ]]; then
-            case "$bid" in
-                get:*)
-                    vn="${bid##*:}"
+          {
+            local -A outs=()
+            local -A outMaps=()
 
-                    (
-                        eval "$assignBinds"
-                        echo @out ${boundIns[$vn]}
-                    )
-                ;;
-                shim:*)
-                    local rawInMaps bid2 rawOutMaps m
-                    local -A inMaps outMaps
-                    
-                    IFS=':' read -r _ rawInMaps bid2 rawOutMaps <<<"$bid"
+            say "@ASK blocks"
+            say "block $bid"
+            say "@YIELD"
 
-                    readAssocArray inMaps "$rawInMaps"
-                    readAssocArray outMaps "$rawOutMaps"
+            (
+                eval "$assignBinds"
 
-                    say "@ASK files"
-                    say "body $bid2"
-                    say "@YIELD"
-                    hear hint
-                    hear body
-                    say "@END"
+                local v type rest from to
+                local i=1
 
-                    decode body body
+                while hear type rest; do
+                    case "$type" in
+                        "in")
+                            boundIns["A$((i++))"]=${boundIns[$rest]}
+                        ;;
+                        "mapIn")
+                            read -r from to <<<"$rest"
+                            boundIns[$to]=${boundIns[$from]}
+                        ;;
+                        "run")
+                            hear body
+                            decode body body
+                            ;;
+                        "mapOut")
+                            read -r from to <<<"$rest"
+                            outMaps[$from]=$to
+                            ;;
+                        "out")
+                            outs[$rest]=1
+                            ;;
+                        "fin")
+                            say "@END"
+                            break
+                            ;;
+                    esac
+                done
 
-                    (
-                      eval "$assignBinds"
+                for n in ${!boundIns[*]}; do
+                    if [[ $n =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]
+                    then
+                        export "$n=${boundIns[$n]}"
+                    fi
+                done
 
-                      local v i
-                      i=1
+                source $VARS_PATH/helpers.sh 
 
-                      for n in ${!boundIns[*]}; do
-                        m=${inMaps[$n]}
+                while read -r line; do
+                  case $line in
+                    @bind*)
+                        read _ n v <<<"$line"
 
-                        [[ ! $m ]] \
-                            && m=$n
+                        m=${outMaps[$n]}
+                        [[ ! $m ]] && m=$n
 
-                        v=${boundIns[$n]}
-                        export "A$((i++))=$v"
+                        echo "@bind $m $v"
+                    ;;
 
-                        [[ $m =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
-                            && export "$m=$v"
-                      done
+                    *)  echo "$line" ;;
+                  esac
+                done < <(eval "$body" <"$pts")
+            )
+          } \
+        | {
+            if [[ $isCacheable ]]; then
+                local -a buff=()
+                local cacheFor
+                local cacheTill=0
 
-                      source $VARS_PATH/helpers.sh 
-
-                      eval "$body" <"$pts"
-                    ) |
-                      while read -r line; do
-                        case $line in
-                          @bind*)
-                              read _ n v <<<"$line"
-
-                              m=${outMaps[$n]}
-                              [[ ! $m ]] && m=$n
-
-                              echo "@bind $m $v"
-                          ;;
-
-                          *)
-                              echo "$line"
-                          ;;
-                        esac
-                      done
-                ;;
-                *)
-                    local -A outs=()
-                    local -A outMaps=()
-
-                    say "@ASK blocks"
-                    say "block $bid"
-                    say "@YIELD"
-
-                    (
-                        eval "$assignBinds"
-
-                        local v type rest from to
-                        local i=1
-
-                        while hear type rest; do
-                            case "$type" in
-                                "in")
-                                    boundIns["A$((i++))"]=${boundIns[$rest]}
-                                ;;
-                                "mapIn")
-                                    read -r from to <<<"$rest"
-                                    boundIns[$to]=${boundIns[$from]}
-                                ;;
-                                "run")
-                                    hear body
-                                    decode body body
-                                    ;;
-                                "mapOut")
-                                    read -r from to <<<"$rest"
-                                    outMaps[$from]=$to
-                                    ;;
-                                "out")
-                                    outs[$rest]=1
-                                    ;;
-                                "fin")
-                                    say "@END"
-                                    break
-                                    ;;
-                            esac
-                        done
-
-                        for n in ${!boundIns[*]}; do
-                            if [[ $n =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]
-                            then
-                                export "$n=${boundIns[$n]}"
-                            fi
-                        done
-
-                        source $VARS_PATH/helpers.sh 
-
-                        while read -r line; do
-                          case $line in
-                            @bind*)
-                                read _ n v <<<"$line"
-
-                                m=${outMaps[$n]}
-                                [[ ! $m ]] && m=$n
-
-                                echo "@bind $m $v"
+                while read -r line; do
+                    case "$line" in
+                        "@cacheTill "*)
+                            read -r _ cacheTill _ <<<"$line"
                             ;;
 
-                            *)  echo "$line" ;;
-                          esac
-                        done < <(eval "$body" <"$pts")
-                    )
-                ;;
-            esac \
-            | {
-                  if [[ $isCacheable ]]; then
-                      local -a buff=()
-                      local cacheFor
-                      local cacheTill=0
+                        "@cacheFor "*)
+                            read -r _ cacheFor _ <<<"$line"
+                            cacheTill=$((now + cacheFor))
+                            ;;
 
-                      while read -r line; do
-                          case "$line" in
-                              "@cacheTill "*)
-                                  read -r _ cacheTill _ <<<"$line"
-                                  ;;
+                        *)
+                            buff+=("$line")
+                            echo "$line"
+                            ;;
+                    esac
+                done
 
-                              "@cacheFor "*)
-                                  read -r _ cacheFor _ <<<"$line"
-                                  cacheTill=$((now + cacheFor))
-                                  ;;
+                echo $cacheTill >>"$cacheFile"
+                printf "%s\n" "${buff[@]}" >>"$cacheFile"
 
-                              *)
-                                  buff+=("$line")
-                                  echo "$line"
-                                  ;;
-                          esac
-                      done
-
-                      echo $cacheTill >>"$cacheFile"
-                      printf "%s\n" "${buff[@]}" >>"$cacheFile"
-
-                  else
-                      while read -r line; do echo "$line"; done
-                  fi
-              }
-        fi
+            else
+                while read -r line; do echo "$line"; done
+            fi
+        }
+      fi
     } \
-    | {
-        local fromCache=
-        while read -r line; do
-            case "$line" in
-                @fromCache)
-                    fromCache=1
-                    # this should be somehow communicated back out to traces...
-                ;;
+  | {
+      local fromCache=
+      while read -r line; do
+          case "$line" in
+              @fromCache)
+                  fromCache=1
+                  # this should be somehow communicated back out to traces...
+              ;;
 
-                @bind[[:space:]][[:word:]]*)
-                    read -r _ vn v <<< "$line"
-                    say bind $vn $v
-                ;;
+              @bind[[:space:]][[:word:]]*)
+                  read -r _ vn v <<< "$line"
+                  say bind $vn $v
+              ;;
 
-                @set[[:space:]][[:word:]]*)
-                    read -r _ n v <<< "$line"
-                    say set $n $v
-                ;;
+              @set[[:space:]][[:word:]]*)
+                  read -r _ n v <<< "$line"
+                  say set $n $v
+              ;;
 
-                @out*)
-                    read -r _  v <<< "$line"
-                    echo $v
-                ;;
+              @out*)
+                  read -r _  v <<< "$line"
+                  echo $v
+              ;;
 
-                +([[:word:]])=*)
-                    vn=${line%%=*}
-                    v=${line#*=}
-                    say bind $vn $v
-                ;;
+              +([[:word:]])=*)
+                  vn=${line%%=*}
+                  v=${line#*=}
+                  say bind $vn $v
+              ;;
 
-                *)
-                    echo $line
-                ;;
-            esac
-        done
-      } \
-    | {
-        >"$outFile"
-    
-        if [[ ${runFlags[*]} =~ "T" ]]; then
-            while read -r line; do
-                say out "$line"
-                echo "$line" >>"$outFile"
-            done
-        fi
-      }
+              *)
+                  echo $line
+              ;;
+          esac
+      done
+    } \
+  | {
+      >"$outFile"
+
+      if [[ ${runFlags[*]} =~ "T" ]]; then
+          while read -r line; do
+              say out "$line"
+              echo "$line" >>"$outFile"
+          done
+      fi
+    }
 
     say fin
-}
-
-readAssocArray() {
-  local -n _r=$1
-  local raw=$2
-  local IFS=${3:-,}
-  local sep=${4:->}
-  local p l r
-
-  for p in $raw; do 
-    IFS=$sep read l r <<<"$p"
-    _r[$l]=$r
-  done
 }
 
 main "$@"

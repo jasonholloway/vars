@@ -13,32 +13,12 @@ main() {
   while hear type rest; do
     case "$type" in
       "outline")  outlineFiles "$rest" ;;
-      "block")    getBlock "$rest" ;;
+      "block")    getBlock "$rest" >&6; say fin ;;
       "pins")     getPins "$rest";;
     esac
 
     say "@YIELD"
   done
-}
-
-getPins() {
-  local bid=$1
-  local fid type rest val
-  
-  IFS='|' read -r fid i <<<"$bid"
-  readFiles "$fid"
-
-  while read -r type rest; do
-    case "$type" in
-        pin)
-          say "$rest"
-          read -r val
-          say "$val"
-        ;;
-    esac
-  done <<<"${blocks[$bid]}"
-
-  say "fin"
 }
 
 outlineFiles() {
@@ -58,12 +38,52 @@ outlineFiles() {
 
 getBlock() {
   local bid=$1
+  local v n type rest line
 
-  IFS='|' read -r fid _ <<<"$bid"
-  readFiles "$fid"
+  if [[ $bid =~ ^get:(.+)$ ]]
+  then
+    v=${BASH_REMATCH[1]}
+    cat <<-EOF
+				in ${v}
+				run bash
+				echo \$${v}
+EOF
+  elif [[ $bid =~ ^shim:(.+)$ ]]
+  then
+      IFS=: read -r rawInMaps bid rawOutMaps <<<"${BASH_REMATCH[1]}"
 
-  say "${blocks[$bid]}"
-  say fin
+      local -A inMaps=()
+      readAssocArray inMaps "$rawInMaps"
+
+      local -A outMaps=()
+      readAssocArray outMaps "$rawOutMaps"
+
+      getBlock "$bid" | 
+        while read -r type rest; do
+          case $type in
+              "in") echo "in $rest" ;;
+              "out") echo "out $rest" ;;
+              "run")
+                  for n in ${!inMaps[@]}
+                  do echo "mapIn $n ${inMaps[$n]}"
+                  done
+                  
+                  echo "run $rest"
+                  read -r line
+                  echo "$line"
+              ;;
+           esac
+        done
+
+      for n in ${!outMaps[@]}
+      do echo "mapOut $n ${outMaps[$n]}"
+      done
+  else
+    IFS='|' read -r fid _ <<<"$bid"
+    readFiles "$fid"
+
+    echo "${blocks[$bid]}"
+  fi
 }
 
 readFiles() {
@@ -195,6 +215,26 @@ readSection() {
       echo "out $p"
     done
   )
+}
+
+getPins() { #To be removed...
+  local bid=$1
+  local fid type rest val
+  
+  IFS='|' read -r fid i <<<"$bid"
+  readFiles "$fid"
+
+  while read -r type rest; do
+    case "$type" in
+        pin)
+          say "$rest"
+          read -r val
+          say "$val"
+        ;;
+    esac
+  done <<<"${blocks[$bid]}"
+
+  say "fin"
 }
 
 main "$@"
