@@ -48,6 +48,9 @@ deduce() {
   trimBlocks
 
   plan=$(orderBlocks)
+
+  log PLAN "$plan"
+
   runBlocks <<<"$plan"
 }
 

@@ -45,10 +45,16 @@ decode() {
 
 writeAssocArray() {
   local -n _r=$1
-  local IFS=${2:-,}
   local sep=${3:->}
   local n
-  echo $(for n in "${!_r[@]}"; do echo "${n}${sep}${_r[$n]}"; done)
+  local -a acc=()
+
+  for n in "${!_r[@]}"
+  do acc+=("${n}${sep}${_r[$n]}")
+  done
+
+  local IFS=${2:-,}
+  echo "${acc[*]}"
 }
 
 readAssocArray() {
