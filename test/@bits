@@ -32,6 +32,7 @@ echo yo, $firstName
 # n: sayMoo
 # in: cowName breed
 # pin: breed=Hereford
+# pin: cowName=Dave
 echo "${cowName}: Moo! (${cowName}'s breed is _${breed}_!)"
 
 
@@ -104,8 +105,7 @@ ip=$(dig +short -4 $url)
 
 
 #+++++++++++
-# pin: site=sorted
-# in: ip
+# in: ip{site=sorted+blah=wibble}
 # out: sortedIp
 @bind sortedIp $ip
 

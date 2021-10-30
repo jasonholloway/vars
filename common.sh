@@ -69,3 +69,22 @@ readAssocArray() {
     _r[$l]=$r
   done
 }
+
+push() {
+    local -n _s=$1
+    local v=$2
+    local head=${#_s[@]}
+    _s[$head]=$v
+}
+
+pop() {
+    local -n _s=$1
+    local c=${2:-1}
+
+    while [[ $c -gt 0 ]]
+    do
+      local head=${#_s[@]}
+      unset "_s[$((head-1))]"
+      ((c--))
+    done
+}

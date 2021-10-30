@@ -24,6 +24,13 @@ main() {
   done
 }
 
+# SO:
+# readInputs as now
+# trimBlocks to ignore needlings DONE
+# fillBlocks to synthesize needed blocks according to needlings TODO
+# order as now
+# run as now
+
 deduce() {
   local plan
   local x=0
@@ -32,20 +39,23 @@ deduce() {
 
   readInputs
   readUserPins
-  trimBlocks
-
-  say "targets ${!targetBlocks[*]}"
-
-  visitBlocks ${!targetBlocks[@]}
 
   for n in "${!suppliers[@]}"; do
     log "SUP $n from ${suppliers[$n]}"
   done
 
+  trimBlocks2
+
+  say "targets ${!targetBlocks[*]}"
+
+  fillBlocks ${!targetBlocks[@]}
+
+  # visitBlocks ${!targetBlocks[@]}
+
   # below needed to make thing actually work after rewriting...
   # readBlockPins
 
-  trimBlocks
+  # trimBlocks
 
   plan=$(orderBlocks)
 
@@ -116,6 +126,64 @@ readUserPins() {
   done
 }
 
+fillBlocks() {
+  local bid p n m vn
+
+  for bid in "$@"
+  do
+    log "FIL ${outlines[$bid]} ${pinContext[*]}"
+
+    # top-down matey
+
+    for vn in ${ins[$bid]}
+    do
+      local xc=0
+        
+      log "VN $vn"
+
+
+      if [[ $vn =~ ^[[:alnum:]]+\{(.+)\}$ ]]
+      then
+          mapfile -d\+ -t <<<"${BASH_REMATCH[1]}"
+
+          for p in "${MAPFILE[@]}"
+          do push pinContext "${p%$'\n'}"; ((xc++))
+          done
+      fi
+
+      fillBlocks ${suppliers[${vn%{*}]}
+
+      pop pinContext $xc
+    done
+    
+
+    
+
+    
+
+    # for n in ${ins[$bid]}; do
+    #   visitBlocks ${suppliers[${n%{*}]}
+    # done
+
+    # if [[ ${flags[$bid]} =~ P ]]
+    # then
+    #   local -A p=()
+    #   getPins $bid
+
+    #   ((x++))
+
+    #   local -A mapped=()
+    #   for n in ${!p[@]}; do
+    #     m="${n}#$x"
+    #     mapped[$n]=$m
+    #     pinned[$m]=${p[$n]}
+    #   done
+      
+    #   rewritePinned $bid t
+    # fi
+  done
+}
+
 visitBlocks() {
   local bid n m
 
@@ -179,6 +247,7 @@ rewritePinned() {
   done
 
   newBid+=$(writeAssocArray inMaps)
+  log NEW $newBid
 
   if [[ $rewrite ]]
   then
@@ -274,6 +343,51 @@ readBlockPins() {
 
       say "@END"
     fi
+  done
+}
+
+trimBlocks2() {
+  local bid vn ivn
+  local -A trimmables pending seen
+  trimmables=()
+  pending=()
+  seen=()
+
+  for bid in ${!blocks[*]}; do
+    trimmables[$bid]=1
+  done
+
+  for bid in ${!targetBlocks[*]}; do
+    unset "trimmables[$bid]"
+
+    for vn in ${ins[$bid]}; do
+      pending[$vn]=1
+    done
+  done
+  
+  while [[ ${#pending[@]} -gt 0 ]]; do
+    for vn in ${!pending[*]}; do
+
+      if [[ -z ${pinned[$vn]} ]]; then
+        for bid in ${suppliers[${vn%{*}]}; do
+          unset "trimmables[$bid]"
+
+          for ivn in ${ins[$bid]}; do
+            if [[ -z ${seen[$ivn]} ]]; then
+              pending[$ivn]=1
+            fi
+          done
+        done
+      fi
+
+      seen[$vn]=1
+      unset "pending[$vn]"
+    done
+  done
+
+  for bid in ${!trimmables[*]}; do
+    log "DEL $bid"
+    unset "blocks[$bid]"
   done
 }
 
@@ -452,7 +566,7 @@ runBlocks() {
 
 log() {
   :
-  # echo "$@" >&2
+  echo "$@" >&2
 }
 
 main "$@"
