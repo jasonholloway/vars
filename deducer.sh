@@ -131,29 +131,26 @@ fillBlocks() {
 
   for bid in "$@"
   do
-    log "FIL ${outlines[$bid]} {$(stackMap_print pinContext)}"
+    log "FIL ${outlines[$bid]} * {$(stackMap_print pinContext)}"
 
     # top-down matey
 
     for vn in ${ins[$bid]}
     do
-      local isExtra=
+      local hasExtraPins=
         
       log "VN $vn"
 
       if [[ $vn =~ ^[[:alnum:]]+\{(.+)\}$ ]]
       then
           stackMap_ingest pinContext "${BASH_REMATCH[1]}"
-          isExtra=1
+          hasExtraPins=1
       fi
 
       fillBlocks ${suppliers[${vn%{*}]}
 
-      [[ $isExtra ]] && stackMap_pop pinContext
+      [[ $hasExtraPins ]] && stackMap_pop pinContext
     done
-    
-
-    
 
     
 

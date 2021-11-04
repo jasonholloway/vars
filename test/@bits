@@ -90,7 +90,7 @@ vim ~/.vars/out >"$(tty)"
 
 
 #++++++++++++
-# in: prefix site
+# in: prefix site{via=uk}
 # out: url
 @bind url ${prefix}${site}.com
 
@@ -105,7 +105,7 @@ ip=$(dig +short -4 $url)
 
 
 #+++++++++++
-# in: ip{site=sorted+blah=wibble}
+# in: ip{site=sorted+url=blah.com}
 # out: sortedIp
 @bind sortedIp $ip
 
@@ -123,7 +123,7 @@ ip=$(dig +short -4 $url)
 
 
 #++++++++++
-# in: sortedIp:ip{site=sorted} googleIp:ip{site=google}
+# in: ip{site=sorted} ip{site=google}
 # out: bothIpsIdeal
 @bind bothIps "sorted:$sortedIp google:$googleIp"
 
