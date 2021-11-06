@@ -53,10 +53,10 @@ EOF
       IFS=: read -r rawInMaps bid rawOutMaps <<<"${BASH_REMATCH[1]}"
 
       local -A inMaps=()
-      readAssocArray inMaps "$rawInMaps"
+      A_read inMaps "$rawInMaps"
 
       local -A outMaps=()
-      readAssocArray outMaps "$rawOutMaps"
+      A_read outMaps "$rawOutMaps"
 
       getBlock "$bid" | 
         while read -r type rest; do

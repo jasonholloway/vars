@@ -239,7 +239,7 @@ rewritePinned() {
     fi
   done
 
-  newBid+=$(writeAssocArray inMaps)
+  newBid+=$(A_print inMaps)
   log NEW $newBid
 
   if [[ $rewrite ]]
@@ -262,7 +262,7 @@ rewritePinned() {
       done
     fi
 
-    newBid+=$(writeAssocArray outMaps)
+    newBid+=$(A_print outMaps)
 
     log "REW $bid -> $newBid"
 
