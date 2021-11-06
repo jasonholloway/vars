@@ -1,5 +1,8 @@
 #!/bin/bash
 
+[[ $__LIB_OUTLINE ]] || source lib/outline.sh 
+[[ $__LIB_CHECK ]] || source lib/check.sh 
+
 source ./rewrite.sh 
 
 parseWriteRoundtrip() {
@@ -26,67 +29,61 @@ parseWriteRoundtrip() {
 		done
 }
 
-outline_getIns() {
-		local outline=$1
-		local -n __ins=$2
-
-		__ins=()
-
-		if [[ $outline =~ ^.*\;(.*)\> ]]
-		then
-				readarray -t -d ',' __ins <<<"${BASH_REMATCH[1]}"
-				a_trimAll __ins
-		fi
-}
-
-outline_getOuts() {
-		local outline=$1
-		local -n __outs=$2
-
-		__outs=()
-
-		if [[ $outline =~ ^.*\;.*\>(.*)$ ]]
-		then
-				readarray -t -d ',' __outs <<<"${BASH_REMATCH[1]}"
-				a_trimAll __outs
-		fi
-}
-
-
-
-
-
-trim() {
-		local -n __v="$1"
-    __v="${__v#"${__v%%[![:space:]]*}"}"
-    __v="${__v%"${__v##*[![:space:]]}"}"   
-}
-
-a_trimAll() {
-		local -n __a=$1
-		local i
-		
-		for i in ${!__a[*]}
-		do trim __a[$i]
-		done
-}
-
 main() {
-	check "can unpack outline ins" <<-'EOF'
-		@RUN=
+	check "outline_getBid" <<-'EOF'
+			outline="blah:/A/B/C|12,123123213; in1,in2 > out1" 
+		  outline_getBid outline bid
+		.THEN
+		  [[ $bid == "blah:/A/B/C|12,123123213" ]] || fail bad bid
+	EOF
+
+	check "ouline_setBid" <<-'EOF'
+			outline="blah:/A/B/C|12,123123213; in1,in2 > out1" 
+			bid="wibble:blah"
+		  outline_setBid outline bid
+		.THEN
+			[[ $outline == "wibble:blah; in1,in2 > out1" ]] || fail
+	EOF
+
+	check "outline_setIns 1" <<-'EOF'
+		  newIns=(in3 in4)
+			outline="A; in1,in2 > out1"
+		  outline_setIns outline newIns
+		.THEN
+			[[ $outline == "A; in3,in4 > out1" ]] || fail
+	EOF
+
+	check "outline_setIns 2" <<-'EOF'
+		  newIns=()
+			outline="A; in1,in2 > out1"
+		  outline_setIns outline newIns
+		.THEN
+			[[ $outline == "A; > out1" ]] || fail
+	EOF
+
+	check "outline_setOuts" <<-'EOF'
+		  outs=(out3 out4)
+			outline="A; in1,in2 > out1"
+		  outline_setOuts outline outs
+		.THEN
+			[[ $outline == "A; in1,in2 > out3,out4" ]] || fail
+	EOF
+
+	check "outline_getIns" <<-'EOF'
 		  ins=()
-		  outline_getIns "A; in1,in2 > out1" ins
-		@AFTER=
+			outline="A; in1,in2 > out1" 
+		  outline_getIns outline ins
+		.THEN
 		  [[ ${#ins[*]} -eq 2 ]] || fail not enough ins
 			a_has ins in1 || fail missing in1
 			a_has ins in2 || fail missing in2
 	EOF
 
-	check "can unpack outline outs" <<-'EOF'
-		@RUN=
+	check "outline_getOuts" <<-'EOF'
 		  outs=()
-		  outline_getOuts "A; in1,in2 > out1,out2" outs
-		@AFTER=
+			outline="A; in1,in2 > out1,out2" 
+		  outline_getOuts outline outs
+		.THEN
 		  [[ ${#outs[*]} -eq 2 ]] || fail not enough outs
 			a_has outs out1 || fail missing out1
 			a_has outs out2 || fail missing out2
@@ -152,103 +149,6 @@ main() {
 	# 	@EXPECT=
 	# 			blahblah
 	# EOF
-}
-
-
-
-fail() {
-		echo "@FAIL $*"
-}
-
-a_has() {
-		local -n __a=$1
-		local val=$2
-		local v
-
-		for v in "${__a[@]}"
-		do
-				if [[ $v == $val ]]
-				then return 0
-				fi
-		done
-
-		return 1
-}
-
-
-check() {
-		local name="$1"
-		echo "? ${name}:"
-
-		{
-				local -A vars=()
-
-				gather vars
-				local run="${vars[RUN]}"
-				local input="${vars[INPUT]}"
-				local expect="${vars[EXPECT]}"
-				local after="${vars[AFTER]}"
-				local ok=1
-
-				gather vars < <(
-						echo "@RESULT="
-						eval "$run" <<<"$input"
-
-						echo "@CHECK1="
-						eval "$after"
-				)
-
-				local result="${vars[RESULT]}"
-
-				local type rest
-				while read -r type rest
-				do
-						case $type in
-								@FAIL)
-										ok=
-										echo "Failed: $rest"
-								;;
-								@LOG)
-										echo "$rest"
-								;;
-						esac
-				done <<<"${vars[CHECK1]}"
-
-				if [[ $ok ]]; then echo SUCCESS!!!; fi
-		} | sed 's/^/  /'
-
-
-		# {
-		# 		if [[ $result == $expect ]]; then
-		# 				echo *PASSED*
-		# 		else
-		# 				echo *FAILED*
-		# 				diff --color=always <(echo "$expect") <(echo "$result")
-		# 		fi
-		# 		echo
-		# } | sed 's/^/  /'
-
-}
-
-gather() {
-		local -n __vars=$1
-		local -a acc=()
-		local vn=_
-
-		while read -r line
-		do
-				
-				if [[ $line =~ ^@([A-Z0-9]+)=$ ]]
-				then
-						__vars[$vn]=$(IFS=$'\n'; echo "${acc[*]}")
-						vn=${BASH_REMATCH[1]}
-						acc=()
-				else
-						acc+=("$line")
-				fi
-		done
-
-		__vars[$vn]=$(IFS=$'\n'; echo "${acc[*]}")
 }
 
 main
