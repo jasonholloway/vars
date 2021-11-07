@@ -2,6 +2,31 @@
 
 [[ $__LIB_COMMON ]] || source lib/common.sh
 
+outline_create() {
+		local -n __o=$1
+
+		__o="; >"
+
+		outline_setBid __o "$2"
+		outline_setIns __o "$3"
+		outline_setOuts __o "$4"
+}
+
+outline_read() {
+		local -n __outline=$1
+
+		local __str
+		arg_read "$2" __str
+		
+		__outline=$__str
+}
+
+outline_write() {
+		local -n __outline=$1
+		local -n __str=$2
+		__str=$__outline
+}
+
 outline_getBid() {
 		local -n __outline=$1
 		local -n __bid=$2
@@ -17,7 +42,9 @@ outline_getBid() {
 
 outline_setBid() {
 		local -n __outline=$1
-		local -n __bid=$2
+
+		local __bid
+		arg_read "$2" __bid
 
 		if [[ $__outline =~ ^.*(\;.*\>.*)$ ]]
 		then
@@ -41,7 +68,9 @@ outline_getIns() {
 
 outline_setIns() {
 		local -n __outline=$1
-		local -n __ins=$2
+
+		local __ins
+		arg_read "$2" __ins
 
 		if [[ $__outline =~ ^(.*\;).*(\>.*)$ ]]
 		then
@@ -70,7 +99,9 @@ outline_getOuts() {
 
 outline_setOuts() {
 		local -n __outline=$1
-		local -n __outs=$2
+
+		local __outs
+		arg_read "$2" __outs
 
 		if [[ $__outline =~ ^(.*\;.*\>).*$ ]]
 		then

@@ -5,10 +5,19 @@
 
 main() {
 	check "rewrite pass thru" <<-'EOF'
-			outline="blah:/A/B/C|12,123123213; in1,in2 > out1" 
-		  outline_getBid outline bid
-		.,
-		  chk bid == "blah:/A/B/C|12,123123213"
+			rewrite
+		.<
+			A; ip{site=sorted} > sortedIp
+			B; url > ip
+			C; site,country > url
+			D; > site
+			E; > country
+		.>
+			A; ip{site=sorted} > sortedIp
+			B; url > ip
+			C; site,country > url
+			D; > site
+			E; > country
 	EOF
 
 		

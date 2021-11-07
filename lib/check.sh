@@ -18,10 +18,15 @@ check() {
 
 				gather vars
 				local run="${vars[_]}"
-				local input="${vars[INPUT]}"
-				local expect="${vars[EXPECT]}"
+				local input="${vars[<]}"
+				local output="${vars[>]}"
 				local after="${vars[,]}"
 				local ok=1
+
+				# TODO need to check .out (via RESULT below)
+				# ...
+				#
+				#
 
 				gather vars < <(
 						echo ".RESULT"
@@ -47,22 +52,17 @@ check() {
 						esac
 				done <<<"${vars[THEN]}"
 
+				if [[ $output && $output != $result ]]
+				then
+						ok=
+						echo -e "${RED}Failed: bad output${NC}"
+		 				diff --color=always <(echo "$output") <(echo "$result")
+				fi
+
 				if [[ $ok ]]; then echo -e "${GREEN}SUCCESS!!!${NC}"; fi
 		} | sed 's/^/  /'
 
 		echo
-
-
-		# {
-		# 		if [[ $result == $expect ]]; then
-		# 				echo *PASSED*
-		# 		else
-		# 				echo *FAILED*
-		# 				diff --color=always <(echo "$expect") <(echo "$result")
-		# 		fi
-		# 		echo
-		# } | sed 's/^/  /'
-
 }
 
 gather() {
@@ -73,7 +73,7 @@ gather() {
 		while read -r line
 		do
 				
-				if [[ $line =~ ^\.([A-Z0-9,]+) ]]
+				if [[ $line =~ ^\.([A-Za-z0-9,<>]+) ]]
 				then
 						__vars[$vn]=$(IFS=$'\n'; echo "${acc[*]}")
 						vn=${BASH_REMATCH[1]}
@@ -96,23 +96,23 @@ log() {
 
 chk() {
 		local vn="$1"
-		local v k
+		local __v k
 
 		case "$2" in
 				==) ;&
 				eq)
-						eval "v=\${${vn}}"
-						[[ $v == "$3" ]] || fail "$vn = $v (expected _${3}_)"
+						eval "__v=\${${vn}}"
+						[[ $__v == "$3" ]] || fail "$vn = $__v (expected _${3}_)"
 						;;
 
 				neq)
 						eval "v=\${${vn}}"
-						[[ $v != "$3" ]] || fail "$vn = $v (expected _${3}_)"
+						[[ $__v != "$3" ]] || fail "$vn = $__v (expected _${3}_)"
 						;;
 
 				exists)
-						eval "v=\${${vn}}"
-						[[ $v ]] || fail "$vn doesn't exist"
+						eval "__v=\${${vn}}"
+						[[ $__v ]] || fail "$vn doesn't exist"
 						;;
 
 				has)
@@ -121,8 +121,8 @@ chk() {
 						;;
 
 				hasLen)
-						eval "v=\${#${vn}[*]}"
-						[[ $v -eq "$3" ]] || fail "$vn length is $v (expected _${3}_)"
+						eval "__v=\${#${vn}[*]}"
+						[[ $__v -eq "$3" ]] || fail "$vn length is $__v (expected _${3}_)"
 						;;
 		esac
 }
