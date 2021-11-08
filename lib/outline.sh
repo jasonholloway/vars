@@ -53,6 +53,33 @@ outline_setBid() {
 		fi
 }
 
+outline_getRest() {
+		local -n __outline=$1
+		local -n __rest=$2
+
+		__rest=
+
+		if [[ $__outline =~ \{([^\{}]*)\}$ ]]
+		then
+				__rest="${BASH_REMATCH[1]}"
+		fi
+}
+
+outline_setRest() {
+		local -n __outline=$1
+
+		local __rest
+		arg_read "$2" __rest
+
+		if [[ $__outline =~ ^(.*)[[:space:]]+(\{[^\{]*\})$ ]]
+		then
+				local main="${BASH_REMATCH[1]}"
+				__outline="${main} {${__rest}}"
+		else
+				__outline+=" {${__rest}}"
+		fi
+}
+
 outline_getIns() {
 		local -n __outline=$1
 		local -n __ins=$2

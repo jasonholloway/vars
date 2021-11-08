@@ -1,5 +1,33 @@
 #!/bin/bash
 
+nosh() {
+		local str
+		read -r str
+		local ret=$?
+		
+		eval "$* \"v:$str\""
+
+		return $ret
+}
+
+parp() {
+		local str
+		eval "$* str"
+		echo "$str"
+}
+
+parp_a() {
+		local -a r
+		eval "$* r"
+		echo "${r[*]}"
+}
+
+parp_A() {
+		local -A r
+		eval "$* r"
+		parp A_write r
+}
+
 trim() {
 		local -n __v="$1"
     __v="${__v#"${__v%%[![:space:]]*}"}"
@@ -45,6 +73,33 @@ a_has() {
 		done
 
 		return 1
+}
+
+a_reorder() {
+		local -n __r=$1
+		local ok last curr
+
+		while true
+		do
+			ok=1
+			last=
+
+			for i in "${!__r[@]}"
+			do
+					curr=${__r[$i]}
+
+					if [[ $curr < $last ]]
+					then
+							ok=
+							__r[((i-1))]=$curr
+							__r[$i]=$last
+					else
+							last=$curr
+					fi
+			done
+
+			[[ $ok ]] && break
+		done
 }
 
 export __LIB_COMMON=1

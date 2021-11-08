@@ -20,6 +20,7 @@ check() {
 				local run="${vars[_]}"
 				local input="${vars[<]}"
 				local output="${vars[>]}"
+				local output_rest="${vars[>_rest]}"
 				local after="${vars[,]}"
 				local ok=1
 
@@ -38,7 +39,7 @@ check() {
 
 				local result="${vars[RESULT]}"
 
-				local type rest
+				local type rest flag
 				while read -r type rest
 				do
 						case $type in
@@ -52,11 +53,22 @@ check() {
 						esac
 				done <<<"${vars[THEN]}"
 
-				if [[ $output && $output != $result ]]
+				if [[ $output ]]
 				then
-						ok=
-						echo -e "${RED}Failed: bad output${NC}"
-		 				diff --color=always <(echo "$output") <(echo "$result")
+						for flag in $output_rest; do
+								case $flag in
+										':s')
+												output=$(sed -E 's/\s+/ /g' <<<"$output") 
+												;;
+								esac
+						done
+
+						if [[ $ok && $output != $result ]]
+						then
+								ok=
+								echo -e "${RED}Failed: bad output${NC}"
+								diff --color=always <(echo "$output") <(echo "$result")
+						fi
 				fi
 
 				if [[ $ok ]]; then echo -e "${GREEN}SUCCESS!!!${NC}"; fi
@@ -69,14 +81,18 @@ gather() {
 		local -n __vars=$1
 		local -a acc=()
 		local vn=_
+		local line rest
 
 		while read -r line
 		do
-				
-				if [[ $line =~ ^\.([A-Za-z0-9,<>]+) ]]
+				if [[ $line =~ ^\.([A-Za-z0-9,<>]+)([[:space:]].*)?$ ]]
 				then
 						__vars[$vn]=$(IFS=$'\n'; echo "${acc[*]}")
+
 						vn=${BASH_REMATCH[1]}
+						rest="${BASH_REMATCH[2]}"
+						trim rest
+
 						acc=()
 				else
 						acc+=("$line")
@@ -84,6 +100,7 @@ gather() {
 		done
 
 		__vars[$vn]=$(IFS=$'\n'; echo "${acc[*]}")
+		__vars[${vn}_rest]=$rest
 }
 
 fail() {

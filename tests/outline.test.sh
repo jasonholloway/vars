@@ -12,6 +12,51 @@ check "outline roundtrip" <<-'EOF'
 		chk o2 eq "A; in1{x=3},in2 > out1,out2"
 EOF
 
+check "outline roundtrip with rest" <<-'EOF'
+		outline_read o "v:A; in{x} > out {hello}"
+		parp outline_write o
+	.>
+		A; in{x} > out {hello}
+EOF
+
+check "outline roundtrip with rest empty" <<-'EOF'
+		outline_read o "v:A; in{x} > out {}"
+		parp outline_write o
+	.>
+		A; in{x} > out {}
+EOF
+
+check "outline roundtrip without rest" <<-'EOF'
+		outline_read o "v:A; in{x} > out"
+		parp outline_write o
+	.>
+		A; in{x} > out
+EOF
+
+check "outline_getRest" <<-'EOF'
+		outline_read o "v:blah:/A/B/C|12,123123213; in{x} > out {wibble}" 
+		parp outline_getRest o
+	.>
+		wibble
+EOF
+
+check "outline_setRest" <<-'EOF'
+		outline_create o "v:blah:/A/B/C|12,123123213" "a:in1{x}" "a:out1" 
+		outline_setRest o "v:blahblahblah"
+		parp outline_write o
+	.>
+		blah:/A/B/C|12,123123213; in1{x} > out1 {blahblahblah}
+EOF
+
+check "outline_setRest 2" <<-'EOF'
+		outline_read o "v:blah:/A/B/C|12,123123213; in{x} > out {blah}" 
+		outline_setRest o "v:moo"
+		parp outline_write o
+	.> 
+		blah:/A/B/C|12,123123213; in{x} > out {moo}
+EOF
+
+
 check "outline_getBid" <<-'EOF'
 		outline_create o "v:blah:/A/B/C|12,123123213" "a:in1 in2" "a:out1" 
 		outline_getBid o bid
