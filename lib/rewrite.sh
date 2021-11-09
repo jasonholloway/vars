@@ -12,50 +12,54 @@
 #
 #
 
+a_copy() {
+		local -n __a=$1
+		local -n __b=$2
+		local v i
+
+		i=0
+		for v in "${__a[@]}"
+		do __b[$i]=$v; ((i++))
+		done
+}
+
+
+
 
 rewrite_expand() {
 		local -a outlines=()
 		local -A supplies=()
 		local -a __roots
-		local line i o out outs
+		local -a targets
+		local i o out outs
 
 		arg_read "$1" __roots
-
-		# each root is a vn
-		# and each vn can have pins on it
-		# so we want to store initial root lookups
-		# (that can then be changed as we walk)
-		#
-		# but these lookups, if they can refer to more generic suppliers,
-		# must also store contexts at the same time
-		# the extended outline is then really a compound link
-		# pins should be compounded if they can be
-		# but if they can't, then do we always split into a separate world?
-		# no - id the combination is impossible, it is nil
-		# differences can only be sustained by being in separate subtrees
-		#
-		# though we also want joins to solve duplication
-		#
-		# each subtree is treated separately, though in the actual running
-		# inconsistencies may arise - we should catch these at runtime
-		# no - inconsistencies must be allowed
-		# name{name=Boris} is different from name{name=Biter}
-		# different, coexistent worlds
-		
 
 		i=0
 		while nosh outline_read o
 		do
 				outline_getOuts o outs
+
 				for out in "${outs[@]}"; do
 						supplies["$out"]+="$i "
 				done
-				
-				outline_setRest o "v:"
-				parp outline_write o
 
 				((i++))
 		done
+
+		local -A context=()
+
+		a_copy __roots targets
+
+		# now we visit all the targets
+		# we start with an empty pin context
+		# on first pass, each visited var gets given a pin context
+		# and each discovered pin context gets added to the visit context
+
+		# look at stackMap!!!!!!
+		
+
+				# outline_setRest o "v:"
 
 		A_printNice supplies >&2
 }

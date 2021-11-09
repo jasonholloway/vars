@@ -1,6 +1,7 @@
 #!/bin/bash
 
 [[ $__LIB_COMMON ]] || source lib/common.sh
+[[ $__LIB_ARRAY ]] || source lib/array.sh
 
 GREEN="\033[0;32m"
 RED="\033[0;31m"
