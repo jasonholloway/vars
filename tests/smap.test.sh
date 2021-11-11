@@ -108,3 +108,30 @@ check "smap stuff" <<-'EOF'
 		D=4
 		B=2+D=4
 EOF
+
+
+check "smap peek extract" <<-'EOF'
+    smap_init m
+    smap_push m "v:B=2"
+    smap_push m "v:A=1"
+
+		local -A a
+		smap_peekA m a
+
+		local -A b
+		smap_popA m b
+
+		local -A c
+		smap_peekA m c
+	.,
+		chk a[A] eq 1
+		chk a[B] eq 2
+
+		chk b[A] eq 1
+		chk b[B] eq 2
+
+		chk c[A] eq ''
+		chk c[B] eq 2
+EOF
+
+

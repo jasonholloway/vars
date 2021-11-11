@@ -3,6 +3,7 @@
 [[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh 
 [[ $__LIB_VN ]] || source lib/vn.sh
 [[ $__LIB_OUTLINE ]] || source lib/outline.sh 
+[[ $__LIB_SMAP ]] || source lib/smap.sh
 
 # in fact no we don't
 # we need to gather all into a nice tree
@@ -49,14 +50,23 @@ rewrite_expand() {
 
 		local -A context=()
 
-		a_copy __roots targets
+		local -a pins
+		smap_init pins
+
+		local -a targets
+		smap_init targets
+
+		# copy roots into targets
+		# copy global pins into pins
 
 		# now we visit all the targets
-		# we start with an empty pin context
 		# on first pass, each visited var gets given a pin context
 		# and each discovered pin context gets added to the visit context
 
-		# look at stackMap!!!!!!
+		# as we crawl, we have two contexts
+		# we have targets
+		# we have pinnings
+		
 		
 
 				# outline_setRest o "v:"

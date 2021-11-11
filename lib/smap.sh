@@ -46,14 +46,32 @@ smap_peek() {
 }
 
 smap_pop() {
-		local -n __m=$1
-		local -n __out=$2
+		local -n ___m=$1
+		local -n ___out=$2
 
-    local h=${__m[0]}
-		__out=${__m[$h]}
+    local h=${___m[0]}
+		___out=${___m[$h]}
 
-    unset "__m[$h]"
-		((__m[0]--))
+    unset "___m[$h]"
+		((___m[0]--))
+}
+
+smap_peekA() {
+    local -n __m=$1
+    local -n __A=$2
+
+    local raw
+    smap_peek __m raw
+    A_read __A "n:raw" '+' '='
+}
+
+smap_popA() {
+    local -n __m=$1
+    local -n __A=$2
+
+    local raw
+    smap_pop __m raw
+    A_read __A "n:raw" '+' '='
 }
 
 smap_read() {
