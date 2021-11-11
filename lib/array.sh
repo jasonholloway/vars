@@ -70,7 +70,10 @@ a_reverse() {
 		local -n __a=$1
 
 		local h=${#__a[*]}
-		local l=0
+		[[ $h -gt 0 ]] && ((h--))
+
+		
+		local l=${2:-0}
 		local tmp
 
 		while [[ $h > $l ]]
@@ -82,6 +85,17 @@ a_reverse() {
 				((h--))
 				((l++))
 		done
+}
+
+a_debug() {
+		local -n __a=$1
+		local p
+
+		for p in "${__a[@]}"
+		do echo -n "_${p}_ "
+		done
+
+		echo
 }
 
 export __LIB_ARRAY=1

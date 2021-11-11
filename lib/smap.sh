@@ -6,37 +6,64 @@
 
 smap_init() {
     local -n __m=$1
-		local -n __c=$1__count
-		__m=()
-		__c=0
+		__m=(0)
 }
 
 smap_push() {
 		local -n __m=$1
-		local -n __c=$1__count
+    local raw
 
-		local -a o
-		smap_read o "$2"
+    local -A x=()
+    smap_peek __m raw
+    A_read x "n:raw" '+' '='
 
-		# merge in here
+		local -A y=()
+		A_read y "$2" '+' '='
+    
+    A_merge x y
+    
+    A_write_ordered x raw '+' '='
+
+    __m+=($raw)
+    ((__m[0]++))
+
+    # todo:
+		# the merging needs some kind of callback
+		# if the callback says no to the merge then the entire push is off
+}
+
+smap_peek() {
+		local -n ___m=$1
+		local -n ___out=$2
+
+    local h=${___m[0]}
+    if [[ $h -gt 0 ]]
+    then
+        ___out=${___m[$h]}
+    else
+        ___out=
+    fi
 }
 
 smap_pop() {
 		local -n __m=$1
-		local -n __c=$1__count
-		:
+		local -n __out=$2
+
+    local h=${__m[0]}
+		__out=${__m[$h]}
+
+    unset "__m[$h]"
+		((__m[0]--))
 }
 
 smap_read() {
 		local -n __m=$1
-		local -n __c=$1__count
 		local line
 
 		local raw
 		arg_read "$2" raw
 
-		__m=()
-		__c=0
+		__m=(0)
 
 		while read -r line
 		do
@@ -47,19 +74,33 @@ smap_read() {
 				A_write_ordered a str '+' '='
 				
 				__m+=($str)
-				((__c++))
+				((__m[0]++))
 		done <<<"$raw"
 
-		a_reverse __m
+    a_reverse __m 1
 }
 
 smap_write() {
 		local -n __m=$1
 		local -n __out=$2
+
+    a_reverse __m 1
+    local h=${__m[0]}
+    __m[0]=
+
 		local IFS=$'\n'
 		__out="${__m[*]}"
+
+    __m[0]=$h
+    a_reverse __m 1
+    
 		trim __out
 }
+
+
+
+
+
 
 
 

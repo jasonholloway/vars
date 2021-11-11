@@ -42,13 +42,13 @@ A_write_ordered() {
 
 A_read() {
   local -n __r=$1
-	local raw; arg_read "$2" raw
+	local __raw; arg_read "$2" __raw
 	local sep1=${3:-,}
 	local sep2=${4:->}
 	
 	local parts p k v
 
-	IFS=$sep1 read -ra parts <<<"$raw"
+	IFS=$sep1 read -ra parts <<<"$__raw"
 
   for p in "${parts[@]}"; do 
 		IFS=$sep2 read -r k v <<<"$p"
@@ -63,6 +63,16 @@ A_printNice() {
 		for k in "${!__r[@]}"
 		do echo "$k: ${__r[$k]}"
 		done
+}
+
+A_merge() {
+    local -n __x=$1
+    local -n __y=$2
+    local k
+    
+    for k in "${!__y[@]}"
+    do __x[$k]="${__y[$k]}"
+    done
 }
 
 export __LIB_ASSOCARRAY=1

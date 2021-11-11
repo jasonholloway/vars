@@ -26,3 +26,11 @@ check "array reverse empty" <<-'EOF'
 	.>
 
 EOF
+
+check "array reverse with offset" <<-'EOF'
+		a_read a "v:a b c d e"
+		a_reverse a 2
+		parp a_write a
+	.>
+		a b e d c
+EOF

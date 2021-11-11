@@ -36,7 +36,7 @@ rewrite_expand() {
 		arg_read "$1" __roots
 
 		i=0
-		while nosh outline_read o
+		while nom outline_read o
 		do
 				outline_getOuts o outs
 

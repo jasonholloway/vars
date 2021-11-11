@@ -7,6 +7,10 @@ GREEN="\033[0;32m"
 RED="\033[0;31m"
 NC="\033[0;0m"
 
+xcheck() {
+	:
+}
+
 check() {
 		local name="$1"
 
@@ -68,7 +72,7 @@ check() {
 						then
 								ok=
 								echo -e "${RED}Failed: bad output${NC}"
-								diff --color=always <(echo "$output") <(echo "$result")
+								diff --color=always -T <(echo "$output") <(echo "$result")
 						fi
 				fi
 

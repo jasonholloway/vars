@@ -1,8 +1,18 @@
 #!/bin/bash
 
-nosh() {
+nom() {
 		local str
 		read -r str
+		local ret=$?
+		
+		eval "$* \"v:$str\""
+
+		return $ret
+}
+
+nosh() {
+		local str
+		read -r -d '' str
 		local ret=$?
 		
 		eval "$* \"v:$str\""
