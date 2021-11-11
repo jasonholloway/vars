@@ -8,7 +8,7 @@ check "smap read/write" <<-'EOF'
 
     parp smap_write m
 	.>
-	  chinchilla=Mark+hamster=Cheekimunki
+	  hamster=Cheekimunki+chinchilla=Mark
 EOF
 
 check "smap read/write multiline" <<-'EOF'
@@ -19,8 +19,15 @@ check "smap read/write multiline" <<-'EOF'
 
     parp smap_write m
 	.>
-	  chinchilla=Mark+hamster=Cheekimunki
+	  hamster=Cheekimunki+chinchilla=Mark
 		chinchilla=Mark
+EOF
+
+check "smap read array" <<-'EOF'
+		smap_readArray m "a:apple orange pear"
+		parp smap_write m
+	.>
+		apple=1+orange=1+pear=1
 EOF
 
 check "smap peek" <<-'EOF'
@@ -30,11 +37,9 @@ check "smap peek" <<-'EOF'
 			mouse=Nippy
 		EOL
 
-		# parp smap_write m >&2
-
     parp smap_peek m
 	.>
-	  chinchilla=Mark+hamster=Cheekimunki
+	  hamster=Cheekimunki+chinchilla=Mark
 EOF
 
 check "smap pop peek" <<-'EOF'
@@ -44,16 +49,13 @@ check "smap pop peek" <<-'EOF'
 			mouse=Nippy
 		EOL
 
-		# echo $m__count "${m[*]}" >&2
 		parp smap_pop m
-    parp smap_peek m
     parp smap_peek m
 		parp smap_pop m
     parp smap_peek m
 	.>
-		chinchilla=Mark+hamster=Cheekimunki
-	  hamster=Cheekimunki
-	  hamster=Cheekimunki
+		hamster=Cheekimunki+chinchilla=Mark
+		hamster=Cheekimunki
 	  hamster=Cheekimunki
 		mouse=Nippy
 EOF
@@ -77,7 +79,7 @@ check "smap read/write with push" <<-'EOF'
     parp smap_write m
 	.>
 	  aardvark=Aaron+chinchilla=Mark+hamster=Cheekimunki
-	  chinchilla=Mark+hamster=Cheekimunki
+	  hamster=Cheekimunki+chinchilla=Mark
 EOF
 
 check "smap stuff" <<-'EOF'
@@ -134,4 +136,18 @@ check "smap peek extract" <<-'EOF'
 		chk c[B] eq 2
 EOF
 
+check "smap pushA" <<-'EOF'
+		declare -A A=([a]=1 [b]=2)
+
+		smap_init m
+		smap_pushA m A
+
+		A[a]=3
+		smap_pushA m A
+
+		parp smap_write m
+	.>
+		a=3+b=2
+		a=1+b=2
+EOF
 

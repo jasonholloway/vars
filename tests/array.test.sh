@@ -34,3 +34,13 @@ check "array reverse with offset" <<-'EOF'
 	.>
 		a b e d c
 EOF
+
+check "a_copy" <<-'EOF'
+		a=(a b c d)
+		a_copy a b
+	.,
+		chk b[0] eq a
+		chk b[1] eq b
+		chk b[2] eq c
+		chk b[3] eq d
+EOF

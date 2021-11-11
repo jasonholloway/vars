@@ -5,33 +5,10 @@
 [[ $__LIB_OUTLINE ]] || source lib/outline.sh 
 [[ $__LIB_SMAP ]] || source lib/smap.sh
 
-# in fact no we don't
-# we need to gather all into a nice tree
-# then walk it rewriting it
-#
-# each outline 
-#
-#
-
-a_copy() {
-		local -n __a=$1
-		local -n __b=$2
-		local v i
-
-		i=0
-		for v in "${__a[@]}"
-		do __b[$i]=$v; ((i++))
-		done
-}
-
-
-
-
 rewrite_expand() {
 		local -a outlines=()
 		local -A supplies=()
 		local -a __roots
-		local -a targets
 		local i o out outs
 
 		arg_read "$1" __roots
@@ -48,13 +25,14 @@ rewrite_expand() {
 				((i++))
 		done
 
-		local -A context=()
-
 		local -a pins
 		smap_init pins
 
 		local -a targets
 		smap_init targets
+
+		# copying roots into targets
+		# means ingesting array
 
 		# copy roots into targets
 		# copy global pins into pins

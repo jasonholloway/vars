@@ -1,47 +1,73 @@
 #!/bin/bash
 
+[[ $__LIB_COMMON ]] || source lib/common.sh
+[[ $__LIB_ARRAY  ]] || source lib/array.sh
+
 stack_init() {
-    local -n _s="${1}"
-    _s=()
+    local -n __a=$1
+    __a=()
 }
 
 stack_push() {
-    local -n _s=$1
-    local v=$2
-    local head=${#_s[@]}
-    _s[$head]=$v
+    local -n __a=$1
+
+    local _v
+    arg_read "$2" _v
+    
+    local h=${#__a[@]}
+    __a[$h]=$_v
 }
 
 stack_pop() {
-    local -n _s=$1
-    local -n _out=$2
-    local c=${3:-1}
+    local -n __a=$1
+    local -n __out=$2
 
-    while [[ $c -gt 0 ]]
-    do
-      local head=${#_s[@]}
-      _out=${_s[$((head-1))]}
-      unset "_s[$((head-1))]"
-      ((c--))
-    done
+    local c=${#__a[@]}
+    local h=$((c-1))
+
+    if [[ $c -gt 0 ]]
+    then
+        __out=${__a[$h]}
+        unset "__a[$h]"
+    else
+        __out=
+    fi
 }
 
 stack_peek() {
-    local -n _s=$1
-    local -n _out=$2
+    local -n __a=$1
+    local -n __out=$2
 
-    local head=${#_s[@]}
-    _out=${_s[$((head-1))]}
+    local c=${#__a[@]}
+    local h=$((c-1))
+
+    if [[ $c -gt 0 ]]
+    then __out=${__a[$h]}
+    else __out=
+    fi
 }
 
 stack_write() {
-		local -n __s=$1
+		local -n ___a=$1
 		local -n __out=$2
-		__out="${__s[*]}"
+
+    a_reverse ___a
+
+    local IFS=$'\n'
+		__out="${___a[*]}"
+
+    a_reverse ___a
 }
 
-stack_print() {
-		parp stack_write "$@"
+stack_read() {
+    local -n ___a=$1
+
+    local raw
+    arg_read "$2" raw
+
+    readarray -t ___a <<<"$raw"
+
+    a_reverse ___a
 }
 
 export __LIB_STACK=1

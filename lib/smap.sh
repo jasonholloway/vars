@@ -5,16 +5,15 @@
 [[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh
 
 smap_init() {
-    local -n __m=$1
-		__m=(0)
+    stack_init ___m
 }
 
 smap_push() {
-		local -n __m=$1
+		local -n ____m=$1
     local raw
 
     local -A x=()
-    smap_peek __m raw
+    stack_peek ____m raw
     A_read x "n:raw" '+' '='
 
 		local -A y=()
@@ -24,36 +23,29 @@ smap_push() {
     
     A_write_ordered x raw '+' '='
 
-    __m+=($raw)
-    ((__m[0]++))
+    stack_push ____m n:raw
 
     # todo:
 		# the merging needs some kind of callback
 		# if the callback says no to the merge then the entire push is off
 }
 
-smap_peek() {
-		local -n ___m=$1
-		local -n ___out=$2
+smap_pushA() {
+    local -n ___m=$1
+    local -n ___A=$2
 
-    local h=${___m[0]}
-    if [[ $h -gt 0 ]]
-    then
-        ___out=${___m[$h]}
-    else
-        ___out=
-    fi
+    local str
+    A_write_ordered ___A str '+' '='
+
+    smap_push ___m n:str
+}
+
+smap_peek() {
+    stack_peek "$@"
 }
 
 smap_pop() {
-		local -n ___m=$1
-		local -n ___out=$2
-
-    local h=${___m[0]}
-		___out=${___m[$h]}
-
-    unset "___m[$h]"
-		((___m[0]--))
+    stack_pop "$@"
 }
 
 smap_peekA() {
@@ -76,43 +68,27 @@ smap_popA() {
 
 smap_read() {
 		local -n __m=$1
-		local line
+    smap_init __m
+    stack_read __m "$2"
+}
 
-		local raw
-		arg_read "$2" raw
+smap_readArray() {
+		local -n __m=$1
+		local a p
 
-		__m=(0)
+		arg_read "$2" a
 
-		while read -r line
-		do
-				local -A a=()
-				A_read a "v:$line" '+' '='
+    local -A A=()
+    for p in "${a[@]}"
+    do A[$p]=1
+    done
 
-				local str
-				A_write_ordered a str '+' '='
-				
-				__m+=($str)
-				((__m[0]++))
-		done <<<"$raw"
-
-    a_reverse __m 1
+    smap_init __m
+    smap_pushA __m A
 }
 
 smap_write() {
-		local -n __m=$1
-		local -n __out=$2
-
-    a_reverse __m 1
-    local h=${__m[0]}
-    __m[0]=
-
-		local IFS=$'\n'
-		__out="${__m[*]}"
-
-    __m[0]=$h
-    a_reverse __m 1
-    
-		trim __out
+    stack_write "$@"
 }
 
 

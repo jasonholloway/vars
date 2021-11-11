@@ -71,7 +71,6 @@ a_reverse() {
 
 		local h=${#__a[*]}
 		[[ $h -gt 0 ]] && ((h--))
-
 		
 		local l=${2:-0}
 		local tmp
@@ -97,5 +96,19 @@ a_debug() {
 
 		echo
 }
+
+a_copy() {
+		local -n __a=$1
+		local -n __b=$2
+		local v i
+
+		i=0
+		for v in "${__a[@]}"
+		do __b[$i]=$v; ((i++))
+		done
+}
+
+
+
 
 export __LIB_ARRAY=1

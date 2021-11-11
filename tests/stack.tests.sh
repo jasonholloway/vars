@@ -3,25 +3,50 @@
 [[ $__LIB_CHECK ]] || source lib/check.sh 
 [[ $__LIB_STACK ]] || source lib/stack.sh 
 
-check "stack stuff" <<-'EOF'
-		stack_init s
-		stack_push s aardvark
-		stack_push s badger
-		stack_push s chinchilla
+check "stack read/write" <<-'EOF'
+		nosh stack_read s <<-EOL
+				 elephant
+				 chimpanzee
+		EOL
+
 		parp stack_write s
 	.>
-		aardvark badger chinchilla
+		elephant
+		chimpanzee
+EOF
+
+check "stack read from ref" <<-'EOF'
+		v=hello
+
+		stack_read s n:v
+
+		parp stack_write s
+	.>
+		hello
+EOF
+
+check "stack stuff" <<-'EOF'
+		stack_push s v:aardvark
+		stack_push s v:badger
+		stack_push s v:chinchilla
+
+		parp stack_write s
+	.>
+		chinchilla
+		badger 
+		aardvark 
 EOF
 
 check "stack push pop" <<-'EOF'
-		stack_init s
-		stack_push s aardvark
-		stack_push s badger
-		stack_push s chinchilla
+		stack_push s v:aardvark
+		stack_push s v:badger
+		stack_push s v:chinchilla
 		stack_pop s popped
+
 		parp stack_write s
 	.>
-		aardvark badger
+		badger
+		aardvark 
 	.,
 		chk popped eq chinchilla
 EOF
