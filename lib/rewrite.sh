@@ -81,7 +81,7 @@ rewrite_expand_visit() {
 		local -A ps
 		smap_peekA pins ps
 
-		local t i raw bid inps outs
+		local t i bid inps outs rest
 		local -a inps=()
 		local -a outs=()
 
@@ -94,8 +94,9 @@ rewrite_expand_visit() {
 				# decompose and retry if failed
 				if [[ ${#bs[@]} == 0 ]]
 				then
-						local vn
+						local vn vnPins
 						vn_read vn n:t
+						vn_getPins vn vnPins
 						vn_getName vn t
 						bs=(${supplies[$t]})
 
@@ -110,7 +111,7 @@ rewrite_expand_visit() {
 						[[ -z $i ]] && continue
 						lg B $i ${outlines[$i]}
 						
-						ol_unpack n:outlines[$i] bid inps outs
+						ol_unpack n:outlines[$i] bid inps outs rest
 
 						rewrite_expand_visit "a:${inps[*]}"
 						
@@ -118,7 +119,7 @@ rewrite_expand_visit() {
 						# fresh targets
 						# targets are different per block
 
-						ol_pack n:bid n:inps n:outs outlines[$i]
+						ol_pack n:bid n:inps n:outs n:rest outlines[$i]
 				done
 		done
 }

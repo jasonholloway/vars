@@ -5,11 +5,11 @@
 
 
 check "outline roundtrip" <<-'EOF'
-		ol_create o "v:A" "a:in1{x=3} in2" "a:out1 out2"
+		ol_create o "v:A" "a:in1{x=3} in2" "a:out1 out2" "v:moo"
 		ol_write o str
 		ol_read o2 n:str
 	.,
-		chk o2 eq "A; in1{x=3},in2 > out1,out2"
+		chk o2 eq "A; in1{x=3},in2 > out1,out2 {moo}"
 EOF
 
 check "outline roundtrip with rest" <<-'EOF'
@@ -41,7 +41,7 @@ check "ol_getRest" <<-'EOF'
 EOF
 
 check "ol_setRest" <<-'EOF'
-		ol_create o "v:blah:/A/B/C|12,123123213" "a:in1{x}" "a:out1" 
+		ol_create o "v:blah:/A/B/C|12,123123213" "a:in1{x}" "a:out1" "v:moo"
 		ol_setRest o "v:blahblahblah"
 		parp ol_write o
 	.>
@@ -68,7 +68,7 @@ check "ol_setBid" <<-'EOF'
 		ol_create o "v:blah:/A/B/C|12,123123213" "a:in1 in2" "a:out1" 
 		ol_setBid o "v:wibble:blah,123"
 	.,
-		chk o == "wibble:blah,123; in1,in2 > out1"
+		chk o == "wibble:blah,123; in1,in2 > out1 {}"
 EOF
 
 check "ol_setIns 1" <<-'EOF'
@@ -86,6 +86,13 @@ check "ol_setIns 2" <<-'EOF'
 EOF
 
 check "ol_setOuts" <<-'EOF'
+		ol_read o "v:A; in1,in2 > out1 {ahoy}"
+		ol_setOuts o "a:out3 out4"
+	.,
+		chk o == "A; in1,in2 > out3,out4 {ahoy}"
+EOF
+
+check "ol_setOuts no rest" <<-'EOF'
 		ol_read o "v:A; in1,in2 > out1"
 		ol_setOuts o "a:out3 out4"
 	.,
@@ -93,6 +100,15 @@ check "ol_setOuts" <<-'EOF'
 EOF
 
 check "ol_getIns" <<-'EOF'
+		ol_read o "v:A; in1,in2 > out1 {moo}" 
+		ol_getIns o ins
+	.,
+		chk ins hasLen 2
+		chk ins has in1
+		chk ins has in2
+EOF
+
+check "ol_getIns no rest" <<-'EOF'
 		ol_read o "v:A; in1,in2 > out1" 
 		ol_getIns o ins
 	.,
@@ -102,6 +118,15 @@ check "ol_getIns" <<-'EOF'
 EOF
 
 check "ol_getOuts" <<-'EOF'
+		ol_read o "v:A; in1,in2 > out1,out2 {moo}" 
+		ol_getOuts o outs
+	.,
+		chk outs hasLen 2
+		chk outs has out1
+		chk outs has out2
+EOF
+
+check "ol_getOuts no rest" <<-'EOF'
 		ol_read o "v:A; in1,in2 > out1,out2" 
 		ol_getOuts o outs
 	.,
@@ -111,17 +136,18 @@ check "ol_getOuts" <<-'EOF'
 EOF
 
 check "ol unpack" <<-EOF
-		ol_unpack "v:A; in1,in2 > out1" bid ins outs
+		ol_unpack "v:A; in1,in2 > out1 {neigh}" bid ins outs rest
 	.,
 		chk bid eq A
 		chk ins has in1
 		chk ins has in2
 		chk outs has out1
+		chk rest eq neigh
 EOF
 
 check "ol pack" <<-EOF
-		parp 'ol_pack "v:A" "a:in1{wibble} in2" "a:out1"'
+		parp 'ol_pack "v:A" "a:in1{wibble} in2" "a:out1" "v:moo"'
 	.>
-		A; in1{wibble},in2 > out1
+		A; in1{wibble},in2 > out1 {moo}
 EOF
 

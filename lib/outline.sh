@@ -12,6 +12,7 @@ ol_create() {
 		ol_setBid __o "$2"
 		ol_setIns __o "$3"
 		ol_setOuts __o "$4"
+		ol_setRest __o "$5"
 }
 
 ol_read() {
@@ -119,12 +120,19 @@ ol_setIns() {
 ol_getOuts() {
 		local -n __outline=$1
 		local -n __outs=$2
+		local matched
 
 		__outs=()
 
 		if [[ $__outline =~ ^.*\;.*\>(.*)$ ]]
 		then
-				local matched=${BASH_REMATCH[1]}
+				matched=${BASH_REMATCH[1]}
+
+				if [[ $matched =~ (.*)\{.*\}$ ]]
+				then
+						matched=${BASH_REMATCH[1]}
+				fi
+				
 				trim matched
 				IFS=, read -ra __outs <<<"$matched"
 		fi
@@ -136,15 +144,24 @@ ol_setOuts() {
 		local -a __outs
 		arg_read "$2" __outs
 
-		if [[ $__outline =~ ^(.*\;.*\>).*$ ]]
+		if [[ $__outline =~ ^(.*\;.*\>)(.*)$ ]]
 		then
+				local p0=${BASH_REMATCH[1]}
+				local p1=${BASH_REMATCH[2]}
+				local p2=
+
+				if [[ $p1 =~ (\{.*\})$ ]]
+				then
+						p2=${BASH_REMATCH[1]}
+				fi
+				
 				a_reorder __outs
 				
 				local IFS=,
-				local sig="${__outs[*]}"
+				p1="${__outs[*]}"
 				unset IFS
 				
-				local parts=(${BASH_REMATCH[1]} ${sig})
+				local parts=(${p0} ${p1} ${p2})
 
 				__outline="${parts[*]}"
 		fi
@@ -157,17 +174,19 @@ ol_unpack() {
 		local -n ___bid="$2"
 		local -n ___ins="$3"
 		local -n ___outs="$4"
+		local -n ___rest="$5"
 
 		ol_getBid o ___bid
 		ol_getIns o ___ins
 		ol_getOuts o ___outs
+		ol_getRest o ___rest
 }
 
 ol_pack() {
-		local -n ____out="$4"
+		local -n ____out="$5"
 
 		local o
-		ol_create o "$1" "$2" "$3"
+		ol_create o "$1" "$2" "$3" "$4"
 		ol_write o ____out
 }
 
