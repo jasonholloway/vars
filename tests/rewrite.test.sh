@@ -14,13 +14,14 @@ check "rewrite pass thru" <<-'EOF'
 		F; > msg
 	.> :s
 		A; ip{site=sorted},msg > sortedIp {}
-		B; site,country > ip              {site=sorted}
+		B; url > ip                       {site=sorted}
+		C; site,country > url             {site=sorted}
 		D; > site                         {site=sorted}
 		E; > country                      {site=sorted}
 		F; > msg                          {}
 EOF
 
-check "example join" <<-'EOF'
+xcheck "example join" <<-'EOF'
 		rewrite_expand a:sortedIp
 	.<
 		A; dog{name=Boris},owner{eyes=blue} > lead

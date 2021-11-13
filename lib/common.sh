@@ -48,19 +48,23 @@ arg_read() {
 		local i=$1
 		local -n __o=$2
 
-		local __r=${i#*:}
+		local ___r=${i#*:}
 		
 		case ${i%%:*} in
-				v) __o=$__r
+				v) __o=$___r
 				;;
-				n) local -n __v=$__r
+				n) local -n __v=$___r
 					 __o=${__v}
 				;;
-				a) __o=($__r)
+				a) __o=($___r)
 				;;
-				A) __o=($__r)
+				A) __o=($___r)
 				;;
 		esac
+}
+
+lg() {
+		echo "$*" >&2
 }
 
 export __LIB_COMMON=1

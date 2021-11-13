@@ -11,6 +11,17 @@ check "read assocArray" <<-'EOF'
 		chk a[B] eq 2
 EOF
 
+check "read assocArray from array" <<-'EOF'
+		declare -A A=()
+		declare -a a=(A B C)
+
+		A_readArray A a
+	.,
+		chk A[A] eq 1
+		chk A[B] eq 1
+		chk A[C] eq 1
+EOF
+
 check "read assocArray with nameref and syms" <<-'EOF'
     local -A x=()
     raw="hamster=Cheekimunki+chinchilla=Mark"

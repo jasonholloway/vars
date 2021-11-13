@@ -56,6 +56,16 @@ A_read() {
   done
 }
 
+A_readArray() {
+    local -n __r=$1
+    local -n __a=$2
+    local p
+
+    for p in "${__a[@]}"
+    do __r["$p"]=1
+    done
+}
+
 A_printNice() {
 		local -n __r=$1
 		local k

@@ -1,18 +1,20 @@
 #!/bin/bash
 
 [[ $__LIB_COMMON ]] || source lib/common.sh
+[[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh
 
-outline_create() {
+ol_create() {
 		local -n __o=$1
+		local raw
 
 		__o="; >"
 
-		outline_setBid __o "$2"
-		outline_setIns __o "$3"
-		outline_setOuts __o "$4"
+		ol_setBid __o "$2"
+		ol_setIns __o "$3"
+		ol_setOuts __o "$4"
 }
 
-outline_read() {
+ol_read() {
 		local -n __outline=$1
 
 		local __str
@@ -21,13 +23,13 @@ outline_read() {
 		__outline=$__str
 }
 
-outline_write() {
+ol_write() {
 		local -n __outline=$1
 		local -n __str=$2
 		__str=$__outline
 }
 
-outline_getBid() {
+ol_getBid() {
 		local -n __outline=$1
 		local -n __bid=$2
 
@@ -40,7 +42,7 @@ outline_getBid() {
 		fi
 }
 
-outline_setBid() {
+ol_setBid() {
 		local -n __outline=$1
 
 		local __bid
@@ -53,7 +55,7 @@ outline_setBid() {
 		fi
 }
 
-outline_getRest() {
+ol_getRest() {
 		local -n __outline=$1
 		local -n __rest=$2
 
@@ -65,7 +67,7 @@ outline_getRest() {
 		fi
 }
 
-outline_setRest() {
+ol_setRest() {
 		local -n __outline=$1
 
 		local __rest
@@ -80,7 +82,7 @@ outline_setRest() {
 		fi
 }
 
-outline_getIns() {
+ol_getIns() {
 		local -n __outline=$1
 		local -n __ins=$2
 
@@ -88,19 +90,22 @@ outline_getIns() {
 
 		if [[ $__outline =~ ^.*\;(.*)\> ]]
 		then
-				readarray -t -d ',' __ins <<<"${BASH_REMATCH[1]}"
-				a_trimAll __ins
+				local matched=${BASH_REMATCH[1]}
+				trim matched
+				IFS=, read -ra __ins <<<"$matched"
 		fi
 }
 
-outline_setIns() {
+ol_setIns() {
 		local -n __outline=$1
 
-		local __ins
+		local -a __ins
 		arg_read "$2" __ins
 
 		if [[ $__outline =~ ^(.*\;).*(\>.*)$ ]]
 		then
+				a_reorder __ins
+				
 				local IFS=,
 				local sig="${__ins[*]}"
 				unset IFS
@@ -111,7 +116,7 @@ outline_setIns() {
 		fi
 }
 
-outline_getOuts() {
+ol_getOuts() {
 		local -n __outline=$1
 		local -n __outs=$2
 
@@ -119,19 +124,22 @@ outline_getOuts() {
 
 		if [[ $__outline =~ ^.*\;.*\>(.*)$ ]]
 		then
-				readarray -t -d ',' __outs <<<"${BASH_REMATCH[1]}"
-				a_trimAll __outs
+				local matched=${BASH_REMATCH[1]}
+				trim matched
+				IFS=, read -ra __outs <<<"$matched"
 		fi
 }
 
-outline_setOuts() {
+ol_setOuts() {
 		local -n __outline=$1
 
-		local __outs
+		local -a __outs
 		arg_read "$2" __outs
 
 		if [[ $__outline =~ ^(.*\;.*\>).*$ ]]
 		then
+				a_reorder __outs
+				
 				local IFS=,
 				local sig="${__outs[*]}"
 				unset IFS
@@ -141,5 +149,27 @@ outline_setOuts() {
 				__outline="${parts[*]}"
 		fi
 }
+
+ol_unpack() {
+		local o
+		ol_read o "$1"
+
+		local -n ___bid="$2"
+		local -n ___ins="$3"
+		local -n ___outs="$4"
+
+		ol_getBid o ___bid
+		ol_getIns o ___ins
+		ol_getOuts o ___outs
+}
+
+ol_pack() {
+		local -n ____out="$4"
+
+		local o
+		ol_create o "$1" "$2" "$3"
+		ol_write o ____out
+}
+
 
 export __LIB_OUTLINE=1
