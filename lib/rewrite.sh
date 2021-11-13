@@ -88,26 +88,29 @@ rewrite_expand_visit() {
 		for t in "${ts[@]}"
 		do
 				lg T $t
-
+				
 				local -a bs=(${supplies[$t]})
 
-				while [[ ${#bs[@]} == 0 ]]
-				do
-						# try decomposing t here
-						# if we can find a base without pins
-						# then use that, while transferring current pins to ambience
-						break
-				done
+				# decompose and retry if failed
+				if [[ ${#bs[@]} == 0 ]]
+				then
+						local vn
+						vn_read vn n:t
+						vn_getName vn t
+						bs=(${supplies[$t]})
+
+						# todo: need to transfer pins to ambience
+				fi
+
+				# TODO
+				# use rest on outlines again as freeform map
 				
 				for i in "${bs[@]}"
 				do
 						[[ -z $i ]] && continue
-						lg I $i
+						lg B $i ${outlines[$i]}
 						
-						ol_unpack "v:${outlines[$i]}" bid inps outs
-						lg bid $bid
-
-						echo INPS "${inps[*]}" >&2
+						ol_unpack n:outlines[$i] bid inps outs
 
 						rewrite_expand_visit "a:${inps[*]}"
 						
@@ -115,8 +118,7 @@ rewrite_expand_visit() {
 						# fresh targets
 						# targets are different per block
 
-						ol_pack n:bid n:inps n:outs raw
-						outlines[$i]=$raw
+						ol_pack n:bid n:inps n:outs outlines[$i]
 				done
 		done
 }
