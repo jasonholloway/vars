@@ -4,167 +4,104 @@
 [[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh
 
 ol_create() {
-		local -n __o=$1
-		local raw
+		local -n ___o=$1
 
-		__o="; >"
+		___o=("" "" "" "")
 
-		ol_setBid __o "$2"
-		ol_setIns __o "$3"
-		ol_setOuts __o "$4"
-		ol_setRest __o "$5"
+		[[ $2 ]] && ol_setBid ___o "$2"
+		[[ $3 ]] && ol_setIns ___o "$3"
+		[[ $4 ]] && ol_setOuts ___o "$4"
+		[[ $5 ]] && ol_setRest ___o "$5"
 }
 
 ol_read() {
-		local -n __outline=$1
-
-		local __str
-		arg_read "$2" __str
+		local -n __o=$1
 		
-		__outline=$__str
+		local raw
+		arg_read "$2" raw
+
+		local bid ins
+		IFS=$';' read bid raw <<<"$raw"
+		IFS='>' read ins raw <<<"$raw"
+
+		local outs rest
+		if [[ $raw =~ (.*)\{([^\{]*)\}$ ]]
+		then
+				outs=${BASH_REMATCH[1]}
+				rest=${BASH_REMATCH[2]}
+		else
+				outs=$raw
+		fi
+
+		trim bid
+		trim ins
+		trim outs
+		trim rest
+
+		__o=("$bid" "$ins" "$outs" "$rest")
 }
 
 ol_write() {
-		local -n __outline=$1
-		local -n __str=$2
-		__str=$__outline
+		local -n __o=$1
+		local -n __out=$2
+		__out="${__o[0]}; ${__o[1]} > ${__o[2]} {${__o[3]}}"
+		__out="${__out//  / }"
 }
 
 ol_getBid() {
-		local -n __outline=$1
+		local -n __o=$1
 		local -n __bid=$2
-
-		__bid=
-
-		if [[ $__outline =~ ^(.*)\; ]]
-		then
-				__bid="${BASH_REMATCH[1]}"
-				trim __bid
-		fi
+		__bid=${__o[0]}
 }
 
 ol_setBid() {
-		local -n __outline=$1
-
-		local __bid
-		arg_read "$2" __bid
-
-		if [[ $__outline =~ ^.*(\;.*\>.*)$ ]]
-		then
-				local rest="${BASH_REMATCH[1]}"
-				__outline="${__bid}${rest}"
-		fi
+		local -n ____o=$1
+		arg_read "$2" ____o[0]
 }
 
 ol_getRest() {
-		local -n __outline=$1
+		local -n __o=$1
 		local -n __rest=$2
-
-		__rest=
-
-		if [[ $__outline =~ \{([^\{}]*)\}$ ]]
-		then
-				__rest="${BASH_REMATCH[1]}"
-		fi
+		__rest=${__o[3]}
 }
 
 ol_setRest() {
-		local -n __outline=$1
-
-		local __rest
-		arg_read "$2" __rest
-
-		if [[ $__outline =~ ^(.*)[[:space:]]+(\{[^\{]*\})$ ]]
-		then
-				local main="${BASH_REMATCH[1]}"
-				__outline="${main} {${__rest}}"
-		else
-				__outline+=" {${__rest}}"
-		fi
+		local -n ____o=$1
+		arg_read "$2" ____o[3]
 }
 
+# TODO ins and outs to be stored as formatted strings
+
 ol_getIns() {
-		local -n __outline=$1
+		local -n __o=$1
 		local -n __ins=$2
-
-		__ins=()
-
-		if [[ $__outline =~ ^.*\;(.*)\> ]]
-		then
-				local matched=${BASH_REMATCH[1]}
-				trim matched
-				IFS=, read -ra __ins <<<"$matched"
-		fi
+		IFS=, read -ra __ins <<<"${__o[1]}"
 }
 
 ol_setIns() {
-		local -n __outline=$1
+		local -n __o=$1
 
-		local -a __ins
+		local -a __ins=()
 		arg_read "$2" __ins
 
-		if [[ $__outline =~ ^(.*\;).*(\>.*)$ ]]
-		then
-				a_reorder __ins
-				
-				local IFS=,
-				local sig="${__ins[*]}"
-				unset IFS
-				
-				local parts=(${BASH_REMATCH[1]} ${sig} ${BASH_REMATCH[2]})
-
-				__outline="${parts[*]}"
-		fi
+		local IFS=,
+		__o[1]="${__ins[*]}"
 }
 
 ol_getOuts() {
-		local -n __outline=$1
+		local -n __o=$1
 		local -n __outs=$2
-		local matched
-
-		__outs=()
-
-		if [[ $__outline =~ ^.*\;.*\>(.*)$ ]]
-		then
-				matched=${BASH_REMATCH[1]}
-
-				if [[ $matched =~ (.*)\{.*\}$ ]]
-				then
-						matched=${BASH_REMATCH[1]}
-				fi
-				
-				trim matched
-				IFS=, read -ra __outs <<<"$matched"
-		fi
+		IFS=, read -ra __outs <<<"${__o[2]}"
 }
 
 ol_setOuts() {
-		local -n __outline=$1
+		local -n __o=$1
 
-		local -a __outs
+		local -a __outs=()
 		arg_read "$2" __outs
 
-		if [[ $__outline =~ ^(.*\;.*\>)(.*)$ ]]
-		then
-				local p0=${BASH_REMATCH[1]}
-				local p1=${BASH_REMATCH[2]}
-				local p2=
-
-				if [[ $p1 =~ (\{.*\})$ ]]
-				then
-						p2=${BASH_REMATCH[1]}
-				fi
-				
-				a_reorder __outs
-				
-				local IFS=,
-				p1="${__outs[*]}"
-				unset IFS
-				
-				local parts=(${p0} ${p1} ${p2})
-
-				__outline="${parts[*]}"
-		fi
+		local IFS=,
+		__o[2]="${__outs[*]}"
 }
 
 ol_unpack() {

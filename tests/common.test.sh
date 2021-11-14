@@ -26,3 +26,13 @@ check "reads arg array exps" <<-'EOF'
 		chk v has C
 		chk v hasLen 3
 EOF
+
+check "reads arg array ref exps" <<-'EOF'
+		local -a els=(A B C)
+		arg_read "na:els" v
+	.,
+		chk v has A
+		chk v has B
+		chk v has C
+		chk v hasLen 3
+EOF

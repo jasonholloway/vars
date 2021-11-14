@@ -56,6 +56,12 @@ arg_read() {
 				n) local -n __v=$___r
 					 __o=${__v}
 				;;
+				na)local -n __v=$___r
+					 local p
+					 for p in "${__v[@]}"
+					 do __o+=("$p")
+					 done
+				;;
 				a) __o=($___r)
 				;;
 				A) __o=($___r)

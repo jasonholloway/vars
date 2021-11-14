@@ -65,6 +65,9 @@ check() {
 										':s')
 												output=$(sed -E 's/\s+/ /g' <<<"$output") 
 												;;
+										':d')
+												echo "$result"
+												;;
 								esac
 						done
 

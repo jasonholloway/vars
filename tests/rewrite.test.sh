@@ -8,17 +8,17 @@ check "rewrite pass thru" <<-'EOF'
 	.<
 		A; ip{site=sorted},msg > sortedIp
 		B; url > ip
-		C; site,country > url
+		C; site{type=mobile},country > url
 		D; > site
 		E; > country
 		F; > msg
-	.> :s
-		A; ip{site=sorted},msg > sortedIp {}
-		B; url > ip                       {site=sorted}
-		C; site,country > url             {site=sorted}
-		D; > site                         {site=sorted}
-		E; > country                      {site=sorted}
-		F; > msg                          {}
+	.> :s :d
+		A; ip{site=sorted},msg > sortedIp  {}
+		B; url > ip                        {site=sorted}
+		C; country,site{type=mobile} > url {site=sorted}
+		D; > site                          {site=sorted+type=mobile}
+		E; > country                       {site=sorted}
+		F; > msg                           {}
 EOF
 
 xcheck "example join" <<-'EOF'
