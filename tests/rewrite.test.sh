@@ -4,30 +4,37 @@
 [[ $__LIB_REWRITE ]] || source lib/rewrite.sh 
 
 check "rewrite pass thru" <<-'EOF'
-		rewrite_expand a:sortedIp
+		ols_propagatePins a:sortedIp
 	.<
 		A; ip{site=sorted},msg > sortedIp
 		B; url > ip
-		C; site{type=mobile},country > url
+		C; country,site{type=mobile} > url
 		D; > site
 		E; > country
 		F; > msg
 	.> :s :d
 		A; ip{site=sorted},msg > sortedIp  {}
+		B; url > ip                        {}
+		C; country,site{type=mobile} > url {}
+		D; > site                          {}
+		E; > country                       {}
+		F; > msg                           {}
 		B; url > ip                        {site=sorted}
 		C; country,site{type=mobile} > url {site=sorted}
-		D; > site                          {site=sorted+type=mobile}
 		E; > country                       {site=sorted}
-		F; > msg                           {}
+		D; > site                          {site=sorted+type=mobile}
 EOF
 
-xcheck "example join" <<-'EOF'
-		rewrite_expand a:sortedIp
+check "example join" <<-'EOF'
+		ols_propagatePins a:lead
 	.<
 		A; dog{name=Boris},owner{eyes=blue} > lead
 		B; taste > dog,owner
-	.> :s
+	.> :s :d
+		TODO
 EOF
+# ABOVE JOIN ONLY COMES INTO PLAY AFTER ols_cullPins
+
 
 # above is a join; the two subtrees can be considered as separate
 # though in the case above, we would want consistency in the supply,

@@ -5,24 +5,7 @@
 [[ $__LIB_OUTLINE ]] || source lib/outline.sh 
 [[ $__LIB_SMAP ]] || source lib/smap.sh
 
-# newly specialized outlines should be 
-# cloned from existing outlines as if from prototypes
-# instead of altering existing ones
-# this means updating the supplies
-#
-
-
-ols_fitToPins() {
-		:
-}
-
-ols_fitToPins_visit() {
-		:
-}
-
-
-
-rewrite_expand() {
+ols_propagatePins() {
 		local -a outlines=()
 		local -A supplies=()
 		local i o out outs inps inp raw
@@ -46,7 +29,7 @@ rewrite_expand() {
 		local -a pins
 		smap_init pins
 
-		rewrite_expand_visit "$1"
+		ols_propagatePins_visit "$1"
 
 		IFS=$'\n'; echo "${outlines[*]}"
 }
@@ -60,7 +43,7 @@ rewrite_expand() {
 
 
 # uses outlines:a, supplies:a, pins:smap
-rewrite_expand_visit() {
+ols_propagatePins_visit() {
 		local -a ts=()
 		arg_read "$1" ts
 
@@ -99,23 +82,22 @@ rewrite_expand_visit() {
 						
 						ol_unpack n:outlines[$i] bid inps outs restRaw
 
-						local -A rest=()
-						A_read rest n:restRaw
+								local -A rest=()
+								A_read rest n:restRaw
 
-						local -A currPins=()
-						smap_peekA pins currPins
-						A_merge rest currPins
+								local -A currPins=()
+								smap_peekA pins currPins
+								A_merge rest currPins
 
-						rewrite_expand_visit "a:${inps[*]}"
+								A_write rest restRaw '+' '='
 
-						A_write rest restRaw '+' '='
 						ol_pack n:bid na:inps na:outs n:restRaw newOutline
 
-						# below won't work properly until we get rid of or normalize 'rest'
-						if [[ $newOutline != ${outlines[$i]} ]]
-						then
-								outlines+=("$newOutline")
+						if [[ $newOutline != "${outlines[$i]}" ]]
+						then outlines+=("$newOutline")
 						fi
+
+						ols_propagatePins_visit "a:${inps[*]}"
 				done
 
 				smap_pop pins _
@@ -123,16 +105,14 @@ rewrite_expand_visit() {
 }
 
 
-supplier_lookup() {
-		local vn="$1"
-		local -n __r=$2
-		local i
 
-		__r=()
-
-		for i in ${supplies[$vn]}
-		do __r+=(outlines[$i])
-		done
+ols_cullPins() {
+		:
 }
+
+ols_cullPins_visit() {
+		:
+}
+
 
 export __LIB_REWRITE=1

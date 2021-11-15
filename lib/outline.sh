@@ -20,25 +20,25 @@ ol_read() {
 		local raw
 		arg_read "$2" raw
 
-		local bid ins
+		local bid rawIns
 		IFS=$';' read bid raw <<<"$raw"
-		IFS='>' read ins raw <<<"$raw"
+		IFS='>' read rawIns raw <<<"$raw"
 
-		local outs rest
+		local rawOuts rest
 		if [[ $raw =~ (.*)\{([^\{]*)\}$ ]]
 		then
-				outs=${BASH_REMATCH[1]}
+				rawOuts=${BASH_REMATCH[1]}
 				rest=${BASH_REMATCH[2]}
 		else
-				outs=$raw
+				rawOuts=$raw
 		fi
 
 		trim bid
-		trim ins
-		trim outs
+		trim rawIns
+		trim rawOuts
 		trim rest
 
-		__o=("$bid" "$ins" "$outs" "$rest")
+		__o=("$bid" "$rawIns" "$rawOuts" "$rest")
 }
 
 ol_write() {
