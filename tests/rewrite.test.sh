@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
-[[ $__LIB_REWRITE ]] || source lib/rewrite.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
+[[ $__LIB_REWRITE ]] || source ${VARS_PATH}/lib/rewrite.sh 
 
 check "forms links" <<-'EOF'
 		ols_ingest

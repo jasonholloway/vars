@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_ARRAY ]] || source lib/array.sh 
-[[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh 
+[[ $__LIB_ARRAY ]] || source ${VARS_PATH}/lib/array.sh 
+[[ $__LIB_ASSOCARRAY ]] || source ${VARS_PATH}/lib/assocArray.sh 
 
 set_init() {
 		local -n _s="$1"

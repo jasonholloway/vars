@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh 
+[[ $__LIB_ASSOCARRAY ]] || source ${VARS_PATH}/lib/assocArray.sh 
 
 setupBus() {
   exec 5<&0 6>&1

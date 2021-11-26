@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[[ $__LIB_COMMON ]] || source lib/common.sh
+[[ $__LIB_COMMON ]] || source ${VARS_PATH}/lib/common.sh
 
 A_print() {
 		parp A_write "$@"

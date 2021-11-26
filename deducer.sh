@@ -2,7 +2,7 @@
 shopt -s extglob
 
 source "${VARS_PATH:-.}/common.sh"
-[[ $__LIB_STACKMAP ]] || source lib/stackMap.sh 
+[[ $__LIB_STACKMAP ]] || source ${VARS_PATH}/lib/stackMap.sh 
 
 export pinnedDir="${PINNED:-$HOME/.vars/pinned}"
 mkdir -p "$pinnedDir"

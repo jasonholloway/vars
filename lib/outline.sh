@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_COMMON ]] || source lib/common.sh
-[[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh
+[[ $__LIB_COMMON ]] || source ${VARS_PATH}/lib/common.sh
+[[ $__LIB_ASSOCARRAY ]] || source ${VARS_PATH}/lib/assocArray.sh
 
 ol_create() {
 		local -n ___o=$1

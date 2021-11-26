@@ -1,10 +1,10 @@
 #!/bin/bash
 
-[[ $__LIB_ARRAY ]] || source lib/array.sh 
-[[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh 
-[[ $__LIB_SET ]] || source lib/set.sh
-[[ $__LIB_VN ]] || source lib/vn.sh
-[[ $__LIB_SMAP ]] || source lib/smap.sh
+[[ $__LIB_ARRAY ]] || source ${VARS_PATH}/lib/array.sh 
+[[ $__LIB_ASSOCARRAY ]] || source ${VARS_PATH}/lib/assocArray.sh 
+[[ $__LIB_SET ]] || source ${VARS_PATH}/lib/set.sh
+[[ $__LIB_VN ]] || source ${VARS_PATH}/lib/vn.sh
+[[ $__LIB_SMAP ]] || source ${VARS_PATH}/lib/smap.sh
 
 link_init() {
 		local -n _l="$1"

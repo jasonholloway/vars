@@ -1,8 +1,8 @@
 #!/bin/bash
 
-[[ $__LIB_STACK ]] || source lib/stack.sh
-[[ $__LIB_ARRAY ]] || source lib/array.sh
-[[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh
+[[ $__LIB_STACK ]] || source ${VARS_PATH}/lib/stack.sh
+[[ $__LIB_ARRAY ]] || source ${VARS_PATH}/lib/array.sh
+[[ $__LIB_ASSOCARRAY ]] || source ${VARS_PATH}/lib/assocArray.sh
 
 smap_init() {
     stack_init ___m

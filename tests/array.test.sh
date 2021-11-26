@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
-[[ $__LIB_ARRAY ]] || source lib/array.sh
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
+[[ $__LIB_ARRAY ]] || source ${VARS_PATH}/lib/array.sh
 
 check "array reverse" <<-'EOF'
 		a_read a "v:a b c d e"

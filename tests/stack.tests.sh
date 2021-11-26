@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
-[[ $__LIB_STACK ]] || source lib/stack.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
+[[ $__LIB_STACK ]] || source ${VARS_PATH}/lib/stack.sh 
 
 check "stack read/write" <<-'EOF'
 		nosh stack_read s <<-EOL

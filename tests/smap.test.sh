@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
-[[ $__LIB_SMAP ]] || source lib/smap.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
+[[ $__LIB_SMAP ]] || source ${VARS_PATH}/lib/smap.sh 
 
 check "smap read/write" <<-'EOF'
     smap_read m "v:hamster=Cheekimunki+chinchilla=Mark"

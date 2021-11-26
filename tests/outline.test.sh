@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_OUTLINE ]] || source lib/outline.sh 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
+[[ $__LIB_OUTLINE ]] || source ${VARS_PATH}/lib/outline.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
 
 check "ol_getBid" <<-'EOF'
 		ol_create o "v:blah:/A/B/C|12,123123213" "a:in1 in2" "a:out1" 

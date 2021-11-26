@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[[ $__LIB_STACK ]] || source lib/stack.sh
+[[ $__LIB_STACK ]] || source ${VARS_PATH}/lib/stack.sh
 
 stackMap_init() {
     local -n _t="${1}_tab"

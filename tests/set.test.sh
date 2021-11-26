@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
-[[ $__LIB_SET ]] || source lib/set.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
+[[ $__LIB_SET ]] || source ${VARS_PATH}/lib/set.sh 
 
 check "set read write" <<-'EOF'
 		set_read s "v:c,b,a"

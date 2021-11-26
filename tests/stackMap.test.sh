@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
-[[ $__LIB_STACKMAP ]] || source lib/stackMap.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
+[[ $__LIB_STACKMAP ]] || source ${VARS_PATH}/lib/stackMap.sh 
 
 check "stackMap stuff" <<-'EOF'
     stackMap_init m

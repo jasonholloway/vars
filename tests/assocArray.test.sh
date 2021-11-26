@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
+[[ $__LIB_ASSOCARRAY ]] || source ${VARS_PATH}/lib/assocArray.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
 
 check "read assocArray" <<-'EOF'
 		declare -A a=()

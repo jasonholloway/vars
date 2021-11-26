@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_COMMON ]] || source lib/common.sh
-[[ $__LIB_ARRAY  ]] || source lib/array.sh
+[[ $__LIB_COMMON ]] || source ${VARS_PATH}/lib/common.sh
+[[ $__LIB_ARRAY  ]] || source ${VARS_PATH}/lib/array.sh
 
 stack_init() {
     local -n __a=$1

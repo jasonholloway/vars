@@ -1,10 +1,10 @@
 #!/bin/bash
 
-[[ $__LIB_ASSOCARRAY ]] || source lib/assocArray.sh 
-[[ $__LIB_VN ]] || source lib/vn.sh
-[[ $__LIB_OUTLINE ]] || source lib/outline.sh 
-[[ $__LIB_SMAP ]] || source lib/smap.sh
-[[ $__LIB_LINK ]] || source lib/link.sh
+[[ $__LIB_ASSOCARRAY ]] || source ${VARS_PATH}/lib/assocArray.sh 
+[[ $__LIB_VN ]] || source ${VARS_PATH}/lib/vn.sh
+[[ $__LIB_OUTLINE ]] || source ${VARS_PATH}/lib/outline.sh 
+[[ $__LIB_SMAP ]] || source ${VARS_PATH}/lib/smap.sh
+[[ $__LIB_LINK ]] || source ${VARS_PATH}/lib/link.sh
 
 ols_ingest() {
 		declare -ga outlines=()

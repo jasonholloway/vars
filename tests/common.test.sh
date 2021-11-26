@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_COMMON ]] || source lib/common.sh 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
+[[ $__LIB_COMMON ]] || source ${VARS_PATH}/lib/common.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
 
 check "reads arg nameref exps" <<-'EOF'
 		wibble=hello

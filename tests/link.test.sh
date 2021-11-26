@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
-[[ $__LIB_LINK ]] || source lib/link.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
+[[ $__LIB_LINK ]] || source ${VARS_PATH}/lib/link.sh 
 
 check "link read n write" <<-'EOF'
 		link_read l "v:0,2;"

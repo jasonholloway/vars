@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[[ $__LIB_CHECK ]] || source lib/check.sh 
-[[ $__LIB_VN ]] || source lib/vn.sh 
+[[ $__LIB_CHECK ]] || source ${VARS_PATH}/lib/check.sh 
+[[ $__LIB_VN ]] || source ${VARS_PATH}/lib/vn.sh 
 
 check "vn roundtrip" <<-'EOF'
     vn_read vn "v:dog{breed=pug}"
