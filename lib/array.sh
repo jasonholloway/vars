@@ -48,6 +48,7 @@ a_reorder() {
 			ok=1
 			last=
 
+			local i
 			for i in "${!__r[@]}"
 			do
 					curr=${__r[$i]}
