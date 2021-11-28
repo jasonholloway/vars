@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using Vars.Deducer;
+using Vars.Deducer.Model;
 
 while (Hear2() is ("deduce", _))
 {
@@ -12,25 +13,28 @@ while (Hear2() is ("deduce", _))
 static void Deduce()
 {
     Log("Outlines");
-
-    var outlines = Outlines.Parse(Hear());
-    foreach (var o in outlines.Items)
+    var index = new OutlineIndex(HearMany().Select(Outline.Parse));
+    foreach (var o in index)
     {
         Log(o.ToString());
     }
-    
-    var rawTargets = Hear();
-    Log("Targets");
-    Log(rawTargets);
-    
-    var rawBlocks = Hear();
-    Log("Blocks");
-    Log(rawBlocks);
-    
-    var rawModes = Hear();
-    Log("Modes");
-    Log(rawModes);
 
+    Log("TargetBlocks");
+    var rawTargetBlocks = HearMany();
+    Log(string.Join(' ', rawTargetBlocks));
+    
+    var modes = HearMany();
+    Log("Modes");
+    Log(string.Join(' ', modes));
+
+    var ordered = Deducer.Deduce(index, rawTargetBlocks.Select(b => new BlockTarget(b)));
+
+    Log("");
+    Log("ORDERED");
+    foreach (var ol in ordered)
+    {
+        Log(ol.ToString());
+    }
 
     var proc = Process.Start(new ProcessStartInfo
     {
@@ -40,16 +44,21 @@ static void Deduce()
     });
     
     proc.StandardInput.WriteLine("deduce");
-    proc.StandardInput.WriteLine(string.Join(' ', outlines.Items.Select(o => o.ToString())));
-    proc.StandardInput.WriteLine(rawTargets);
-    proc.StandardInput.WriteLine(rawBlocks);
-    proc.StandardInput.WriteLine(rawModes);
+    proc.StandardInput.WriteLine(string.Join(' ', index.Select(o => o.ToString())));
+    proc.StandardInput.WriteLine(string.Join(' ', rawTargetBlocks));
+    proc.StandardInput.WriteLine();
+    proc.StandardInput.WriteLine(string.Join(' ', modes));
     
     Console.OpenStandardInput().CopyTo(proc.StandardInput.BaseStream);
     
     // Say("targets blah");
     // Say("fin");
 }
+
+// outlines can appear in more than one place in the tree
+// we want to crawl to the bottom and only then enqueue the discovered block
+//
+//
 
 
 static void Log(string msg)
@@ -60,6 +69,10 @@ static void Say(string line)
 
 static string? Hear()
     => Console.ReadLine();
+
+static string[] HearMany(char separator = ' ')
+    => Hear()?.Split(separator, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries) 
+       ?? Array.Empty<string>();
 
 static (string?, string?)? Hear2()
     => Hear() is string line

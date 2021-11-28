@@ -6,7 +6,6 @@ shopt -s extglob
 source "${VARS_PATH:-.}/common.sh"
 
 declare -a words=($@)
-declare -a blocks=()
 declare -a targets=()
 declare -a flags=()
 declare -a adHocs=()
@@ -59,7 +58,7 @@ main() {
 }
 
 run() {
-  local fids outlines type line 
+  local fids outlines type line
 
   say "@ASK files"
   say "find"
@@ -76,7 +75,6 @@ run() {
   say "@ASK deducer"
   say "deduce"
   say "$outlines"
-  say "${blocks[*]}"
   say "${targets[*]}"
   say "${flags[*]}"
   say "@YIELD"
@@ -251,11 +249,13 @@ parseMany() {
 }
 
 parseGet() {
+  local -a vars=()
+    
   parse1 '^(g|ge|get)$' \
-    && parseNames targets \
+    && parseNames vars \
     && {
-      for t in $targets; do
-        blocks+=("get:$t")
+      for t in $vars; do
+        targets+=("get:$t")
       done
       cmds+=("run")
     }
@@ -263,7 +263,7 @@ parseGet() {
 
 parseRun() {
   parse1 '^(r|ru|run)$' \
-    && parseNames blocks \
+    && parseNames targets \
     && {
       cmds+=("run")
     }
@@ -272,7 +272,7 @@ parseRun() {
 parsePrep() {
   parse1 '^(p|prep)$' \
     && flags+=(p) \
-    && parseNames blocks \
+    && parseNames targets \
     && {
       cmds+=("run")
     }
@@ -300,6 +300,7 @@ parseLs() {
 }
 
 parsePin() {
+  local -a vars=()
   parse1 '^(p|pi|pin)$' \
     && {
       {
@@ -311,13 +312,13 @@ parsePin() {
       } || {
         parse1 '^(u|unpin|r|rm|remove)$' \
           && {
-            parseMany "parseName targets" \
-            && $VARS_PATH/context.sh unpin "${targets[@]}"
+            parseMany "parseName vars" \
+            && $VARS_PATH/context.sh unpin "${vars[@]}"
           }
       } || {
-        parseMany "parseName targets" \
+        parseMany "parseName vars" \
           && {
-            $VARS_PATH/context.sh pin "${targets[@]}"
+            $VARS_PATH/context.sh pin "${vars[@]}"
           }
       }
     }
