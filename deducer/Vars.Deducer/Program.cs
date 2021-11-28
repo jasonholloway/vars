@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Linq;
 using Vars.Deducer;
@@ -42,7 +40,7 @@ static void Deduce()
     });
     
     proc.StandardInput.WriteLine("deduce");
-    proc.StandardInput.WriteLine(string.Join(' ', outlines.Items.Select(o => o.raw)));
+    proc.StandardInput.WriteLine(string.Join(' ', outlines.Items.Select(o => o.ToString())));
     proc.StandardInput.WriteLine(rawTargets);
     proc.StandardInput.WriteLine(rawBlocks);
     proc.StandardInput.WriteLine(rawModes);

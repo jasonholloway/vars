@@ -16,7 +16,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Vars.Deducer\Vars.Deducer.csproj" />
-      <ProjectReference Include="..\Vars2\Vars2.csproj" />
     </ItemGroup>
 
 </Project>
