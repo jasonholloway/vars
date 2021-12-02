@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,23 +6,15 @@ namespace Vars.Deducer.Model
 {
     public class OutlineIndex : IEnumerable<Outline>
     {
+        readonly OutlineSynthesizer _synth;
         private readonly Outline[] _outlines;
         readonly ILookup<string, Outline> _byOutput;
         readonly ILookup<string, Outline> _byName;
 
         public OutlineIndex(IEnumerable<Outline> outlines)
         {
+            _synth = new OutlineSynthesizer();
             _outlines = outlines
-                .Concat(from ol in outlines
-                        from output in ol.Outputs
-                        select new Outline(
-                            $"get:{output}", 
-                            new[] { $"get:{output}" },
-                            new[] { output }, 
-                            Array.Empty<Var>(), 
-                            Array.Empty<string>()
-                            )
-                        ) //synthesizing these should be done on demand...
                 .ToArray();
             
             _byOutput = (
@@ -57,11 +48,22 @@ namespace Vars.Deducer.Model
         }
 
         private IEnumerable<Outline> SummonOutlines(Target target)
-            => target switch
-            {
-                VarTarget(var @var) => _byOutput[@var.Name],
-                BlockTarget(string name) => _byName[name]
-            };
+        {
+            var found = ( 
+                target switch
+                {
+                    VarTarget(var @var) => _byOutput[@var.Name],
+                    BlockTarget(string name) => _byName[name],
+                    _ => Enumerable.Empty<Outline>()
+                }).ToArray();
+            
+            //PROBLEM
+            //synthetic outlines not currently stored to index!!!!!!!
+
+            return found.Any()
+                ? found
+                : _synth.Synthesize(target);
+        }
 
         public IEnumerator<Outline> GetEnumerator()
             => _outlines.AsEnumerable().GetEnumerator();

@@ -560,7 +560,7 @@ runBlocks() {
 
 log() {
   :
-  # echo "$@" >&2
+  echo "$@" >&2
 }
 
 main "$@"

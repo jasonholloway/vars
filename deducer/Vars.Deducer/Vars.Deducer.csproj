@@ -8,4 +8,8 @@
         <RootNamespace>Vars.Deducer</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="System.Interactive" Version="5.0.0" />
+    </ItemGroup>
+
 </Project>

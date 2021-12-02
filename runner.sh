@@ -210,4 +210,8 @@ run() {
     say fin
 }
 
+log() {
+    echo "$*" >&2
+}
+
 main "$@"

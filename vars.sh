@@ -45,8 +45,15 @@ main() {
   if [[ ${#cmds[@]} -gt 0 ]]; then
     {
       coproc {
-        stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh,blocks:$VARS_PATH/blocks.sh,deducer:$VARS_PATH/deducer/Vars.Deducer/bin/Debug/net6.0/Vars.Deducer,runner:$VARS_PATH/runner.sh $pts"
-        # stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh,blocks:$VARS_PATH/blocks.sh,deducer:$VARS_PATH/deducer.sh,runner:$VARS_PATH/runner.sh $pts"
+        procs=(
+          "files:$VARS_PATH/files.sh"
+          "blocks:$VARS_PATH/blocks.sh"
+          "deducer:$VARS_PATH/deducer/Vars.Deducer/bin/Debug/net6.0/Vars.Deducer"
+          "walker:$VARS_PATH/walker.sh"
+          "runner:$VARS_PATH/runner.sh $pts"
+        )
+
+        stdbuf -oL $VARS_PATH/bus.awk -v "PROCS=$(local IFS=,; echo "${procs[*]}")"
       }
       exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
@@ -58,7 +65,7 @@ main() {
 }
 
 run() {
-  local fids outlines type line
+  local fids outlines type line plan
 
   say "@ASK files"
   say "find"
@@ -77,6 +84,13 @@ run() {
   say "$outlines"
   say "${targets[*]}"
   say "${flags[*]}"
+  say "@YIELD"
+  hear plan
+  say "@END"
+
+  say "@ASK walker"
+  say "walk"
+  say "$plan"
   say "@YIELD"
 
   while hear type line; do

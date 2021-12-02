@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using Vars.Deducer;
 using Vars.Deducer.Model;
@@ -29,27 +28,30 @@ static void Deduce()
 
     var ordered = Deducer.Deduce(index, rawTargetBlocks.Select(b => new BlockTarget(b)));
 
-    Log("");
-    Log("ORDERED");
-    foreach (var ol in ordered)
-    {
-        Log(ol.ToString());
-    }
+    Say(string.Join(' ', ordered.Select(o => o.ToString())));
 
-    var proc = Process.Start(new ProcessStartInfo
-    {
-        FileName = "/home/jason/src/vars/deducer.sh",
-        EnvironmentVariables = { ["VARS_PATH"] = "/home/jason/src/vars" },
-        RedirectStandardInput = true,
-    });
+    // Log("");
+    // Log("ORDERED");
+    // foreach (var ol in ordered)
+    // {
+    //     Log(ol.ToString());
+    // }
     
-    proc.StandardInput.WriteLine("deduce");
-    proc.StandardInput.WriteLine(string.Join(' ', index.Select(o => o.ToString())));
-    proc.StandardInput.WriteLine(string.Join(' ', rawTargetBlocks));
-    proc.StandardInput.WriteLine();
-    proc.StandardInput.WriteLine(string.Join(' ', modes));
-    
-    Console.OpenStandardInput().CopyTo(proc.StandardInput.BaseStream);
+
+    // var proc = Process.Start(new ProcessStartInfo
+    // {
+    //     FileName = "/home/jason/src/vars/deducer.sh",
+    //     EnvironmentVariables = { ["VARS_PATH"] = "/home/jason/src/vars" },
+    //     RedirectStandardInput = true,
+    // });
+    //
+    // proc.StandardInput.WriteLine("deduce");
+    // proc.StandardInput.WriteLine(string.Join(' ', index.Select(o => o.ToString())));
+    // proc.StandardInput.WriteLine(string.Join(' ', rawTargetBlocks));
+    // proc.StandardInput.WriteLine();
+    // proc.StandardInput.WriteLine(string.Join(' ', modes));
+    //
+    // Console.OpenStandardInput().CopyTo(proc.StandardInput.BaseStream);
     
     // Say("targets blah");
     // Say("fin");
@@ -61,8 +63,8 @@ static void Deduce()
 //
 
 
-static void Log(string msg)
-    => Console.Error.WriteLine(msg);
+static void Log(string msg) {}
+    // => Console.Error.WriteLine(msg);
 
 static void Say(string line)
     => Console.WriteLine(line);

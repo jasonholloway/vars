@@ -4,18 +4,18 @@ using Vars.Deducer.Model;
 
 public static class TopoSorter
 {
-    public static Outline[] Sort(BlockLink root)
+    public static Planned[] Sort(BlockLink root)
     {
-        var queue = new Queue<Outline>();
+        var queue = new Queue<Planned>();
         var seen = new HashSet<Outline>();
         
-        Visit(root);
+        Visit(root, 0);
         
         return queue.ToArray();
 
-        void Visit(BlockLink b)
+        void Visit(BlockLink b, int depth)
         {
-            Console.Error.WriteLine($"B {b}");
+            // Console.Error.WriteLine($"B {b}");
             
             if (b.Block is Outline ol && seen.Contains(ol))
             {
@@ -24,16 +24,16 @@ public static class TopoSorter
             
             foreach (var v in b.Requirements)
             {
-                Console.Error.WriteLine($"V {v}");
+                // Console.Error.WriteLine($"V {v}");
                 foreach (var bb in v.Suppliers)
                 {
-                    Visit(bb);
+                    Visit(bb, depth + 1);
                 }
             }
 
             if (b.Block is Outline ol2)
             {
-                queue.Enqueue(ol2);
+                queue.Enqueue(new Planned(ol2, depth <= 1));
                 seen.Add(ol2);
             }
         }

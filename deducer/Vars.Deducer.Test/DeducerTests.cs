@@ -7,7 +7,7 @@ namespace Vars.Deducer.Test
     public class DeducerTests
     {
         [Test]
-        public void PutsInOrder()
+        public void TargetsVar()
         {
             var index = Outlines(
                 "file4;C;field,farm;flour;",
@@ -24,40 +24,40 @@ namespace Vars.Deducer.Test
             }
 
             Assert.That(ordered, Has.Length.EqualTo(4));
-            Assert.That(ordered.SelectMany(o => o.Names), Is.EqualTo(new[] { "D", "C", "B", "A" }));
+            Assert.That(ordered.SelectMany(o => o.Outline.Names), Is.EqualTo(new[] { "D", "C", "B", "A" }));
         }
 
         [Test]
-        public void PutsInOrder2()
+        public void TargetsBlock()
         {
             var index = Outlines(
-                "file,1635886830|0;;;firstName,age;",
-                "file,1635886830|1;;;dog;",
-                "file,1635886830|2;;dog;food;",
-                "file,1635886830|3;sayHello;dog;;",
-                "file,1635886830|4;greet;firstName;;",
-                "file,1635886830|5;sayMoo;cowName,breed;;P",
-                "file,1635886830|6;;;cowName;",
-                "file,1635886830|7;less;;blah;",
-                "file,1635886830|8;vim;;blah;",
-                "file,1635886830|9;curl;cowName;;",
-                "file,1635886830|10;;;prefix;",
-                "file,1635886830|11;;;site;",
-                "file,1635886830|12;;prefix,site{via=uk};url;",
-                "file,1635886830|13;;url;ip;C",
-                "file,1635886830|14;;ip{site=sorted+url=blah.com};sortedIp;",
-                "file,1635886830|15;;ip;googleIp;P",
-                "file,1635886830|16;;sortedIp,googleIp;bothIps;",
-                "file,1635886830|17;;ip{site=sorted},ip{site=google};bothIpsIdeal;",
-                "file,1633205052|0;;;;",
-                "file,1633205052|1;;age;hat,cat;",
-                "file,1633205052|2;getSurname;;surname;",
-                "file,1633205052|3;curl;age;;",
-                "file,1634681688|0;;;;",
-                "file,1634681688|1;;dog;food;",
-                "file,1634681688|2;;env;k8s;",
-                "file,1634421696|0;;;;",
-                "file,1634421696|1;;prefix,site;url2;"
+                "file,123|0;;;firstName,age;",
+                "file,123|1;;;dog;",
+                "file,123|2;;dog;food;",
+                "file,123|3;sayHello;dog;;",
+                "file,123|4;greet;firstName;;",
+                "file,123|5;sayMoo;cowName,breed;;P",
+                "file,123|6;;;cowName;",
+                "file,123|7;less;;blah;",
+                "file,123|8;vim;;blah;",
+                "file,123|9;curl;cowName;;",
+                "file,123|10;;;prefix;",
+                "file,123|11;;;site;",
+                "file,123|12;;prefix,site{via=uk};url;",
+                "file,123|13;;url;ip;C",
+                "file,123|14;;ip{site=sorted+url=blah.com};sortedIp;",
+                "file,123|15;;ip;googleIp;P",
+                "file,123|16;;sortedIp,googleIp;bothIps;",
+                "file,123|17;;ip{site=sorted},ip{site=google};bothIpsIdeal;",
+                "file,123|0;;;;",
+                "file,123|1;;age;hat,cat;",
+                "file,123|2;getSurname;;surname;",
+                "file,123|3;curl;age;;",
+                "file,123|0;;;;",
+                "file,123|1;;dog;food;",
+                "file,123|2;;env;k8s;",
+                "file,123|0;;;;",
+                "file,123|1;;prefix,site;url2;"
                 );
 
             var ordered = Deducer.Deduce(index, new BlockTarget("sayMoo"));
@@ -70,6 +70,5 @@ namespace Vars.Deducer.Test
 
         static OutlineIndex Outlines(params string[] rawOutlines)
             => new(rawOutlines.Select(Outline.Parse));
-
     }
 }

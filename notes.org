@@ -1,0 +1,356 @@
+
+Targets need tobe qualified
+by a tag that denotes their scoping
+
+
+
+url#auth
+
+will exist as a normal variable, such that blocks taking url will receive it as url; but it will be provided with the specific scoping
+
+so it will be injected with priority given a scoping of auth - in fact, it won't be injected at all if such a scoping is missing
+
+within a scoping, firstly the specific var will be bound, and failing this the generic one
+
+
+#
+# in: aks_uri
+# out: auth_uri
+@bind auth_uri ${aks_uri}
+
+
+# in: uri
+# out: ip
+
+
+# in: auth_ip
+# out: jwt
+
+
+
+# ns: auth
+# in: ip
+# out: response
+
+
+
+so there's always the option of asking for a precisely namespaced var
+or of supplying a precisely namespaced var
+
+a non-namespaced input will happily bind to either a namespaced or generic var
+
+the supply willbe direct: auth_uri will supply a var called 'auth_uri'
+it's up to the input binding to select the right one
+
+and that input binding can either be particular (which will invoke a scope)
+or it will be generic, which will not introduce a scope, might continuate one
+
+not just vars, but blocks themselves are to be qualified by namespaces
+
+----
+
+so:
+
+# n: frisk
+# in: auth_ip
+# out: blah
+
+will incur an auth scope in trying to find an appropriate input
+
+
+
+
+
+# n: getIp
+# out: ip
+a generic block like this can be coopted for the purpose, but it will be modified into:
+
+# n: auth_getIp
+# out: auth_ip
+
+this coercion can be done while walking the dependencies and pulling in the blocks
+a block can therefore refer to another block, given that the sources of blocks are to be supplied separately:
+the coercion will only be done to the block outline
+
+
+
+# in: sqlConnString
+# out: sqlCmd
+#
+
+
+
+#
+# out: security_sqlConnString
+#
+
+# n: security_getUsers
+# in: sqlCmd
+#
+
+but if inputs are then going to be coerced whenever there's a namespace about
+
+
+#
+# in: security_sqlCmd zuck_sqlCmd
+# out: allUsers
+
+------
+
+
+# out: sqlConnString
+case $ns in
+  security) @bind sqlConnString "";;
+  zuck)     @bind sqlConnString "";;
+esac
+
+
+but by this scheme there will be no shared values: all blocks will be templated into their own peculiar space
+
+which poses problems for initial running, because we will have specialised variables by namespace
+
+userRef, say, will be qualified by namespace, and will not bind to others, even though it is the same user!
+we will end up re-resolving userRef, with multiple pickings of the same data
+
+it needs to stand as shared to avoid this ugly fate
+
+so... sometimes blocks should be coerced, and sometimes they should not
+the differentiator?
+
+is scoping not transitive then?
+
+
+
+
+# in: security_sqlCmd
+makes it quite explicit that the upstream should be namespaced
+we have no choice but to coerce, to template here, unless a specific security_sqlCmd is offered
+we must take sqlCmd and template it in as security_sqlCmd
+sqlCmd however takes as input sqlConnString
+which we certainly want to be contextualised by our site of request
+it has to be security_sqlConnString
+
+but then there is sortedUri=sorted.com, which should feed into the above
+
+
+
+# pin: app=security
+# in: sqlCmd
+# out: securityUsers
+the above pins, but it should only be within, and pinning should automatically create a scope
+but what is 'app' here other than a namespace kind of thing?
+
+
+
+# pin: customer=boohoo
+# in: zuckUri
+# out: adminUsers
+this is different in that the pinning is not to do with something that can be styled namespace
+but is an arbitrarily-chosen pinning of a variable that we would expect to propagate, within the implicit scope of the inputs
+of this one block, not commingling with the inputs of others except forthse below
+
+
+a pinning on a block implies a scope
+all blocks below this in the walking of dependencies then are considered with a unique scope on the side
+whether met blocks are then templated into the scope then depends on whether they make use of any of the pinnings
+only blocks that depend on the customer input, or another transitively determined by the same, will be templated to be unique
+
+------
+
+so we have our target block, and it prescribes a pin
+we now walk the tree of upstream blocks with our accumulated context
+
+when we come to an affected block, ie one that consumes said pinning, we must template it out: we copy it with a unique prefix (which still allows us to easily extract the original bid)
+then we update downstream references to it recursively
+
+but we must stop at the root of the pinning
+the inputs of the root get updated, but the scoping of the prefix does not carry on
+
+---------
+
+and what happens if we have two pinnings about, or even from the same block?
+
+on the same block: it is a single world of pinnings that would form a sac up to the same root, so it would be one context with two pinnings
+
+one nestled within the other: nesting is the word. A new context with prefix would be created for the new situation, but with existing pinnings inherited.
+
+but each pinned var has its own root, which would be rewritten up to depending on the particular pinning encountered.
+
+---------
+
+so...
+
+inputs need to be parsed
+
+this is to be done by /blocks/, in making sense of a section
+
+the pinned vals make up the input expression; these then are rewritten?
+
+so blocks creates an ad-hoc pinning block for each pinned input
+and shims the main block
+
+though this then makes the main block available?
+which might get used in resolving other bits, unintendedly
+
+----------
+
+instead of being rewritten up top, could the inputs themselves be rewritten?
+an input of ip{site=sorted} is canonical enough (with ordering of pins obvs)
+
+what then supplies such an input? 
+a block that supplies 'ip' with {site=sorted} on the end
+such as getIp{site=sorted}
+
+getIp{site=sorted} would itself resolve to a block with inputs similarly affected
+
+every pinning node gets rewritten to have its own renamed vars
+so currently we'd have getIp#1
+
+but this is opaque, an doesn't set us up to share
+
+in finding suppliers of ip{site=sorted},
+we first look for an exact match, but fall back to looking for ip, and then sticking {site=sorted} on the end of the block
+
+this injects the block into the pool, and we ask /blocks/ to supply us the usual outline
+all inputs will be similarly affected by {site=sorted}
+
+and we get back to deducing...
+
+-----------
+
+but with this we end up with completely separate subtrees
+a common jwt is refetched... though, if we cache on actual inputs and actual code, we do get reuse
+
+we don't want to reprompt for the same trivial things (which partial caching would leave us open to). To rely on caching, we'd need to cache _everything_, incurring the cost of hashing
+
+otherwise to share deductions, we need to know which subtrees are affected, and which ones aren't
+this requires rewriting, instead of a simple cascading expansion
+
+from each pin point,
+we walk the tree, carrying our pins with us, till we get to a node where the pin is needed
+from this point up, we rewrite, giving everyhing affected a unique derived name
+
+and each rewritten block is really shimmed: the rewrite therefore introduces loads of shims
+
+the pin rewriting already works of course, so the rewrite could in fact introduce an extra level of shimming to introduce singular pinnings
+but to do this, we would meddle with the very rewriting we were performing: we'd have to rewrite in two phases
+or have some stack of visitable nodes
+
+-----------
+
+the better alternative is to be sensitive to input expressions in the rewriting
+an input expression is a canonical name for a value
+
+so the rewriter recognises input expressions of this form,
+and, unless a binding exists specifically for it, it rewrites from there
+
+(as a separate phase of rewriting, to be consolidated soon enough)
+
+------------------------------------------------
+
+if a block _outputs_ a pinned var, then its contribution should be unified with the pinning,
+as both are valid contributions; ultimately we can imagine a unifying even of disjunctions (oo-err!)
+
+if a block has a matching input, then we must attach it to the pinning (which means combining it with whatever is existing)
+
+if a block has a matching output, we need to shim it our pinned var (as this is what's needed to match up to downstream renamed inputs)
+
+a site{site=wibble}, if it isn't supplied, should be shortcircuited into the actual value (there is only one possible value apart from the ever-available NIL)
+so we never actually inject and bind values; instead we try and whittle down towards an identity vn{vn=val}
+
+what if there's more to the context? ie site{site=wibble+moo=baa}
+the second bit is completely irrelevant
+though this (implicitly) shortcircuited var still has to be adapted to by a merger if there is a generic supplier of it
+
+in going after weaker upstreams, we should check for weaker variants, with an eye for rewriting them if they exist
+
+-------
+
+we need a clear succession of cases really
+developed and tested as a separate component
+
+
+
+inputs finessed
+outputs decanted via `decant:site:site{site=balls}`
+
+
+
+site{site=wibble} is at some point fully worked out, interpreted, consolidated
+canonicalized; it should ultimately just be `site`, with its value inherent to it
+
+Or, is the above the canonical form? it makes its value explicit. maybe all other variable expressions tend towards this one.
+
+
+So... given a set of input outlines, we want certain outputs that we can even test
+
+
+A ip{site=sorted},url > sortedIp {}
+B site > ip                      {site=sorted}
+C > site                         {site=sorted}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
