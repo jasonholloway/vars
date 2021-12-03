@@ -26,9 +26,8 @@ static void Deduce()
     Log("Modes");
     Log(string.Join(' ', modes));
 
-    var ordered = Deducer.Deduce(index, rawTargetBlocks.Select(b => new BlockTarget(b)));
-
-    Say(string.Join(' ', ordered.Select(o => o.ToString())));
+    var plan = Deducer.Deduce(index, rawTargetBlocks.Select(b => new BlockTarget(b)));
+    Say(plan.ToString().ReplaceLineEndings(" "));
 
     // Log("");
     // Log("ORDERED");

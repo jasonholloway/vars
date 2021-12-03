@@ -6,7 +6,7 @@ namespace Vars.Deducer
 {
     public static class Deducer
     {
-        public static Planned[] Deduce(OutlineIndex index, IEnumerable<Target> targets)
+        public static Plan Deduce(OutlineIndex index, IEnumerable<Target> targets)
         {
             var root = new BlockLink(null, targets.Select(index.SummonLink).ToArray());
 
@@ -15,7 +15,7 @@ namespace Vars.Deducer
             return ordered;
         }
 
-        public static Planned[] Deduce(OutlineIndex index, params Target[] targets)
+        public static Plan Deduce(OutlineIndex index, params Target[] targets)
             => Deduce(index, targets.AsEnumerable());
     }
 }

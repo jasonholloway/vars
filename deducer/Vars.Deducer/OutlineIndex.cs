@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Vars.Deducer.Model;
 
-namespace Vars.Deducer.Model
+namespace Vars.Deducer
 {
     public class OutlineIndex : IEnumerable<Outline>
     {

@@ -290,66 +290,109 @@ B site > ip                      {site=sorted}
 C > site                         {site=sorted}
 
 
+----------------------------------------------------------
+
+pins are ambient
+pins can be explicitly specified via inputs too
+
+so we're back at putting pins in a contextual bag
+
+if we don't keep them as implicit, then the number of pins is hardly going to scale very well
+choosing of vars will have unwieldy prompts:
+
+user{cust=BooHoo+env=feature9}>
+
+and this noise will affect all prompts!
+if there's an implicated var it will be piled on here
+
+env in the above is sufficiently global to just be implied
+though env will often not be needed? it will fal out of consideration as we get to the edges
+
+how about complete free choices to be made?
+these instances are affected by the full scope of pinnings
+
+and this baffles the trimming too: all it takes is one open-ended input to pull down all pins
+this is at it should be but does pose a problem
+the full range of implicated vars needs to be displayed for an informed choice to be made
+
+accepting this weakens the need for the whittling manoeuvre
+before we wanted to whittle to avoid drowning the user in info
+but this will always be the case
+whittling is just one strategy for dealing with the overload of info
+the other complementary pincer is to be able to list many more options with the prompt
+(needs a printing of all implicated vars above the prompt, in a deemphasising colour)
+
+----------------------------------------
+
+and so, if whittling is put to the side,
+what we have are contextualised block executions
+each execution has certain pins implicated
+
+links to supplying blocks flow pins
+vars can always have certain pins explicitly appended, which add to the pin flow
+
+
+but then the matching up of vars...
+an execution supplying certain vars with certain used pins
+can be used to supply another with needs to which it is sufficient
+
+whittling pins then enables reuse of executions
+though is this fully needed?
+when calling out to external apis - yes, because such calls are costly
+
+we still want these upwellings of values to meet
+
+and to meet they have to have a common base
+an execution will be spared if all its inputs are readily supplied by the existing binds
 
 
 
 
 
+_dog{name=bob+fur=thick}_
+can't be supplied by the below
+_dog{name=bob}_
+because such a dog will have god-knows-what fur
+
+but if you've got a specialized dog, then it can be used for the more generic one
+
+so we need an algebra <cough!> of vars
+
+dog{name=bob} == dog{name=bob+fur=*}
+
+dog{name=bob+fur=*} < dog{name=bob+fur=thick} 
+
+-------
+
+starting with our var target (with its tacked-on pinnings)
+we need to then specialize some suppliers for it
+
+if this were with realtime binds, then we'd know what we wanted, but our demands would be too broad because of the baggage we were carrying in the form of top-down pins
+
+two different demands for jwts would be seen as incompatible, and therefore requiring multiple real calls
+
+outlines should carry with them a set of needed vars
+the explicit per-block inputs are only the immediate ones
 
 
+so there'd be an initial wiring-up of blocks, to look ahead and know what needs what
 
+but pinnings would be worked out in realtime?
+and blocks specialised in realtime too?
+unless sufficient vars were in scope
 
+the gathering of implicated vars up front would let us check for ready-made vars before execution
 
+specialisation would be done as needed then
+instead of via up-front rewriting
+with vars that need rewriting too
 
+------------------------
 
+and if we're doing at the last moment, there should be chances to ask for last-minute vars from within blocks
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+and under realtime resolution, vars can be nicely constructed at that point
+and checked against the cache of produced values
 
 
 
