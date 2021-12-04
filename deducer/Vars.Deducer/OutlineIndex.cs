@@ -8,15 +8,16 @@ namespace Vars.Deducer
     public class OutlineIndex : IEnumerable<Outline>
     {
         readonly OutlineSynthesizer _synth;
-        private readonly Outline[] _outlines;
+
+        readonly Outline[] _outlines;
         readonly ILookup<string, Outline> _byOutput;
         readonly ILookup<string, Outline> _byName;
 
         public OutlineIndex(IEnumerable<Outline> outlines)
         {
             _synth = new OutlineSynthesizer();
-            _outlines = outlines
-                .ToArray();
+            
+            _outlines = outlines.ToArray();
             
             _byOutput = (
                 from ol in _outlines
@@ -33,16 +34,28 @@ namespace Vars.Deducer
 
         public OutlineIndex(params Outline[] outlines) : this(outlines.AsEnumerable())
         { }
-
+        
+        // the index is materializing a full tree for us
+        // even though really we'd want this to be a lattice-like
+        // it's like really the index should be serving BlockRefs
+        // these BlockRefs can then be compared
+        // so - not just the planner doing this
+        
+        //the planner would summon a link, and then summon child links as it saw fit
+        //index then selects an outline that matches the target
+        //
+        //again - we don't want a tree, but a lattice, so bundling upstreams with the downstream don't work
+        //
+        // TODO serve single TargetLinks here
+        // it's up to the planner to recurse
+        //
+        
+        
         public TargetLink SummonLink(Target target)
         {
             var blocks = (
                 from block in SummonOutlines(target)
-                let subTargets = ( 
-                        from inp in block.Inputs
-                        select SummonLink(new VarTarget(inp))
-                    ).ToArray()
-                select new BlockLink(block, subTargets)
+                select block
             ).ToArray();
             
             return new TargetLink(target, blocks);

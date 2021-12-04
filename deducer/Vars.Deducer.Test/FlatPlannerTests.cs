@@ -4,29 +4,29 @@ using Vars.Deducer.Model;
 
 namespace Vars.Deducer.Test
 {
-    using static StringHelpers;
-    
-    public class DeducerTests
+    using static TestHelpers;
+
+    public class Runner
     {
-        // 
-        //
-        //
-        //
-        //
-    
-    
-        
+        public static void Run(FlatPlan plan)
+        {
+            
+        }
+    }
+
+    public class FlatPlannerTests
+    {
         [Test]
         public void TargetsVar()
         {
             var index = Outlines(
-                "file4;C;field{crop=wheat},farm;flour;",
+                "file4;C;field,farm;flour;",
                 "file1;A;eggs,flour;cake;",
                 "file2;D;farm;chicken;",
                 "file3;B;chicken,flour;eggs;"
                 );
 
-            var plan = Deducer.Deduce(index, new VarTarget(new Var("cake")));
+            var plan = FlatPlanner.Plan(index, new VarTarget(new Var("cake")));
             TestContext.WriteLine(plan.ToString());
             
             Assert.That(plan.ToString(), 
@@ -51,7 +51,7 @@ namespace Vars.Deducer.Test
                 "file,123|6;;;cowName;"
                 );
 
-            var plan = Deducer.Deduce(index, new BlockTarget("sayMoo"));
+            var plan = FlatPlanner.Plan(index, new BlockTarget("sayMoo"));
             TestContext.WriteLine(plan);
             
             Assert.That(plan.ToString(),
@@ -60,8 +60,5 @@ namespace Vars.Deducer.Test
                     *file,123|5;sayMoo;cowName,breed;;P
                 ")));
         }
-
-        static OutlineIndex Outlines(params string[] rawOutlines)
-            => new(rawOutlines.Select(Outline.Parse));
     }
 }

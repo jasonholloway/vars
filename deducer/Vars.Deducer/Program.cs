@@ -26,7 +26,7 @@ static void Deduce()
     Log("Modes");
     Log(string.Join(' ', modes));
 
-    var plan = Deducer.Deduce(index, rawTargetBlocks.Select(b => new BlockTarget(b)));
+    var plan = FlatPlanner.Plan(index, rawTargetBlocks.Select(b => new BlockTarget(b)));
     Say(plan.ToString().ReplaceLineEndings(" "));
 
     // Log("");

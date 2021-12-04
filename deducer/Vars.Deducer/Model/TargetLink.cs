@@ -1,6 +1,6 @@
 namespace Vars.Deducer.Model
 {
-    public record TargetLink(Target Target, BlockLink[] Suppliers);
+    public record TargetLink(Target Target, Outline[] Suppliers);
 
-    public record BlockLink(Outline? Block, TargetLink[] Requirements);
+    // public record BlockLink(Outline? Outline);
 }

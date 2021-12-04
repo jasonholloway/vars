@@ -1,15 +1,23 @@
-using System.Linq;
-using System.Text;
 using Vars.Deducer.Model;
 
 namespace Vars.Deducer
 {
-    public record Plan(Planned[] Outlines)
+    public record Plan(Node[] Roots) : Node
     {
-        public override string ToString()
-            => Outlines.Aggregate(
-                new StringBuilder(),
-                (ac, ol) => ac.AppendLine(ol.ToString())
-            ).ToString();
+        public record NoopNode : Node;
+        public record BlockNode(Outline Outline, params Node[] Upstreams) : Node;
+        public record OrNode(params Node[] Nodes) : Node;
     }
+    
+    public abstract record Node;
+
+    public record PlanContext;
+
+
+
+
+
+    public record SemiLattice<TNode>(TNode Join);
+
+
 }

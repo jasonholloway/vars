@@ -1,8 +1,10 @@
 using System.IO;
+using System.Linq;
+using Vars.Deducer.Model;
 
 namespace Vars.Deducer.Test
 {
-    public static class StringHelpers
+    public static class TestHelpers
     {
         public static string Lines(string str)
         {
@@ -19,5 +21,8 @@ namespace Vars.Deducer.Test
 
             return writer.ToString();
         }
+
+        public static OutlineIndex Outlines(params string[] rawOutlines)
+            => new(rawOutlines.Select(Outline.Parse));
     }
 }
