@@ -82,6 +82,13 @@
     echo @bind "$@"
 }
 
+@bindMany() {
+		local vn="$1"
+		local -n __r="${2:-results}"
+		local IFS='¦'
+		echo @bind "$vn" "¦${__r[*]}"
+}
+
 @tty() {
     echo @tty $@
 }
@@ -119,5 +126,30 @@
         )
 
     bcp $@ $opts >&2
+}
+
+@sql() {
+		local query="$1"
+		local -n sink="${2:-results}"
+		local line
+
+		IFS=':' read -r sqlServer sqlDb sqlUser sqlPass <<<"$_sql"
+
+		sink=()
+
+		while read -r line
+		do sink+=("$line")
+		done < <(
+				SQLCMDPASSWORD="$sqlPass" \
+						sqlcmd \
+								-S $sqlServer \
+								-C -G -U "$sqlUser" \
+								-K ReadOnly \
+								-d $sqlDb \
+								-h -1 \
+								-Q "
+				SET NOCOUNT ON;
+				${query}
+				")
 }
 
