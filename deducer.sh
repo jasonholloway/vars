@@ -117,7 +117,7 @@ readBlockPins() {
         vn="$line"
         hear v
 
-        if [[ ${blockPinned[$vn]} ]]; then
+        if [[ ${blockPinned[$vn]} && ${blockPinned[$vn]} != $v ]]; then
           error "clash of blockPins for $vn: $v vs ${blockPinned[$vn]}"
         fi
 
