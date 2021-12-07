@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Vars.Deducer.Model
@@ -21,7 +22,7 @@ namespace Vars.Deducer.Model
     //
     //
     
-    public class Var
+    public class Var : IEquatable<Var>
     {
         public string Name { get; }
         public ISet<Pin>? Pins { get; }
@@ -30,8 +31,8 @@ namespace Vars.Deducer.Model
         public Var(string name, ISet<Pin>? pins = null)
         {
             Name = name;
-            Pins = pins;
-            _hash = name.GetHashCode() + pins?.Aggregate(13, (ac, p) => ac + p.GetHashCode()) ?? 0;
+            Pins = pins ?? ImmutableSortedSet<Pin>.Empty;
+            _hash = name.GetHashCode() + (pins?.Aggregate(13, (ac, p) => ac + p.GetHashCode()) ?? 13);
         }
         
         public static Var Parse(string raw)
@@ -50,8 +51,8 @@ namespace Vars.Deducer.Model
                 ? $"{Name}{{{string.Join('+', Pins.Select(p => p.ToString()))}}}"
                 : Name;
 
-        public override bool Equals(object? obj)
-            => obj is Var other
+        public bool Equals(Var? other)
+            => other != null
                && Name.Equals(other.Name)
                && (
                    Pins == other.Pins
@@ -60,7 +61,18 @@ namespace Vars.Deducer.Model
                        && left.SetEquals(right))
                );
 
+        public override bool Equals(object? obj)
+            => obj is Var other && Equals(other);
+
         public override int GetHashCode()
             => _hash;
+    }
+
+    public static class VarExtensions
+    {
+        public static Var AsSimple(this Var @var)
+            => (@var.Pins?.Any() ?? false)
+                ? new Var(@var.Name)
+                : @var;
     }
 }

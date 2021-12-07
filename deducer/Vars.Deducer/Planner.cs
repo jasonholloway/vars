@@ -4,18 +4,18 @@ using Vars.Deducer.Model;
 
 namespace Vars.Deducer
 {
-    using static Plan;
+    using static PlanNode;
     
     public static class Planner
     {
-        public static Plan Plan(OutlineIndex index, IEnumerable<Target> rootTargets)
+        public static Plan2 Plan(OutlineIndex index, IEnumerable<Target> rootTargets)
         {
-            var seenOutlines = new Dictionary<Outline, Node>();
+            var seenOutlines = new Dictionary<Outline, Lattice<PlanNode>>();
             
             var rootNodes = rootTargets.Select(VisitTarget).ToArray();
-            return new Plan(rootNodes);
+            return new Plan2(rootNodes);
 
-            Node VisitTarget(Target target)
+            Lattice<PlanNode> VisitTarget(Target target)
             {
                 //CACHE
                 
@@ -27,13 +27,13 @@ namespace Vars.Deducer
 
                 return nodes.Length switch
                 {
-                    0 => new NoopNode(),
+                    0 => new Lattice<PlanNode>(null),
                     1 => nodes.Single(),
-                    _ => new OrNode(nodes)
+                    _ => new Lattice<PlanNode>(new OrNode(), nodes)
                 };
             }
 
-            Node VisitOutline(Outline outline)
+            Lattice<PlanNode> VisitOutline(Outline outline)
             {
                 if (seenOutlines.TryGetValue(outline, out var found))
                 {
@@ -45,13 +45,13 @@ namespace Vars.Deducer
                     select VisitTarget(new VarTarget(v))
                 ).ToArray();
 
-                var node = new BlockNode(outline, upstreams);
+                var node = new Lattice<PlanNode>(new BlockNode(outline), upstreams);
                 seenOutlines.Add(outline, node);
                 return node;
             }
         }
 
-        public static Plan Plan(OutlineIndex index, params Target[] targets)
+        public static Plan2 Plan(OutlineIndex index, params Target[] targets)
             => Plan(index, targets.AsEnumerable());
     }
 }

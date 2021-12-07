@@ -4,38 +4,38 @@ using Vars.Deducer.Model;
 
 namespace Vars.Deducer
 {
-    using static Plan;
+    using static PlanNode;
     
     public static class FlatPlanner
     {
         public static FlatPlan Plan(OutlineIndex index, IEnumerable<Target> targets)
         {
             var queue = new Queue<Planned>();
-            var seen = new HashSet<Node>();
+            var seen = new HashSet<Lattice<PlanNode>>();
             
             var plan = Planner.Plan(index, targets);
             Visit(plan, 0);
             return new FlatPlan(queue.ToArray());
 
-            void Visit(Node node, int depth)
+            void Visit(Lattice<PlanNode> x, int depth)
             {
-                if (seen.Contains(node)) return;
+                if (seen.Contains(x)) return;
                 
-                seen.Add(node);
+                seen.Add(x);
                 
-                switch (node)
+                switch (x.Node)
                 {
-                    case Plan p:
-                        p.Roots.ForEach(u => Visit(u, depth));
+                    case null:
+                        x.Next.ForEach(u => Visit(u, depth));
                         break;
                     
                     case BlockNode n:
-                        n.Upstreams.ForEach(u => Visit(u, depth + 1));
+                        x.Next.ForEach(u => Visit(u, depth + 1));
                         queue.Enqueue(new Planned(n.Outline, IsTarget: depth == 0));
                         break;
                     
                     case OrNode n:
-                        if (n.Nodes.FirstOrDefault() is Node first)
+                        if (x.Next.FirstOrDefault() is Lattice<PlanNode> first)
                         {
                             Visit(first, depth);
                         }
