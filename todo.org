@@ -1,0 +1,13 @@
+
+
+
+* Bind datatype and structure
+
+** an accumulated set of present binds, combined with a graph of bind dependencies
+
+*** new binds would then immediately whittle down available binds, using the dependency tree to remove incompatibles
+  
+* C# Runner
+
+** bash serializer
+
