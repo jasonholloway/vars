@@ -32,7 +32,7 @@ run() {
 
     IFS=$'\031' read -r runFlags assignBinds outline <<< "$*"
     IFS=';' read -r bid _ _ blockFlags <<< "$outline"
-
+    
     # TODO cache results based on actual block data, not bids
     # what matters isn't the bid, but the run block and the bound ins!!! TODO
     # these boundIns also need whittling down to exactly what the body needs TODO

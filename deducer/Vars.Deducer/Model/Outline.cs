@@ -10,10 +10,10 @@ namespace Vars.Deducer.Model
             var parts = raw.Split(';', StringSplitOptions.TrimEntries);
             return new Outline(
                 parts.ElementAt(0), 
-                parts.ElementAt(1).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-                parts.ElementAt(2).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(Var.Parse).ToArray(),
-                parts.ElementAt(3).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(Var.Parse).ToArray(),
-                parts.ElementAt(4).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                parts.ElementAtOrDefault(1)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>(),
+                parts.ElementAtOrDefault(2)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(Var.Parse).ToArray() ?? Array.Empty<Var>(),
+                parts.ElementAtOrDefault(3)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(Var.Parse).ToArray() ?? Array.Empty<Var>(),
+                parts.ElementAtOrDefault(4)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>()
             );
         }
 

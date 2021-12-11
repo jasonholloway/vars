@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
+using System.Net;
 using Vars.Deducer.Model;
 
 namespace Vars.Deducer
@@ -10,29 +13,60 @@ namespace Vars.Deducer
         public static Env Perform(this Plan2 plan, IRunner runner, Env? env = null)
             => plan
                 .RoundUpInputs()
-                .Perform(runner, env);
+                .Perform(runner, env ?? new Env(), 0);
         
-        public static Env Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, IRunner runner, Env? env = null)
+        static Env Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, IRunner runner, Env env, int depth)
         {
-            env ??= new Env();
-
-            if (plan.Node is var (inputs, node))
+            if (plan.Node is var (allInputs, node))
             {
                 switch (node)
                 {
-                    case PlanNode.Block(Outline(var bid, _, _, var outputs, var flags)):
-                        if (outputs.Any(v => env[v.Name].Value == null))
-                        {
-                            //if has general pins, better for here once
-                            //if vars have pins, fork only for that leg
-                            env = plan.Next.Aggregate(env, (ac, next) => Perform(next, runner, ac));
-                            
-                            var binds = runner.Invoke(bid, new Dictionary<string, Bind>(), new string[0]);
+                    case PlanNode.Block(Outline(_, _, var inputs, var outputs, var flags) outline):
+                        if (depth > 0 && outputs.All(v => env[v.Name].Value != null)) break;
+                        
+                        //if has general pins, better for here once
+                        //if vars have pins, fork only for that leg
+                        env = plan.Next.Aggregate(env, (ac, next) => Perform(next, runner, ac, depth + 1));
 
-                            foreach (var bind in binds)
+                        var inBinds = inputs
+                            .Select(v => env[v.Name])
+                            .ToDictionary(b => b.Key);
+
+                        foreach (var (k, v) in inBinds.Where(kv => kv.Value.Value?.StartsWith("¦") ?? true).ToArray())
+                        {
+                            if (v.Value is null)
                             {
-                                env.Bind((bind.Key, bind.Value));
+                                //DREDGE HERE
+
+                                // File.ReadLines("")
+                                //     .Reverse();
+
                             }
+                            
+                            Console.WriteLine($"pick {k} {v.Value}");
+                            Console.WriteLine("@YIELD");
+                            var picked = Console.ReadLine();
+
+                            if (picked?.EndsWith('!') ?? false)
+                            {
+                                picked = picked[..^1];
+                                Console.WriteLine($"pin {k} {picked}");
+                            }
+                            
+                            inBinds[k] = new Bind(k, picked);
+                        }
+                        
+                        //TODO dredge context file
+                        //TODO store source on binds
+                        //TODO emit 'bound' to relay bind to screen
+
+                        var runFlags = depth == 0 ? new[] { "T" } : Array.Empty<string>();
+
+                        var outBinds = runner.Invoke(outline, inBinds, runFlags);
+
+                        foreach (var bind in outBinds)
+                        {
+                            env.Bind((bind.Key, bind.Value));
                         }
                         
                         break;
@@ -41,7 +75,7 @@ namespace Vars.Deducer
                         break;
                     
                     case PlanNode.SequencedAnd _:
-                        return plan.Next.Aggregate(env, (ac, next) => next.Perform(runner, ac));
+                        return plan.Next.Aggregate(env, (ac, next) => next.Perform(runner, ac, depth));
                 }
             }
 

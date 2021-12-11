@@ -20,14 +20,25 @@ static void Deduce()
 
     Log("TargetBlocks");
     var rawTargetBlocks = HearMany();
+    var targetBlocks = rawTargetBlocks.Select(b => new BlockTarget(b));
     Log(string.Join(' ', rawTargetBlocks));
     
     var modes = HearMany();
     Log("Modes");
     Log(string.Join(' ', modes));
 
-    var plan = FlatPlanner.Plan(index, rawTargetBlocks.Select(b => new BlockTarget(b)));
-    Say(plan.ToString().ReplaceLineEndings(" "));
+    // var plan = Planner
+    //     .Plan(index, targetBlocks)
+    //     .ToFlatPlan();
+    // Say(plan.ToString().ReplaceLineEndings(" "));
+    
+    Say("targets blah");
+
+    Planner
+        .Plan(index, targetBlocks)
+        .Perform(new BusRunner(Console.In, Console.Out));
+    
+    Say("fin");
 
     // Log("");
     // Log("ORDERED");

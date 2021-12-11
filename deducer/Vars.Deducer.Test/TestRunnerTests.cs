@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
+using Vars.Deducer.Model;
 
 namespace Vars.Deducer.Test
 {
@@ -17,7 +18,7 @@ namespace Vars.Deducer.Test
                 ("block3", () => null)
             );
 
-            var binds = runner.Invoke("block1", new Dictionary<string, Bind>(), Array.Empty<string>());
+            var binds = runner.Invoke(Outline.Parse("block1"), new Dictionary<string, Bind>(), Array.Empty<string>());
             
             Assert.That(binds, Is.EqualTo(new[] { new Bind("kitten", "Charles") }));
         }

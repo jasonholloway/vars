@@ -6,14 +6,6 @@ namespace Vars.Deducer.Test
 {
     using static TestHelpers;
 
-    public class Runner
-    {
-        public static void Run(FlatPlan plan)
-        {
-            
-        }
-    }
-
     public class FlatPlannerTests
     {
         [Test]
@@ -26,7 +18,10 @@ namespace Vars.Deducer.Test
                 "file3;B;chicken,flour;eggs;"
                 );
 
-            var plan = FlatPlanner.Plan(index, new VarTarget(new Var("cake")));
+            var plan = Planner
+                .Plan(index, new VarTarget(new Var("cake")))
+                .ToFlatPlan();
+            
             TestContext.WriteLine(plan.ToString());
             
             Assert.That(plan.ToString(), 
@@ -51,7 +46,10 @@ namespace Vars.Deducer.Test
                 "file,123|6;;;cowName;"
                 );
 
-            var plan = FlatPlanner.Plan(index, new BlockTarget("sayMoo"));
+            var plan = Planner
+                .Plan(index, new BlockTarget("sayMoo"))
+                .ToFlatPlan();
+            
             TestContext.WriteLine(plan);
             
             Assert.That(plan.ToString(),

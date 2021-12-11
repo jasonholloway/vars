@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using Vars.Deducer.Model;
 
 namespace Vars.Deducer
 {
     public interface IRunner
     {
-        Bind[] Invoke(string bid, IDictionary<string, Bind> binds, string[] flags);
+        Bind[] Invoke(Outline outline, IDictionary<string, Bind> binds, string[] flags);
     }
 }

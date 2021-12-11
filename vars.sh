@@ -85,13 +85,13 @@ run() {
   say "${targets[*]}"
   say "${flags[*]}"
   say "@YIELD"
-  hear plan
-  say "@END"
+  # hear plan
+  # say "@END"
 
-  say "@ASK walker"
-  say "walk"
-  say "$plan"
-  say "@YIELD"
+  # say "@ASK walker"
+  # say "walk"
+  # say "$plan"
+  # say "@YIELD"
 
   while hear type line; do
     # echo "+++ $type $line" >&2
