@@ -29,12 +29,12 @@ namespace Vars.Deducer
                         x.Next.ForEach(u => Visit(u, depth));
                         break;
                     
-                    case BlockNode n:
+                    case Block n:
                         x.Next.ForEach(u => Visit(u, depth + 1));
                         queue.Enqueue(new Planned(n.Outline, IsTarget: depth == 0));
                         break;
                     
-                    case OrNode n:
+                    case SequencedOr n:
                         if (x.Next.FirstOrDefault() is Lattice<PlanNode> first)
                         {
                             Visit(first, depth);

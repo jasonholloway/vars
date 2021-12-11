@@ -27,9 +27,9 @@ namespace Vars.Deducer
 
                 return nodes.Length switch
                 {
-                    0 => new Lattice<PlanNode>(null),
+                    0 => new Lattice<PlanNode>(new SequencedAnd()),
                     1 => nodes.Single(),
-                    _ => new Lattice<PlanNode>(new OrNode(), nodes)
+                    _ => new Lattice<PlanNode>(new SequencedOr(), nodes)
                 };
             }
 
@@ -45,7 +45,7 @@ namespace Vars.Deducer
                     select VisitTarget(new VarTarget(v))
                 ).ToArray();
 
-                var node = new Lattice<PlanNode>(new BlockNode(outline), upstreams);
+                var node = new Lattice<PlanNode>(new Block(outline), upstreams);
                 seenOutlines.Add(outline, node);
                 return node;
             }

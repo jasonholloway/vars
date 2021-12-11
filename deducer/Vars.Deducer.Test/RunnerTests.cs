@@ -1,72 +1,77 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Linq;
 using NUnit.Framework;
 using Vars.Deducer.Model;
 
 namespace Vars.Deducer.Test
 {
     using static TestHelpers;
-    
+
     public class RunnerTests
     {
         [Test]
         public void Runs()
         {
+            var runner = Blocks(
+                ("block1", new[] { ("cake", "Victoria Sponge") }),
+                ("block2", new[] { ("chicken", "Charles") }),
+                ("block3", new[] { ("eggs", "Medium") }),
+                ("block4", new[] { ("flour", "Self-Raising") })
+                );
+            
             var index = Outlines(
-                "file4;C;field,farm;flour;",
-                "file1;A;eggs,flour;cake;",
-                "file2;D;farm;chicken;",
-                "file3;B;chicken,flour;eggs;"
+                "block4;C;field,farm;flour;",
+                "block1;A;eggs,flour;cake;",
+                "block2;D;farm;chicken;",
+                "block3;B;chicken,flour;eggs;"
             );
-
-            var runner = new TestRunner();
 
             var env = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
                 .RoundUpInputs()
                 .Perform(runner);
-
             
+            Assert.That(runner.CalledBids.ToArray(),
+                Is.EqualTo(new[]
+                {
+                    "block2",
+                    "block4",
+                    "block3",
+                    "block1"
+                }));
+
+            Assert.That(env["chicken"].Value, Is.EqualTo("Charles"));
+            Assert.That(env["flour"].Value, Is.EqualTo("Self-Raising"));
         }
     }
 
     public class TestRunner : IRunner
     {
-        readonly List<(Outline, IDictionary<string, Bind>, string[])> _calls = new();
+        readonly ILookup<string, Func<Bind[]?>> _responses;
+        readonly List<(string Bid, IDictionary<string, Bind> Binds, string[] Flags)> _calls = new();
 
-        public Bind[] Invoke(Outline outline, IDictionary<string, Bind> binds, string[] flags)
+        public TestRunner(params (string Bid, Func<Bind[]?> GetBinds)[] responses)
         {
-            _calls.Add((outline, binds, flags));
-            return Array.Empty<Bind>();
+            _responses = responses.ToLookup(t => t.Bid, t => t.GetBinds);
         }
 
-        public IEnumerable<(Outline Outline, IDictionary<string, Bind> Binds, string[] Flags)> Calls => _calls;
-    }
-
-    public interface IRunner
-    {
-        Bind[] Invoke(Outline outline, IDictionary<string, Bind> binds, string[] flags);
-    }
-
-    public static class PlanExtensions2
-    {
-        public static Env Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, IRunner runEnv, Env? env = null)
+        public Bind[] Invoke(string bid, IDictionary<string, Bind> binds, string[] flags)
         {
-            env ??= new Env();
+            _calls.Add((bid, binds, flags));
             
-            env.Bind(("", ""));
-
-            return env;
+            return _responses[bid]
+                .Aggregate(
+                    new Func<Bind[]>(() => Array.Empty<Bind>()), 
+                    (ac, el) => () => ac().Concat(el() ?? Array.Empty<Bind>()).ToArray())
+                .Invoke();
         }
-        
+
+        public IEnumerable<(string Bid, IDictionary<string, Bind> Binds, string[] Flags)> Calls => _calls;
+
+        public IEnumerable<string> CalledBids => _calls.Select(c => c.Item1);
     }
 
-    public class SimpleRunner
-    {
-        
-    }
-    
     // running is cooperative with actual executing blocks
     // so can't just test simple output
     // full testing of all branches would involve a branching tree of clauses

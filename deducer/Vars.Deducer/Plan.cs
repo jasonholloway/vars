@@ -13,13 +13,14 @@ namespace Vars.Deducer
 
     public abstract record PlanNode
     {
-        public record BlockNode(Outline Outline) : PlanNode;
-        public record OrNode : PlanNode;
+        public record Block(Outline Outline) : PlanNode;
+        public record SequencedOr : PlanNode;
+        public record SequencedAnd : PlanNode;
     };
 
     public record PlanContext;
 
-    public record Plan2(params Lattice<PlanNode>[] Roots) : Lattice<PlanNode>(default, Roots);
+    public record Plan2(params Lattice<PlanNode>[] Roots) : Lattice<PlanNode>(new PlanNode.SequencedAnd(), Roots);
 
     public record Lattice<T>(T Node, params Lattice<T>[] Next) : Lattice;
 
