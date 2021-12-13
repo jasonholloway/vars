@@ -80,6 +80,8 @@ run() {
 
 												source $VARS_PATH/helpers.sh 
 
+												shopt -s extglob
+
 												eval "$body" <"$pts"
 										)
 								;;
