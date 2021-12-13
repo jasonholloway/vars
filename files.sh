@@ -194,7 +194,7 @@ findFiles() {
 	while read -r fid; do
 			echo -n "${fid%.*} "
 	done < <(
-			{ find ~+ -maxdepth "$peekDepth" ! -readable -prune -o -name "$pattern" -printf "%p,%T@\n"
+			{ find -L ~+ -maxdepth "$peekDepth" ! -readable -prune -o -name "$pattern" -printf "%p,%T@\n"
 
           while cd ..; do
             find ~+ -maxdepth 1 ! -readable -prune -o -name "$pattern" -printf "%p,%T@\n"
