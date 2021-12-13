@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using Vars.Deducer;
+﻿using Vars.Deducer;
 using Vars.Deducer.Model;
 
 while (Hear2() is ("deduce", _))

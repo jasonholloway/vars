@@ -12,14 +12,14 @@ namespace Vars.Deducer.Test
 
             var env = new Env();
             
-            env.Bind(("competition", "Crufts"));
-            env.Bind(("prize", "Biggest Dog in Contest"), env["competition"]);
+            env.Add(("competition", "Crufts"));
+            env.Add(("prize", "Biggest Dog in Contest"), env["competition"]);
                 
             Assert.That(env["prize"].Value, Is.EqualTo("Biggest Dog in Contest"), 
                 "should be immediately available in scope after bind");
 
             env.Fork(("dogName", "Bruce"));
-            env.Bind(("dogSize", "diminutive"), env["dogName"]);
+            env.Add(("dogSize", "diminutive"), env["dogName"]);
 
             Assert.That(env["dogSize"].Value, Is.EqualTo("diminutive"), 
                 "should be immediately available in scope after bind");
@@ -34,7 +34,7 @@ namespace Vars.Deducer.Test
             //all progress is progress
 
             env.Fork(("dogName", "Bob"));
-            env.Bind(("dogSize", "as big as a horse"), env["dogName"]);
+            env.Add(("dogSize", "as big as a horse"), env["dogName"]);
             
             Assert.That(env["dogName"].Value, Is.EqualTo("Bob"), 
                 "should be immediately available in scope after fork");
@@ -46,7 +46,7 @@ namespace Vars.Deducer.Test
             var dogSize = env["dogSize"];
 
             env.Pop();
-            env.Bind(("prizeDog", "Bob"), dogName, dogSize);
+            env.Add(("prizeDog", "Bob"), dogName, dogSize);
 
             //but wot bout incompatible ones?
         }

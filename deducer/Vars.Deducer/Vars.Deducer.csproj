@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Argus.IO.ReverseFileReader" Version="2021.11.9.1" />
       <PackageReference Include="System.Interactive" Version="5.0.0" />
     </ItemGroup>
 

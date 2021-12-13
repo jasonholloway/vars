@@ -41,7 +41,7 @@ namespace Vars.Deducer
 
                         if (vn is string n)
                         {
-                            bound.Add(new Bind(n, v?.Replace(RS.ToString(), "\n")));
+                            bound.Add(new Bind(n, v?.Replace(RS.ToString(), "\n"), outline.Bid));
                         }
                         break;
                     

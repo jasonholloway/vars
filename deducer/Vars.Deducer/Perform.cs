@@ -1,13 +1,18 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
-using System.Net;
 using Vars.Deducer.Model;
 
 namespace Vars.Deducer
 {
+
+    public class IO<T>
+    {
+        
+    }
+    
+    
+    
     public static class PlanExtensions2
     {
         public static Env Perform(this Plan2 plan, IRunner runner, Env? env = null)
@@ -32,18 +37,17 @@ namespace Vars.Deducer
                             .Select(v => env[v.Name])
                             .ToDictionary(b => b.Key);
 
-                        foreach (var (k, v) in inBinds.Where(kv => kv.Value.Value?.StartsWith("¦") ?? true).ToArray())
+                        foreach (var (k, inBind) in inBinds.Where(kv => kv.Value.Value?.StartsWith("¦") ?? true).ToArray())
                         {
-                            if (v.Value is null)
+                            var val = inBind.Value;
+                            
+                            if (val is null)
                             {
-                                //DREDGE HERE
-
-                                // File.ReadLines("")
-                                //     .Reverse();
-
+                                var found = BindLogServer.DredgeFor(k);
+                                val = $"¦{string.Join('¦', found)}";
                             }
                             
-                            Console.WriteLine($"pick {k} {v.Value}");
+                            Console.WriteLine($"pick {k} {val}");
                             Console.WriteLine("@YIELD");
                             var picked = Console.ReadLine();
 
@@ -52,11 +56,18 @@ namespace Vars.Deducer
                                 picked = picked[..^1];
                                 Console.WriteLine($"pin {k} {picked}");
                             }
-                            
-                            inBinds[k] = new Bind(k, picked);
+
+                            var pickedBind = new Bind(k, picked, "picked");
+                            inBinds[k] = pickedBind;
+                            env.Add(pickedBind);
+                            BindLogServer.Log(pickedBind);
                         }
                         
-                        //TODO dredge context file
+                        foreach(var (k, inBind) in inBinds) 
+                        {
+                            Console.WriteLine($"bound {outline.Bid} {inBind.Key} {inBind.Value.ReplaceLineEndings(((char)60).ToString())}");
+                        }
+                        
                         //TODO store source on binds
                         //TODO emit 'bound' to relay bind to screen
 
@@ -64,12 +75,11 @@ namespace Vars.Deducer
 
                         var outBinds = runner.Invoke(outline, inBinds, runFlags);
 
-                        foreach (var bind in outBinds)
+                        return outBinds.Aggregate(env, (ac, b) =>
                         {
-                            env.Bind((bind.Key, bind.Value));
-                        }
-                        
-                        break;
+                            ac.Add(b);
+                            return ac;
+                        });
                     
                     case PlanNode.SequencedOr _:
                         break;
