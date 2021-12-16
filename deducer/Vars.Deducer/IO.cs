@@ -1,54 +1,57 @@
 namespace Vars.Deducer;
 
-// public record IOContext(TextReader In, TextWriter Out);
-
-public record IO<T> : IO
+public interface IO<in T1, out T2>
 {
-    public record Id(T val) : IO<T>;
-    public record Cont(Func<IO<T>> fn) : IO<T>;
-}
+    IO<T3, T2> With<T3>() where T3 : T1;
+};
 
-
+public interface IO<out T> : IO<object, T> {}
 
 public abstract record IO
 {
-    public static IO<T> Lift<T>(T val)
-        => new IO<T>.Id(val);
+    public abstract record _Base<T1, T2> : IO<T1, T2>
+    {
+        public IO<T3, T2> With<T3>() where T3 : T1
+            => (IO<T3, T2>)this;
+    }
+    
+    public record _Id<T> : _Base<T, T>;
+    public record _Lift<T>(T val) : _Base<object, T>;
+    public record _Bind<T1, T2, TAny, T3>(IO<T1, T2> io, Func<T2, IO<TAny, T3>> fn) : _Base<T1, T3>;
 
-    public static IO<T2> Bind<T1, T2>(IO<T1> io, Func<T1, IO<T2>> fn)
-        => null;
+    public record _Say(string line) : _Base<object, object>;
+    public record _Hear() : _Base<object, string>;
+    
+    public static IO<object, T> Lift<T>(T val)
+        => new _Lift<T>(val);
 
-    public static IO<T> Do<T>(Func<IO<T>> fn)
-        => new IO<T>.Cont(fn);
+    public static IO<T, T> Id<T>()
+        => new _Id<T>();
 
-    public static IO<bool> Say(string line)
-        => null;
+    public static IO<T1, T3> Bind<T1, T2, TAny, T3>(IO<T1, T2> io, Func<T2, IO<TAny, T3>> fn)
+        => new _Bind<T1, T2, TAny, T3>(io, fn);
 
-    public static IO<string?> Hear()
-        => null;
+    public static IO<T1, T2> Do<T1, TAny, T2>(Func<T1, IO<TAny, T2>> fn)
+        => Bind(Id<T1>(), fn);
 
-    public static IO<TAc> Thread<TEl, TAc>(IEnumerable<TEl> els, TAc seed, Func<TAc, TEl, IO<TAc>> fn)
-        => els.Aggregate(Lift(seed), (io, el) => io.Then(ac => fn(ac, el)));
+    public static IO<object, T> Do<T>(Func<IO<object, T>> fn)
+        => Bind(Id<object>(), _ => fn());
+
+    public static IO<object, object> Say(string line)
+        => new _Say(line);
+
+    public static IO<object, string> Hear()
+        => new _Hear();
+    
+    public static IO<TAc, TAc> ForEach<TEl, TAc>(IEnumerable<TEl> els, Func<TEl, IO<TAc, TAc>> fn)
+        => els.Aggregate(Id<TAc>(), (io, el) => io.Then(_ => fn(el)));
 }
 
 public static class IOExtensions
 {
-    public static IO<T2> Then<T1, T2>(this IO<T1> io, Func<T1, IO<T2>> fn)
-        => IO.Bind(io, fn);
+    public static IO<T1, T3> Then<T1, T2, TAny, T3>(this IO<T1, T2> io, Func<T2, IO<TAny, T3>> fn)
+        => new IO._Bind<T1, T2, TAny, T3>(io, fn);
 
-    public static IO<T2> Then<T1, T2>(this IO<T1> io, IO<T2> io2)
+    public static IO<T1, T2> Then<T1, T2>(this IO<T1, object> io, IO<T1, T2> io2)
         => io.Then(_ => io2);
-
 }
-
-// public static class IOContextExtensions
-// {
-//     public static void Say(this IOContext x, string line)
-//         => x.Out.WriteLine(line);
-//     
-//     public static string? Hear(this IOContext x)
-//         => x.In.ReadLine();
-// }
-
-
-
