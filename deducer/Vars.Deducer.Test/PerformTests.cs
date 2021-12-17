@@ -27,7 +27,8 @@ namespace Vars.Deducer.Test
 
             var env = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
-                .Perform(runner);
+                .Perform(runner)
+                .Eval(new Env());
             
             Assert.That(runner.CalledBids.ToArray(),
                 Is.EqualTo(new[]

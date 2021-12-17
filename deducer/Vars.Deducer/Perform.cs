@@ -7,7 +7,7 @@ namespace Vars.Deducer
     
     public static class PlanExtensions2
     {
-        public static IO<Env, Env> Perform(this Plan2 plan, IRunner runner, Env? env = null)
+        public static IO<Env, Env> Perform(this Plan2 plan, IRunner runner)
             => plan
                 .RoundUpInputs()
                 .Perform(runner, 0);
@@ -70,11 +70,11 @@ namespace Vars.Deducer
                                                 {
                                                     e.Add(pickedBind);
                                                     BindLogServer.Log(pickedBind);
-                                                    
+                                                
                                                     //todo inBinds to be passed through
                                                     //todo env to be made immutable
                                                     //todo IO to thread through env by default
-
+                                                
                                                     return Lift(e);
                                                 });
                                             })
@@ -98,14 +98,16 @@ namespace Vars.Deducer
                                             return ac;
                                         }));
                                     });
-                                });
+                                })
+                                .With<Env>();
                         });
 
                     case PlanNode.SequencedOr _:
                         break;
 
                     case PlanNode.SequencedAnd _:
-                        return ForEach(plan.Next, n => n.Perform(runner, depth));
+                        return ForEach(plan.Next, n => n.Perform(runner, depth))
+                            .With<Env>();
                 }
             }
 

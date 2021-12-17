@@ -14,11 +14,16 @@ public static class RunExtensions
     static Func<object, T> _Eval<T>(IO._Lift<T> lift)
         => _ => lift.val;
 
-    static Func<T1, T3> _Eval<T1, T2, T3>(IO._Bind<T1, T2, object, T3> bind)
+    static Func<T1, T3> _Eval<T1, T2, T3>(IO._Bind<T1, T2, T3> bind)
         => v1 =>
         {
             var v2 = Eval(bind.io).Invoke(v1);
-            var v3 = bind.fn(v2);
-            return Eval(v3).Invoke(new object());
+            var next = bind.fn(v2);
+
+            var fn = Eval(next);
+            return fn(v1);
         };
+
+    static object _Eval(object _)
+        => throw new NotImplementedException();
 }

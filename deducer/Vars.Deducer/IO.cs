@@ -17,7 +17,7 @@ public abstract record IO
     
     public record _Id<T> : _Base<T, T>;
     public record _Lift<T>(T val) : _Base<object, T>;
-    public record _Bind<T1, T2, TAny, T3>(IO<T1, T2> io, Func<T2, IO<TAny, T3>> fn) : _Base<T1, T3>;
+    public record _Bind<T1, T2, T3>(IO<T1, T2> io, Func<T2, IO<Nil, T3>> fn) : _Base<T1, T3>;
 
     public record _Say(string line) : _Base<object, object>;
     public record _Hear() : _Base<object, string>;
@@ -28,13 +28,13 @@ public abstract record IO
     public static IO<T, T> Id<T>()
         => new _Id<T>();
 
-    public static IO<T1, T3> Bind<T1, T2, TAny, T3>(IO<T1, T2> io, Func<T2, IO<TAny, T3>> fn)
-        => new _Bind<T1, T2, TAny, T3>(io, fn);
+    public static IO<T1, T3> Bind<T1, T2, T3>(IO<T1, T2> io, Func<T2, IO<Nil, T3>> fn)
+        => new _Bind<T1, T2, T3>(io, fn);
 
-    public static IO<T1, T2> Do<T1, TAny, T2>(Func<T1, IO<TAny, T2>> fn)
+    public static IO<T1, T2> Do<T1, T2>(Func<T1, IO<Nil, T2>> fn)
         => Bind(Id<T1>(), fn);
 
-    public static IO<object, T> Do<T>(Func<IO<object, T>> fn)
+    public static IO<object, T> Do<T>(Func<IO<Nil, T>> fn)
         => Bind(Id<object>(), _ => fn());
 
     public static IO<object, object> Say(string line)
@@ -49,9 +49,11 @@ public abstract record IO
 
 public static class IOExtensions
 {
-    public static IO<T1, T3> Then<T1, T2, TAny, T3>(this IO<T1, T2> io, Func<T2, IO<TAny, T3>> fn)
-        => new IO._Bind<T1, T2, TAny, T3>(io, fn);
+    public static IO<T1, T4> Then<T1, T2, T4>(this IO<T1, T2> io, Func<T2, IO<Nil, T4>> fn)
+        => new IO._Bind<T1, T2, T4>(io, fn);
 
-    public static IO<T1, T2> Then<T1, T2>(this IO<T1, object> io, IO<T1, T2> io2)
+    public static IO<T1, T4> Then<T1, T2, T4>(this IO<T1, T2> io, IO<Nil, T4> io2)
         => io.Then(_ => io2);
 }
+
+public struct Nil {}
