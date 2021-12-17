@@ -3,36 +3,33 @@ using Vars.Deducer.Model;
 
 namespace Vars.Deducer
 {
-    using static IO;
+    using static Ops;
     
     public static class PlanExtensions2
     {
-        public static IO<Env, Env> Perform(this Plan2 plan, IRunner runner)
+        public static IO<Env> Perform(this Plan2 plan, IRunner runner)
             => plan
                 .RoundUpInputs()
-                .Perform(runner, 0);
+                .Perform(runner, 0)
+                .Then(Read());
 
-        static IO<Env, Env> Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, IRunner runner, int depth)
+        static IO Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, IRunner runner, int depth)
         {
             if (plan.Node is var (allInputs, node))
             {
                 switch (node)
                 {
                     case PlanNode.Block((_, _, var inputs, var outputs, var flags) outline):
-                        return Do((Env env) =>
-                        {
-                            if (depth > 0 && outputs.All(v => env[v.Name].Value != null))
-                            {
-                                return Id<Env>();
-                            }
-                            
-                            return ForEach(plan.Next, n => Perform(n, runner, depth + 1))
-                                .Then(env =>
+                        return When(
+                            @if: Read(env => depth > 0 && outputs.All(v => env[v.Name].Value != null)),
+                            @then: 
+                                ForEach(plan.Next, n => Perform(n, runner, depth + 1))
+                                .Then(Read(e => inputs
+                                        .Select(v => e[v.Name])
+                                        .ToDictionary(b => b.Key))
+                                )
+                                .Then(inBinds =>
                                 {
-                                    var inBinds = inputs
-                                        .Select(v => env[v.Name])
-                                        .ToDictionary(b => b.Key);
-
                                     var pickables = inBinds
                                         .Where(kv => kv.Value.Value?.StartsWith("¦") ?? true);
 
@@ -59,31 +56,28 @@ namespace Vars.Deducer
                                                         .Then(Lift(picked));
                                                 }
 
-                                                return Id<string>();
+                                                return Lift(picked);
                                             })
                                             .Then(picked =>
                                             {
                                                 var pickedBind = new Bind(k, picked, "picked");
                                                 inBinds[k] = pickedBind;
+                                                //!!!!!!
 
-                                                return Do((Env e) =>
+                                                return Update(e =>
                                                 {
                                                     e.Add(pickedBind);
                                                     BindLogServer.Log(pickedBind);
-                                                
-                                                    //todo inBinds to be passed through
-                                                    //todo env to be made immutable
-                                                    //todo IO to thread through env by default
-                                                
-                                                    return Lift(e);
+
+                                                    return e;
                                                 });
-                                            })
-                                            .With<Env>();
+                                            });
                                     })
-                                    .Then(env =>
-                                        ForEach(inBinds, inBind => Say($"bound {outline.Bid} {inBind.Key} {inBind.Value.Value.ReplaceLineEndings(((char)60).ToString())}"))
-                                        .Then(Lift(env)))
-                                    .Then(env =>
+                                    .Then(ForEach(inBinds,
+                                        inBind => Say(
+                                            $"bound {outline.Bid} {inBind.Key} {inBind.Value.Value.ReplaceLineEndings(((char)60).ToString())}"))
+                                    )
+                                    .Then(() =>
                                     {
                                         //TODO store source on binds
                                         //TODO emit 'bound' to relay bind to screen
@@ -92,26 +86,26 @@ namespace Vars.Deducer
 
                                         var outBinds = runner.Invoke(outline, inBinds, runFlags);
 
-                                        return Lift(outBinds.Aggregate(env, (ac, b) =>
-                                        {
-                                            ac.Add(b);
-                                            return ac;
-                                        }));
+                                        return Update(env => 
+                                            outBinds.Aggregate(env, (ac, b) =>
+                                            {
+                                                ac.Add(b);
+                                                return ac;
+                                            }));
                                     });
-                                })
-                                .With<Env>();
-                        });
+                                }),
+                            @else: Id()
+                        );
 
                     case PlanNode.SequencedOr _:
                         break;
 
                     case PlanNode.SequencedAnd _:
-                        return ForEach(plan.Next, n => n.Perform(runner, depth))
-                            .With<Env>();
+                        return ForEach(plan.Next, n => n.Perform(runner, depth));
                 }
             }
 
-            return Id<Env>();
+            return Id();
         }
 
     public static Lattice<(ImmutableHashSet<Var> AllInputs, PlanNode Inner)> RoundUpInputs(this Lattice<PlanNode> from)

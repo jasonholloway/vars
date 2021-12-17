@@ -2,19 +2,16 @@ namespace Vars.Deducer;
 
 public static class RunExtensions
 {
-    public static T2 Eval<T1, T2>(this IO<T1, T2> io, T1 input)
-        => Eval(io).Invoke(input);
-    
-    static Func<T1, T2> Eval<T1, T2>(IO<T1, T2> io)
+    public static Func<Env, (Env, T)> Eval<T>(IO<T> io)
         => _Eval((dynamic)io);
 
-    static Func<T, T> _Eval<T>(IO._Id<T> id)
-        => v => v;
+    static Func<Env, (Env, T)> _Eval<T>(Tags.Id<T> id)
+        => e => (e, default);
 
-    static Func<object, T> _Eval<T>(IO._Lift<T> lift)
+    static Func<object, T> _Eval<T>(Tags.Lift<T> lift)
         => _ => lift.val;
 
-    static Func<T1, T3> _Eval<T1, T2, T3>(IO._Bind<T1, T2, T3> bind)
+    static Func<T1, T3> _Eval<T1, T2, T3>(Tags.Bind<,> bind)
         => v1 =>
         {
             var v2 = Eval(bind.io).Invoke(v1);
