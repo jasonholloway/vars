@@ -7,106 +7,106 @@ namespace Vars.Deducer
     
     public static class PlanExtensions2
     {
-        public static IO<Env> Perform(this Plan2 plan, IRunner runner)
+        public static IO<Env, Env> Perform(this Plan2 plan, IRunner runner)
             => plan
                 .RoundUpInputs()
-                .Perform(runner, 0)
-                .Then(Read());
+                .Perform(runner, 0);
 
-        static IO Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, IRunner runner, int depth)
-        {
-            if (plan.Node is var (allInputs, node))
+        static IO<Env, Env> Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, IRunner runner, int depth)
+            => Id<Env>().Then(x =>
             {
-                switch (node)
+                if (plan.Node is var (allInputs, node))
                 {
-                    case PlanNode.Block((_, _, var inputs, var outputs, var flags) outline):
-                        return When(
-                            @if: Read(env => depth > 0 && outputs.All(v => env[v.Name].Value != null)),
-                            @then: 
-                                ForEach(plan.Next, n => Perform(n, runner, depth + 1))
-                                .Then(Read(e => inputs
+                    switch (node)
+                    {
+                        case PlanNode.Block((_, _, var inputs, var outputs, var flags) outline):
+                            return x.When(
+                                
+                                @if: x.Read(env => depth > 0 && outputs.All(v => env[v.Name].Value != null)),
+                                
+                                @then: x.ForEach(plan.Next, (_, n) => Perform(n, runner, depth + 1))
+                                    .Read(e => inputs
                                         .Select(v => e[v.Name])
                                         .ToDictionary(b => b.Key))
-                                )
-                                .Then(inBinds =>
-                                {
-                                    var pickables = inBinds
-                                        .Where(kv => kv.Value.Value?.StartsWith("¦") ?? true);
-
-                                    return ForEach(pickables, pickable =>
+                                    .Then((x, inBinds) =>
                                     {
-                                        var (k, inBind) = pickable;
-                                        var val = inBind.Value;
+                                        var pickables = inBinds
+                                            .Where(kv => kv.Value.Value?.StartsWith("¦") ?? true);
 
-                                        if (val is null)
-                                        {
-                                            var found = BindLogServer.DredgeFor(k);
-                                            val = $"¦{string.Join('¦', found)}";
-                                        }
-
-                                        return Say($"pick {k} {val}")
-                                            .Then(Say("@YIELD"))
-                                            .Then(Hear())
-                                            .Then(picked =>
+                                        return x.ForEach(pickables, (x, pickable) =>
                                             {
-                                                if (picked?.EndsWith('!') ?? false)
+                                                var (k, inBind) = pickable;
+                                                var val = inBind.Value;
+
+                                                if (val is null)
                                                 {
-                                                    picked = picked[..^1];
-                                                    return Say($"pin {k} {picked}")
-                                                        .Then(Lift(picked));
+                                                    var found = BindLogServer.DredgeFor(k);
+                                                    val = $"¦{string.Join('¦', found)}";
                                                 }
 
-                                                return Lift(picked);
+                                                return x
+                                                    .Say($"pick {k} {val}")
+                                                    .Say("@YIELD")
+                                                    .Hear()
+                                                    .Then((x, picked) =>
+                                                    {
+                                                        if (picked?.EndsWith('!') ?? false)
+                                                        {
+                                                            picked = picked[..^1];
+                                                            return x.Say($"pin {k} {picked}")
+                                                                .Lift(picked);
+                                                        }
+
+                                                        return x.Lift(picked);
+                                                    })
+                                                    .Then((x, picked) =>
+                                                    {
+                                                        var pickedBind = new Bind(k, picked, "picked");
+                                                        inBinds[k] = pickedBind;
+                                                        //!!!!!!
+
+                                                        return x.Update(e =>
+                                                        {
+                                                            e.Add(pickedBind);
+                                                            BindLogServer.Log(pickedBind);
+
+                                                            return e;
+                                                        });
+                                                    });
                                             })
-                                            .Then(picked =>
+                                            .ForEach(inBinds, (x, inBind) => 
+                                                x.Say($"bound {outline.Bid} {inBind.Key} {inBind.Value.Value.ReplaceLineEndings(((char)60).ToString())}")
+                                            )
+                                            .Then(x =>
                                             {
-                                                var pickedBind = new Bind(k, picked, "picked");
-                                                inBinds[k] = pickedBind;
-                                                //!!!!!!
+                                                //TODO store source on binds
+                                                //TODO emit 'bound' to relay bind to screen
 
-                                                return Update(e =>
-                                                {
-                                                    e.Add(pickedBind);
-                                                    BindLogServer.Log(pickedBind);
+                                                var runFlags = depth == 0 ? new[] { "T" } : Array.Empty<string>();
 
-                                                    return e;
-                                                });
+                                                var outBinds = runner.Invoke(outline, inBinds, runFlags);
+
+                                                return x.Update(env =>
+                                                    outBinds.Aggregate(env, (ac, b) =>
+                                                    {
+                                                        ac.Add(b);
+                                                        return ac;
+                                                    }));
                                             });
-                                    })
-                                    .Then(ForEach(inBinds,
-                                        inBind => Say(
-                                            $"bound {outline.Bid} {inBind.Key} {inBind.Value.Value.ReplaceLineEndings(((char)60).ToString())}"))
-                                    )
-                                    .Then(() =>
-                                    {
-                                        //TODO store source on binds
-                                        //TODO emit 'bound' to relay bind to screen
+                                    }),
+                                @else: x
+                            );
 
-                                        var runFlags = depth == 0 ? new[] { "T" } : Array.Empty<string>();
+                        case PlanNode.SequencedOr _:
+                            break;
 
-                                        var outBinds = runner.Invoke(outline, inBinds, runFlags);
-
-                                        return Update(env => 
-                                            outBinds.Aggregate(env, (ac, b) =>
-                                            {
-                                                ac.Add(b);
-                                                return ac;
-                                            }));
-                                    });
-                                }),
-                            @else: Id()
-                        );
-
-                    case PlanNode.SequencedOr _:
-                        break;
-
-                    case PlanNode.SequencedAnd _:
-                        return ForEach(plan.Next, n => n.Perform(runner, depth));
+                        case PlanNode.SequencedAnd _:
+                            return x.ForEach(plan.Next, (_, n) => n.Perform(runner, depth));
+                    }
                 }
-            }
 
-            return Id();
-        }
+                return x;
+            });
 
     public static Lattice<(ImmutableHashSet<Var> AllInputs, PlanNode Inner)> RoundUpInputs(this Lattice<PlanNode> from)
             => from.MapBottomUp<PlanNode, (ImmutableHashSet<Var> AllInputs, PlanNode Inner)>(
