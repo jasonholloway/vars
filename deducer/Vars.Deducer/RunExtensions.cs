@@ -2,7 +2,7 @@ namespace Vars.Deducer;
 
 public static class RunExtensions
 {
-    public static Func<Env, (Env, T)> Eval<T>(IO<T> io)
+    public static Func<Env, (Env, T)> Eval<T>(M<,,> io)
         => _Eval((dynamic)io);
 
     static Func<Env, (Env, T)> _Eval<T>(Tags.Id<T> id)

@@ -1,34 +1,33 @@
-using System;
 using System.Collections.Immutable;
 
 namespace Vars.Deducer
 {
-    public class Env
+    public record Env(ImmutableDictionary<string, string> Current, ImmutableDictionary<string, string[]> Links)
     {
-        ImmutableDictionary<string, string> _current = ImmutableDictionary<string, string>.Empty;
-        ImmutableDictionary<string, string[]> _links = ImmutableDictionary<string, string[]>.Empty;
+        public static Env Empty = new Env(
+            ImmutableDictionary<string, string>.Empty,
+            ImmutableDictionary<string, string[]>.Empty
+            );
 
-        public void Add(Bind bind)
-        {
-            _current = _current.SetItem(bind.Key, bind.Value!);
-        }
+        public Env Add(Bind bind)
+            => this with { Current = Current.SetItem(bind.Key, bind.Value!) };
 
-        public void Add((string Name, string Value) bind, params Bind[] upstreams)
+        public Env Add((string Name, string Value) bind, params Bind[] upstreams)
             => Add(new Bind(bind.Name, bind.Value, "na", upstreams));
         
-        public void Fork((string Name, string Value) bind, params Bind[] upstreams)
+        public Env Fork((string Name, string Value) bind, params Bind[] upstreams)
         {
             throw new NotImplementedException();
         }
 
-        public void Pop()
+        public Env Pop()
         {
             throw new NotImplementedException();
         }
         
         public Bind this[string name] => new(
             name, 
-            _current.TryGetValue(name, out var found) ? found : null
+            Current.TryGetValue(name, out var found) ? found : null
             );
     };
 }
