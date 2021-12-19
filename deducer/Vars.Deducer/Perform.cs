@@ -14,6 +14,25 @@ namespace Vars.Deducer
                 .RoundUpInputs()
                 .Perform(0);
 
+        public static Lattice<(ImmutableHashSet<Var> AllInputs, PlanNode Inner)> RoundUpInputs(this Lattice<PlanNode> from)
+                => from.MapBottomUp<PlanNode, (ImmutableHashSet<Var> AllInputs, PlanNode Inner)>(
+                    (node, below) =>
+                    {
+                        var allInps = below.Aggregate(
+                            ImmutableHashSet<Var>.Empty,
+                            (ac, l) => ac.Union(l.Node.AllInputs)
+                        );
+
+                        if (node is PlanNode.Block b)
+                        {
+                            allInps = allInps.Union(b.Outline.Inputs.Select(v => v.AsSimple()));
+                        }
+
+                        //also, need to handle wildcard case
+                        
+                        return (allInps, node);
+                    });
+
         static M<Env, Env> Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, int depth)
             => Id<Env>().Then(x =>
             {
@@ -50,25 +69,6 @@ namespace Vars.Deducer
                 return x;
             });
 
-        public static Lattice<(ImmutableHashSet<Var> AllInputs, PlanNode Inner)> RoundUpInputs(this Lattice<PlanNode> from)
-                => from.MapBottomUp<PlanNode, (ImmutableHashSet<Var> AllInputs, PlanNode Inner)>(
-                    (node, below) =>
-                    {
-                        var allInps = below.Aggregate(
-                            ImmutableHashSet<Var>.Empty,
-                            (ac, l) => ac.Union(l.Node.AllInputs)
-                        );
-
-                        if (node is PlanNode.Block b)
-                        {
-                            allInps = allInps.Union(b.Outline.Inputs.Select(v => v.AsSimple()));
-                        }
-
-                        //also, need to handle wildcard case
-                        
-                        return (allInps, node);
-                    });
-
         public static M<R, RunContext> PickUndecidedInputs<R>(this M<R, RunContext> m)
             => m.Read(s =>
                     s.InBinds
@@ -78,14 +78,12 @@ namespace Vars.Deducer
                                 StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
                         ))
                         .Where(t => t.Options.Length != 1)
-                    )
-                .LoopThru((x, p) =>
-                {
-                    var vals = !p.Options.Any()
-                        ? BindLogServer.DredgeFor(p.Name).ToArray()
-                        : p.Options;
-
-                    return x
+                )
+                .LoopThru((x, p) => x
+                    .When(x.Lift(!p.Options.Any()),
+                        then: x.DredgeBindLog(p.Name),
+                        @else: x.Lift(p.Options))
+                    .Then((x, vals) => x
                         .PickVal(p.Name, vals)
                         .Map(picked => new Bind(p.Name, picked, "picked"))
                         .Then((x, bind) => x
@@ -94,12 +92,9 @@ namespace Vars.Deducer
                                 Env = s.Env.Add(bind),
                                 InBinds = s.InBinds.SetItem(p.Name, bind)
                             })
-                            .Then(x =>
-                            {
-                                BindLogServer.Log(bind); //todo split out
-                                return x;
-                            }));
-                });
+                            .AppendToBindLog(bind)
+                        ))
+                );
 
         public static M<R, RunContext, string?> PickVal<R>(this M<R, RunContext> m, string name, IEnumerable<string> options)
             => m.Say($"pick {name} ¦{string.Join('¦', options)}")

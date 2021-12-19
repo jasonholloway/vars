@@ -67,8 +67,15 @@ public static class Ops
     public static M<R, W, string> Hear<R, W>(this M<R, W> _)
         => new Tags.Hear<R, W>();
 
+    
     public static M<R, W, Bind[]> InvokeRunner<R, W>(this M<R, W> io, Outline outline, Bind[] binds, string[] runFlags)
         => new Tags.InvokeRunner<R, W>(outline, binds, runFlags);
+    
+    public static M<R, W, string[]> DredgeBindLog<R, W>(this M<R, W> io, string name)
+        => new Tags.DredgeBindLog<R, W>(name);
+
+    public static M<R, W> AppendToBindLog<R, W>(this M<R, W> io, Bind bind)
+        => new Tags.AppendToBindLog<R, W>(bind);
     
     
     public static M<AR, AW> LoopThru<AR, AW, El>(this M<AR, AW> io, IEnumerable<El> through, Func<M<AW, AW>, El, M<AW, AW>> @do)
@@ -83,6 +90,11 @@ public static class Ops
         where W : AR
         where AW : BR
         => io.Then(_ => @if).Then((_, result) => result ? then : (@else));
+    
+    public static M<R, BW, BV> When<R, W, AR, AW, BR, BW, BV>(this M<R, W> io, M<AR, AW, bool> @if, M<BR, BW, BV> @then, M<BR, BW, BV> @else)
+        where W : AR
+        where AW : BR
+        => io.Then(_ => @if).Then((_, result) => result ? then : @else);
     
     public static M<R, S> When<R, W, S>(this M<R, W> io, M<S, S, bool> @if, M<S, S> @then)
         where W : S
@@ -103,6 +115,9 @@ public abstract record Tags
     public record Hear<R, W> : M<R, W, string>;
 
     public record InvokeRunner<R, W>(Outline Outline, Bind[] Binds, string[] RunFlags) : M<R, W, Bind[]>;
+    
+    public record DredgeBindLog<R, W>(string Name) : M<R, W, string[]>;
+    public record AppendToBindLog<R, W>(Bind bind) : M<R, W>;
 }
 
 public static class IOExtensions
