@@ -8,13 +8,13 @@ public interface M<in R, out W, out V> : M<R, W> {}
 public static class Ops
 {
     public static M<R, W, V> Lift<R, W, V>(this M<R, W> io, V val)
-        => new Tags.Lift<R, W, V>(val);
+        => io.Then(_ => new Tags.Lift<W, V>(val));
     
     public static M<S, S> Id<S>()
         => new Tags.Id<S>();
 
     public static M<R, W, W> Read<R, W>(this M<R, W> io)
-        => throw new NotImplementedException();
+        => new Tags.Read<R, W>();
 
     public static M<R, W, V> Read<R, W, V>(this M<R, W> io, Func<W, V> fn)
         => io.Read().Then((x, s) => x.Lift(fn(s)));
@@ -31,11 +31,11 @@ public static class Ops
     //     where AW : BR
     //     => io.Read().Then((x, s) => fn(x, s));
 
-    
-    public static M<S1, S2> Write<S1, S2>(this M<S1, S1> io, S2 state)
-        => throw new NotImplementedException();
 
-    public static M<S1, S2> Update<S1, S2>(this M<S1, S1> io, Func<S1, S2> fn)
+    public static M<R, W> Write<R, W>(this M<R, R> io, W newState)
+        => new Tags.Write<R, W>(newState);
+
+    public static M<R, W> Update<R, W>(this M<R, R> io, Func<R, W> fn)
         => io.Read().Then((x, s) => x.Write(fn(s)));
 
 
@@ -47,14 +47,14 @@ public static class Ops
     public static M<AR, BW, BV> Then<AR, AW, AV, BR, BW, BV>(this M<AR, AW, AV> io, Func<M<AW, AW>, AV, M<BR, BW, BV>> fn)
         where AW : BR
         => new Tags.Bind<AR, AW, AV, BR, BW, BV>(io, v => fn(Id<AW>(), v));
-
+    
     public static M<AR, BW, BV> Then<AR, AW, BR, BW, BV>(this M<AR, AW> io, Func<M<AW, AW>, M<BR, BW, BV>> fn)
         where AW : BR
-        => throw new NotImplementedException(); // new Tags.Bind<AR, AW, object, BR, BW, BV>(io, _ => fn());
+        => new Tags.Bind<AR, AW, BR, BW, BV>(io, () => fn(Id<AW>()));
 
     public static M<AR, BW> Then<AR, AW, AV, BR, BW>(this M<AR, AW, AV> io, Func<M<AW, AW>, AV, M<BR, BW>> fn)
         where AW : BR
-        => io.Then((x, v) => fn(x, v).Lift(new Nil()));
+        => io.Then((x, v) => fn(x, v).Lift(default(Nil)));
     
     public static M<AR, BW> Then<AR, AW, BR, BW>(this M<AR, AW> io, Func<M<AW, AW>, M<BR, BW>> fn)
         where AW : BR
@@ -106,10 +106,16 @@ public static class Ops
 public abstract record Tags
 {
     public record Id<S> : M<S, S>;
-    public record Lift<R, W, V>(V val) : M<R, W, V>;
+    public record Lift<S, V>(V val) : M<S, S, V>;
     
     public record Bind<AR, AW, AV, BR, BW, BV>(M<AR, AW, AV> io, Func<AV, M<BR, BW, BV>> fn) : M<AR, BW, BV>
         where AW : BR;
+    
+    public record Bind<AR, AW, BR, BW, BV>(M<AR, AW> io, Func<M<BR, BW, BV>> fn) : M<AR, BW, BV>
+        where AW : BR;
+
+    public record Read<R, W> : M<R, W, W>;
+    public record Write<R, W>(W val) : M<R, W>;
 
     public record Say<R, W>(string Line) : M<R, W, Nil>;
     public record Hear<R, W> : M<R, W, string>;

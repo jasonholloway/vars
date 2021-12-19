@@ -10,7 +10,7 @@ namespace Vars.Deducer.Test
             //   <- prize <- competition
             //   <- dogSize{dogName=Bruce},dogSize{dogName=Bob} <- dogName
 
-            var env = new Env();
+            var env = Env.Empty;
             
             env.Add(("competition", "Crufts"));
             env.Add(("prize", "Biggest Dog in Contest"), env["competition"]);

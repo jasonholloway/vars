@@ -131,7 +131,8 @@ namespace Vars.Deducer
                 //TODO store source on binds
                 //TODO emit 'bound' to relay bind to screen
                 return x.Update(s =>
-                    binds.Aggregate(s.Env, (ac, b) => ac.Add(b)));
+                    binds.Aggregate(s.Env, (ac, b) => ac.Add(b))
+                    );
             });
     }
 }

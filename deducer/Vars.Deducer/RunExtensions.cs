@@ -2,25 +2,46 @@ namespace Vars.Deducer;
 
 public static class RunExtensions
 {
-    public static Func<Env, (Env, T)> Eval<T>(M<,,> io)
+    public static Func<R, (W, V)> Eval<R, W, V>(this M<R, W, V> io)
+        => _Eval((dynamic)io);
+    
+    public static Func<R, (W, Nil)> Eval<R, W>(this M<R, W> io)
         => _Eval((dynamic)io);
 
-    static Func<Env, (Env, T)> _Eval<T>(Tags.Id<T> id)
-        => e => (e, default);
+    static Func<S, (S, Nil)> _Eval<S>(Tags.Id<S> id)
+        => s => (s, default);
 
-    static Func<object, T> _Eval<T>(Tags.Lift<T> lift)
-        => _ => lift.val;
-
-    static Func<T1, T3> _Eval<T1, T2, T3>(Tags.Bind<,> bind)
-        => v1 =>
+    static Func<S, (S, V)> _Eval<S, V>(Tags.Lift<S, V> lift)
+        => s => (s, lift.val);
+    
+    static Func<AR, (BW, BV)> _Eval<AR, AW, BR, BW, BV>(Tags.Bind<AR, AW, BR, BW, BV> bind)
+        where AW : BR
+        => ar =>
         {
-            var v2 = Eval(bind.io).Invoke(v1);
-            var next = bind.fn(v2);
-
-            var fn = Eval(next);
-            return fn(v1);
+            var (aw, _) = Eval(bind.io)(ar);
+            
+            var second = bind.fn();
+            return Eval(second)(aw);
         };
+    
+    //todo: would be nice _not_ to have to have subtly different Bind handlings here - need nicer composition
 
-    static object _Eval(object _)
-        => throw new NotImplementedException();
+    static Func<AR, (BW, BV)> _Eval<AR, AW, AV, BR, BW, BV>(Tags.Bind<AR, AW, AV, BR, BW, BV> bind)
+        where AW : BR
+        => ar =>
+        {
+            var (aw, av) = Eval(bind.io)(ar);
+            
+            var second = bind.fn(av);
+            return Eval(second)(aw);
+        };
+    
+    static Func<W, (W, W)> _Eval<R, W>(Tags.Read<R, W> read)
+        => s => (s, s);
+    
+    static Func<W, (W, Nil)> _Eval<R, W>(Tags.Write<R, W> write)
+        => _ => (write.val, default);
+
+    static object _Eval(object o)
+        => throw new NotImplementedException($"Can't evaluate {o.GetType()}");
 }

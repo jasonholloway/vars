@@ -25,10 +25,11 @@ namespace Vars.Deducer.Test
                 "block3;B;chicken,flour;eggs;"
             );
 
-            var env = Planner
+            var prog = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
-                .Perform(runner)
-                .Eval(new Env());
+                .Perform(runner);
+                
+            var (env, _) = prog.Eval()(Env.Empty);
             
             Assert.That(runner.CalledBids.ToArray(),
                 Is.EqualTo(new[]
