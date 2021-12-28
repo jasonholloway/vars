@@ -8,13 +8,13 @@ public interface M<in R, out W, out V> : M<R, W> {}
 public static class Ops
 {
     public static M<R, W, V> Lift<R, W, V>(this M<R, W> io, V val)
-        => io.Then(_ => new Tags.Lift<W, V>(val));
+        => io.Then(_ => new Tags.Pure<W, V>(val));
     
     public static M<S, S> Id<S>()
         => new Tags.Id<S>();
 
     public static M<R, W, W> Read<R, W>(this M<R, W> io)
-        => new Tags.Read<R, W>();
+        => io.Then(_ => new Tags.Read<W>());
 
     public static M<R, W, V> Read<R, W, V>(this M<R, W> io, Func<W, V> fn)
         => io.Read().Then((x, s) => x.Lift(fn(s)));
@@ -55,27 +55,27 @@ public static class Ops
     public static M<AR, BW> Then<AR, AW, AV, BR, BW>(this M<AR, AW, AV> io, Func<M<AW, AW>, AV, M<BR, BW>> fn)
         where AW : BR
         => io.Then((x, v) => fn(x, v).Lift(default(Nil)));
-    
+
     public static M<AR, BW> Then<AR, AW, BR, BW>(this M<AR, AW> io, Func<M<AW, AW>, M<BR, BW>> fn)
         where AW : BR
-        => throw new NotImplementedException(); // new Tags.Bind<AR, AW, object, BR, BW, BV>(io, _ => fn());
+        => io.Then((x) => fn(x).Lift(default(Nil)));
     
 
     public static M<R, W, Nil> Say<R, W>(this M<R, W> _, string line)
         => new Tags.Say<R, W>(line);
 
-    public static M<R, W, string> Hear<R, W>(this M<R, W> _)
-        => new Tags.Hear<R, W>();
+    public static M<R, W, string> Hear<R, W>(this M<R, W> io)
+        => io.Then(_ => new Tags.Hear<W>());
 
     
     public static M<R, W, Bind[]> InvokeRunner<R, W>(this M<R, W> io, Outline outline, Bind[] binds, string[] runFlags)
         => new Tags.InvokeRunner<R, W>(outline, binds, runFlags);
     
-    public static M<R, W, string[]> DredgeBindLog<R, W>(this M<R, W> io, string name)
-        => new Tags.DredgeBindLog<R, W>(name);
+    public static M<S, S, string[]> DredgeBindLog<S>(this M<S, S> io, string name)
+        => new Tags.DredgeBindLog<S>(name);
 
-    public static M<R, W> AppendToBindLog<R, W>(this M<R, W> io, Bind bind)
-        => new Tags.AppendToBindLog<R, W>(bind);
+    public static M<S, S> AppendToBindLog<S>(this M<S, S> io, Bind bind)
+        => new Tags.AppendToBindLog<S>(bind);
     
     
     public static M<AR, AW> LoopThru<AR, AW, El>(this M<AR, AW> io, IEnumerable<El> through, Func<M<AW, AW>, El, M<AW, AW>> @do)
@@ -102,11 +102,10 @@ public static class Ops
 }
 
 
-
 public abstract record Tags
 {
     public record Id<S> : M<S, S>;
-    public record Lift<S, V>(V val) : M<S, S, V>;
+    public record Pure<S, V>(V val) : M<S, S, V>;
     
     public record Bind<AR, AW, AV, BR, BW, BV>(M<AR, AW, AV> io, Func<AV, M<BR, BW, BV>> fn) : M<AR, BW, BV>
         where AW : BR;
@@ -114,26 +113,16 @@ public abstract record Tags
     public record Bind<AR, AW, BR, BW, BV>(M<AR, AW> io, Func<M<BR, BW, BV>> fn) : M<AR, BW, BV>
         where AW : BR;
 
-    public record Read<R, W> : M<R, W, W>;
+    public record Read<R> : M<R, R, R>;
     public record Write<R, W>(W val) : M<R, W>;
 
     public record Say<R, W>(string Line) : M<R, W, Nil>;
-    public record Hear<R, W> : M<R, W, string>;
+    public record Hear<S> : M<S, S, string>;
 
     public record InvokeRunner<R, W>(Outline Outline, Bind[] Binds, string[] RunFlags) : M<R, W, Bind[]>;
     
-    public record DredgeBindLog<R, W>(string Name) : M<R, W, string[]>;
-    public record AppendToBindLog<R, W>(Bind bind) : M<R, W>;
-}
-
-public static class IOExtensions
-{
-    
-    
-    // public static IO<T2?> When<T1, T2>(this IO<T1> io, Predicate<T1> predicate)
-    //     => io.Then(v => predicate(v) ?   )
-    
-    
+    public record DredgeBindLog<S>(string Name) : M<S, S, string[]>;
+    public record AppendToBindLog<S>(Bind bind) : M<S, S>;
 }
 
 public struct Nil {}
