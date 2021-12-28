@@ -9,7 +9,7 @@ namespace Vars.Deducer
     
     public static class PlanExtensions2
     {
-        public static M<Env, Env> Perform(this Plan2 plan, IRunner runner)
+        public static M<Env, Env> Perform(this Plan2 plan)
             => plan
                 .RoundUpInputs()
                 .Perform(0);

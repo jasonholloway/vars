@@ -34,7 +34,7 @@ static void Deduce()
 
     Planner
         .Plan(index, targetBlocks)
-        .Perform(new BusRunner(Console.In, Console.Out));
+        .Perform();
     
     Say("fin");
 

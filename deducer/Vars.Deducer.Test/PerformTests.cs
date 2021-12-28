@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Vars.Deducer.Model;
@@ -30,21 +29,14 @@ namespace Vars.Deducer.Test
 
             var prog = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
-                .Perform(runner);
+                .Perform();
+            
+            var root = new RootEvaluator(
+                r => new CoreEvaluator(r),
+                r => new TestEvaluator(r)
+            );
 
-
-            var (env, _) = await Run(prog);
-
-
-            ValueTask<(Env, Nil)> Run(M<Env, Env> m)
-            {
-                var root = new RootEvaluator(
-                    r => new CoreEvaluator(r),
-                    r => new TestEvaluator(r)
-                );
-                
-                return root.Eval(Env.Empty, m).ToTask(root);
-            }
+            var (env, _) = root.Eval(Env.Empty, prog).Run(root);
 
             Assert.That(runner.CalledBids.ToArray(),
                 Is.EqualTo(new[]
