@@ -26,7 +26,7 @@ public class EvalTests
     {
         var prog = Id<int>().ReadThen((x, s) =>
         {
-            return x.Lift(s + 1);
+            return x.Pure(s + 1);
         });
 
         var result = _core.Eval(13, prog).Run(_core);
@@ -37,14 +37,14 @@ public class EvalTests
     public void ThenThen()
     {
         var prog = Id<int>()
-            .Lift(1)
+            .Pure(1)
             .Then((x, i) =>
             {
-                return x.Lift(i + 1);
+                return x.Pure(i + 1);
             })
             .Then((x, i) =>
             {
-                return x.Lift(i + 1);
+                return x.Pure(i + 1);
             });
 
         var result = _core.Eval(13, prog).Run(_core);
@@ -57,7 +57,7 @@ public class EvalTests
         var prog = Id<int>()
             .ReadThen((x, s) =>
             {
-                return x.Lift(s + 1);
+                return x.Pure(s + 1);
             })
             .Then((x, i) =>
             {
@@ -74,7 +74,7 @@ public class EvalTests
         var prog = Id<int>().ReadThen((x, i) =>
         {
             Console.WriteLine(i.ToString());
-            return x.Lift(3);
+            return x.Pure(3);
         }).Then((x, i) =>
         {
             return x.Write(i).Lift(20);

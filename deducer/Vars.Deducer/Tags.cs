@@ -5,124 +5,117 @@ namespace Vars.Deducer;
 public interface M<in R, out W> {}
 public interface M<in R, out W, out V> : M<R, W> {}
 
+public interface F<out V> {}
+
+public struct Nil {}
+
 public static class Ops
 {
-    public static M<R, W, V> Lift<R, W, V>(this M<R, W> io, V val)
-        => io.Then(_ => new Tags.Pure<W, V>(val));
+    public static F<V> Pure<V>(V val)
+        => new Tags.Pure<V>(val);
     
-    public static M<S, S> Id<S>()
-        => new Tags.Id<S>();
-
-    public static M<R, W, W> Read<R, W>(this M<R, W> io)
-        => io.Then(_ => new Tags.Read<W>());
-
-    public static M<R, W, V> Read<R, W, V>(this M<R, W> io, Func<W, V> fn)
-        => io.Read().Then((x, s) => x.Lift(fn(s)));
-
-    public static M<AR, BW, BV> ReadThen<AR, AW, BR, BW, BV>(this M<AR, AW> io, Func<M<AW, AW>, AW, M<BR, BW, BV>> fn)
-        where AW : BR
-        => io.Read().Then(fn);
+    public static F<Nil> Id()
+        => new Tags.Id();
     
-    public static M<AR, BW> ReadThen<AR, AW, BR, BW>(this M<AR, AW> io, Func<M<AW, AW>, AW, M<BR, BW>> fn)
-        where AW : BR
-        => io.Read().Then(fn);
     
-    // public static IO<AR, BW, BV> Read<AR, AW, BR, BW, BV>(this IO<AR, AW> io, Func<IO<AW, AW>, AW, IO<BR, BW, BV>> fn)
+    public static F<BV> Then<AV, BV>(this F<AV> io, Func<AV, F<BV>> fn)
+        => new Tags.FMap<AV, BV>(io, fn);
+    
+    public static F<BV> Then<AV, BV>(this F<AV> io, Func<F<BV>> fn)
+        => new Tags.FMap<AV, BV>(io, _ => fn());
+    
+    public static F<BV> Then<AV, BV>(this F<AV> io, F<BV> next)
+        => new Tags.FMap<AV, BV>(io, _ => next);
+    
+    
+    public static F<BV> Map<AV, BV>(this F<AV> io, Func<AV, BV> fn)
+        => io.Then(v => Pure(fn(v)));
+
+
+    public static F<S> Read<S>()
+        => new Tags.Read<S>();
+
+    public static F<V> ReadMap<S, V>(Func<S, V> fn)
+        => Read<S>().Map(fn);
+
+    public static F<V> ReadThen<S, V>(Func<S, F<V>> fn)
+        => Read<S>().Then(fn);
+
+
+    public static F<Nil> Write<W>(W newState)
+        => new Tags.Write<W>(newState);
+
+    public static F<Nil> ReadWrite<R, W>(Func<R, W> fn)
+        => Read<R>().Then(s => Write(fn(s)));
+
+
+
+
+    
+    
+
+    public static F<Nil> Say(string line)
+        => new Tags.Say(line);
+
+    public static F<string> Hear()
+        => new Tags.Hear();
+
+    
+    public static F<Bind[]> InvokeRunner(Outline outline, Bind[] binds, string[] runFlags)
+        => new Tags.InvokeRunner(outline, binds, runFlags);
+    
+    public static F<string[]> DredgeBindLog(string name)
+        => new Tags.DredgeBindLog(name);
+
+    public static F<Nil> AppendToBindLog(Bind bind)
+        => new Tags.AppendToBindLog(bind);
+
+    public static F<Nil> LoopThru<V, V2>(this F<IEnumerable<V>> through, Func<V, F<V2>> @do)
+        => through.Then(els => 
+            els.Aggregate(Pure(default(V2)), (ac, el) => el.Then(@do)) //?????!?!?!
+            .Then(_ => Id()));
+
+    public static F<Nil> LoopThru<V, V2>(this IEnumerable<F<V>> through, Func<V, F<V2>> @do)
+        => through
+            .Aggregate(Pure(default(V2)), (ac, el) => el.Then(@do)) //?????!?!?!
+            .Then(_ => Id());
+
+    // public static M<AR, AW> LoopThru<AR, AW, El>(this M<AR, AW, IEnumerable<El>> io,
+    //     Func<M<AW, AW>, El, M<AW, AW>> @do)
+    //     => io.Then((x, els) => x.LoopThru(els, @do));
+
+    
+    public static F<V> When<V>(F<bool> @if, F<V> @then, F<V> @else)
+        => @if.Then(result => result ? then : @else);
+    
+    public static F<V> When<V>(F<bool> @if, F<V> @then)
+        => @if.Then(result => result ? then : Pure(default(V)!));
+    
+    // public static M<R, BW, BV> When<R, W, AR, AW, BR, BW, BV>(this M<R, W> io, M<AR, AW, bool> @if, M<BR, BW, BV> @then, M<BR, BW, BV> @else)
+    //     where W : AR
     //     where AW : BR
-    //     => io.Read().Then((x, s) => fn(x, s));
-
-
-    public static M<R, W> Write<R, W>(this M<R, R> io, W newState)
-        => new Tags.Write<R, W>(newState);
-
-    public static M<R, W> Update<R, W>(this M<R, R> io, Func<R, W> fn)
-        => io.Read().Then((x, s) => x.Write(fn(s)));
-
-
-
-    public static M<R, W, BV> Map<R, W, AV, BV>(this M<R, W, AV> io, Func<AV, BV> fn)
-        => io.Then((x, v) => x.Lift(fn(v)));
-    
-    
-    public static M<AR, BW, BV> Then<AR, AW, AV, BR, BW, BV>(this M<AR, AW, AV> io, Func<M<AW, AW>, AV, M<BR, BW, BV>> fn)
-        where AW : BR
-        => new Tags.Bind<AR, AW, AV, BR, BW, BV>(io, v => fn(Id<AW>(), v));
-    
-    public static M<AR, BW, BV> Then<AR, AW, BR, BW, BV>(this M<AR, AW> io, Func<M<AW, AW>, M<BR, BW, BV>> fn)
-        where AW : BR
-        => new Tags.Bind<AR, AW, BR, BW, BV>(io, () => fn(Id<AW>()));
-
-    public static M<AR, BW> Then<AR, AW, AV, BR, BW>(this M<AR, AW, AV> io, Func<M<AW, AW>, AV, M<BR, BW>> fn)
-        where AW : BR
-        => io.Then((x, v) => fn(x, v).Lift(default(Nil)));
-
-    public static M<AR, BW> Then<AR, AW, BR, BW>(this M<AR, AW> io, Func<M<AW, AW>, M<BR, BW>> fn)
-        where AW : BR
-        => io.Then((x) => fn(x).Lift(default(Nil)));
-    
-
-    public static M<R, W, Nil> Say<R, W>(this M<R, W> _, string line)
-        => new Tags.Say<R, W>(line);
-
-    public static M<R, W, string> Hear<R, W>(this M<R, W> io)
-        => io.Then(_ => new Tags.Hear<W>());
-
-    
-    public static M<R, W, Bind[]> InvokeRunner<R, W>(this M<R, W> io, Outline outline, Bind[] binds, string[] runFlags)
-        => new Tags.InvokeRunner<R, W>(outline, binds, runFlags);
-    
-    public static M<S, S, string[]> DredgeBindLog<S>(this M<S, S> io, string name)
-        => new Tags.DredgeBindLog<S>(name);
-
-    public static M<S, S> AppendToBindLog<S>(this M<S, S> io, Bind bind)
-        => new Tags.AppendToBindLog<S>(bind);
-    
-    
-    public static M<AR, AW> LoopThru<AR, AW, El>(this M<AR, AW> io, IEnumerable<El> through, Func<M<AW, AW>, El, M<AW, AW>> @do)
-        => io.Then(x => through.Aggregate(x, (ac, el) => ac.Then(x => @do(x, el))));
-
-    public static M<AR, AW> LoopThru<AR, AW, El>(this M<AR, AW, IEnumerable<El>> io,
-        Func<M<AW, AW>, El, M<AW, AW>> @do)
-        => io.Then((x, els) => x.LoopThru(els, @do));
-
-    
-    public static M<R, BW> When<R, W, AR, AW, BR, BW>(this M<R, W> io, M<AR, AW, bool> @if, M<BR, BW> @then, M<BR, BW> @else)
-        where W : AR
-        where AW : BR
-        => io.Then(_ => @if).Then((_, result) => result ? then : (@else));
-    
-    public static M<R, BW, BV> When<R, W, AR, AW, BR, BW, BV>(this M<R, W> io, M<AR, AW, bool> @if, M<BR, BW, BV> @then, M<BR, BW, BV> @else)
-        where W : AR
-        where AW : BR
-        => io.Then(_ => @if).Then((_, result) => result ? then : @else);
-    
-    public static M<R, S> When<R, W, S>(this M<R, W> io, M<S, S, bool> @if, M<S, S> @then)
-        where W : S
-        => io.Then(_ => @if).Then((x, result) => result ? then : x);
+    //     => io.Then(_ => @if).Then((_, result) => result ? then : @else);
+    //
+    // public static M<R, S> When<R, W, S>(this M<R, W> io, M<S, S, bool> @if, M<S, S> @then)
+    //     where W : S
+    //     => io.Then(_ => @if).Then((x, result) => result ? then : x);
 }
 
 
 public abstract record Tags
 {
-    public record Id<S> : M<S, S>;
-    public record Pure<S, V>(V val) : M<S, S, V>;
-    
-    public record Bind<AR, AW, AV, BR, BW, BV>(M<AR, AW, AV> io, Func<AV, M<BR, BW, BV>> fn) : M<AR, BW, BV>
-        where AW : BR;
-    
-    public record Bind<AR, AW, BR, BW, BV>(M<AR, AW> io, Func<M<BR, BW, BV>> fn) : M<AR, BW, BV>
-        where AW : BR;
+    public record Id : F<Nil>;
+    public record Pure<V>(V val) : F<V>;
+    public record FMap<AV, BV>(F<AV> io, Func<AV, F<BV>> fn) : F<BV>;
 
-    public record Read<R> : M<R, R, R>;
-    public record Write<R, W>(W val) : M<R, W>;
+    public record Read<R> : F<R>;
+    public record Write<W>(W val) : F<Nil>;
 
-    public record Say<R, W>(string Line) : M<R, W, Nil>;
-    public record Hear<S> : M<S, S, string>;
+    public record Say(string Line) : F<Nil>;
+    public record Hear : F<string>;
 
-    public record InvokeRunner<R, W>(Outline Outline, Bind[] Binds, string[] RunFlags) : M<R, W, Bind[]>;
+    public record InvokeRunner(Outline Outline, Bind[] Binds, string[] RunFlags) : F<Bind[]>;
     
-    public record DredgeBindLog<S>(string Name) : M<S, S, string[]>;
-    public record AppendToBindLog<S>(Bind bind) : M<S, S>;
+    public record DredgeBindLog(string Name) : F<string[]>;
+    public record AppendToBindLog(Bind bind) : F<Nil>;
 }
-
-public struct Nil {}

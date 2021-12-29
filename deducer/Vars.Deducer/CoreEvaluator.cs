@@ -102,7 +102,7 @@ public class CoreEvaluator : Evaluator
         => new Return<S, V>(s, pure.val);
 
 
-    public Cont<BW, BV> Match<AR, AW, AV, BR, BW, BV>(AR ar, Tags.Bind<AR, AW, AV, BR, BW, BV> tag)
+    public Cont<BW, BV> Match<AR, AW, AV, BR, BW, BV>(AR ar, Tags.FMap<AR, AW, AV, BR, BW, BV> tag)
         where AW : BR
         => _root.Eval(ar, tag.io)
             .FlatMap(t => _root.Eval(t.Item1, tag.fn(t.Item2)));

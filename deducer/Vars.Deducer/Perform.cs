@@ -9,7 +9,7 @@ namespace Vars.Deducer
     
     public static class PlanExtensions2
     {
-        public static M<Env, Env> Perform(this Plan2 plan)
+        public static F<Env> Perform(this Plan2 plan)
             => plan
                 .RoundUpInputs()
                 .Perform(0);
@@ -33,44 +33,44 @@ namespace Vars.Deducer
                         return (allInps, node);
                     });
 
-        static M<Env, Env> Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, int depth)
-            => Id<Env>().Then(x =>
+        static F<Env> Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, int depth)
+        {
+            if (plan.Node is var (allInputs, node))
             {
-                if (plan.Node is var (allInputs, node))
+                switch (node)
                 {
-                    switch (node)
-                    {
-                        case PlanNode.Block((_, _, var inputs, var outputs, var flags) outline):
-                            return x.When(
-                                @if: x.Read(env => depth == 0 || outputs.Any(v => env[v.Name].Value == null)),
-                                then: x
-                                    .LoopThru(plan.Next, (_, n) => Perform(n, depth + 1))
-                                    .Update(env => new RunContext(
-                                        Env: env,
+                    case PlanNode.Block((_, _, var inputs, var outputs, var flags) outline):
+                        return When(
+                            @if: ReadMap((Env env) => depth == 0 || outputs.Any(v => env[v.Name].Value == null)),
+                            then: Pure(plan.Next)
+                                .LoopThru(n => Perform(n, depth + 1))
+                                .Then(
+                                    ReadWrite((Env env) => new RunContext(
+                                        Env: env, //no need to nest now...
                                         Outline: outline,
                                         InBinds: inputs
                                             .Select(v => env[v.Name])
                                             .ToImmutableDictionary(b => b.Key)
-                                        ))
-                                    .PickUndecidedInputs()
-                                    .EmitBoundInputs()
-                                    .SendToRunner(isTarget: depth == 0)
-                                    .MergeBinds()
-                            );
+                                        )))
+                                .Then(PickUndecidedInputs)
+                                .Then(EmitBoundInputs)
+                                .Then(SendToRunner(isTarget: depth == 0))
+                                .Then(MergeBinds)
+                        );
 
-                        case PlanNode.SequencedOr _:
-                            break;
+                    case PlanNode.SequencedOr _:
+                        break;
 
-                        case PlanNode.SequencedAnd _:
-                            return x.LoopThru(plan.Next, (_, n) => n.Perform(depth));
-                    }
+                    case PlanNode.SequencedAnd _:
+                        return Pure(plan.Next).LoopThru(n => n.Perform(depth));
                 }
+            }
 
-                return x;
-            });
+            return null; //Id();
+        }
 
-        public static M<R, RunContext> PickUndecidedInputs<R>(this M<R, RunContext> m)
-            => m.Read(s =>
+        public static F<Nil> PickUndecidedInputs()
+            => ReadMap((RunContext s) =>
                     s.InBinds
                         .Select(kv => (
                             Name: kv.Key,
@@ -79,60 +79,61 @@ namespace Vars.Deducer
                         ))
                         .Where(t => t.Options.Length != 1)
                 )
-                .LoopThru((x, p) => x
-                    .When(x.Lift(!p.Options.Any()),
-                        then: x.DredgeBindLog(p.Name),
-                        @else: x.Lift(p.Options))
-                    .Then((x, vals) => x
-                        .PickVal(p.Name, vals)
-                        .Map(picked => new Bind(p.Name, picked, "picked"))
-                        .Then((x, bind) => x
-                            .Update(s => s with
-                            {
-                                Env = s.Env.Add(bind),
-                                InBinds = s.InBinds.SetItem(p.Name, bind)
-                            })
-                            .AppendToBindLog(bind)
-                        ))
+                .LoopThru(p =>
+                    When(
+                        @if: Pure(!p.Options.Any()),
+                        then: DredgeBindLog(p.Name),
+                        @else: Pure(p.Options)
+                    )
+                    .Then(vals =>
+                        PickVal(p.Name, vals)
+                            .Map(picked => new Bind(p.Name, picked, "picked"))
+                            .Then(bind =>
+                                ReadWrite((RunContext s) => s with
+                                    {
+                                        Env = s.Env.Add(bind), //this should be updated separately
+                                        InBinds = s.InBinds.SetItem(p.Name, bind)
+                                    })
+                                    .Then(AppendToBindLog(bind))
+                            ))
                 );
 
-        public static M<R, RunContext, string?> PickVal<R>(this M<R, RunContext> m, string name, IEnumerable<string> options)
-            => m.Say($"pick {name} ¦{string.Join('¦', options)}")
-                .Say("@YIELD")
-                .Hear()
-                .Then((x, pickedVal) =>
+        public static F<string?> PickVal(string name, IEnumerable<string> options)
+            => Say($"pick {name} ¦{string.Join('¦', options)}")
+                .Then(Say("@YIELD"))
+                .Then(Hear)
+                .Then(pickedVal =>
                 {
                     if (pickedVal?.EndsWith('!') ?? false)
                     {
                         var v = pickedVal[..^1];
-                        return x.Say($"pin {name} {v}")
-                            .Lift(v);
+                        return Say($"pin {name} {v}")
+                            .Then(Pure(v));
                     }
 
-                    return x.Lift(pickedVal);
+                    return Pure(pickedVal);
                 });
         
-        public static M<R, RunContext> EmitBoundInputs<R>(this M<R, RunContext> m)
-            => m.Read(s => s.InBinds.Values
+        public static F<Nil> EmitBoundInputs()
+            => ReadMap((RunContext s) => s.InBinds.Values
                     .Select(b => $"bound {s.Outline.Bid} {b.Key} {b.Value?.ReplaceLineEndings(((char)60).ToString()) ?? string.Empty}")
                 )
-                .LoopThru((x, line) => x.Say(line));
+                .LoopThru(line => Say(line));
 
-        public static M<R, RunContext, Bind[]> SendToRunner<R>(this M<R, RunContext> m, bool isTarget)
-            => m.ReadThen((x, s) =>
+        public static F<Bind[]> SendToRunner(bool isTarget)
+            => ReadThen((RunContext s) =>
             {
                 var runFlags = isTarget ? new[] { "T" } : Array.Empty<string>();
-                return x.InvokeRunner(s.Outline, s.InBinds.Values.ToArray(), runFlags);
+                return InvokeRunner(s.Outline, s.InBinds.Values.ToArray(), runFlags);
             });
 
-        public static M<R, Env> MergeBinds<R>(this M<R, RunContext, Bind[]> m)
-            => m.Then((x, binds) =>
-            {
-                //TODO store source on binds
-                //TODO emit 'bound' to relay bind to screen
-                return x.Update(s =>
-                    binds.Aggregate(s.Env, (ac, b) => ac.Add(b))
-                    );
-            });
+        public static F<Env> MergeBinds(Bind[] binds)
+        {
+            //TODO store source on binds
+            //TODO emit 'bound' to relay bind to screen
+            return ReadWrite((RunContext s) =>
+                    binds.Aggregate(s.Env, (ac, b) => ac.Add(b)))
+                .Then(Read<Env>);
+        }
     }
 }
