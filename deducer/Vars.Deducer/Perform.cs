@@ -62,7 +62,9 @@ namespace Vars.Deducer
                         break;
 
                     case PlanNode.SequencedAnd _:
-                        return Pure(plan.Next).LoopThru(n => n.Perform(depth));
+                        return Pure(plan.Next)
+                            .LoopThru(n => n.Perform(depth))
+                            .Then(Read<Env>);
                 }
             }
 

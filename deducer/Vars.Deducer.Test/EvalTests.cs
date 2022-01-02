@@ -15,54 +15,41 @@ public class EvalTests
     [Test]
     public void Reads()
     {
-        var prog = Id<int>().Read();
+        var prog = Id().Then(Read<int>);
 
         var result = _core.Eval(13, prog).Run(_core);
         Assert.That(result, Is.EqualTo((13, 13)));
     }
     
     [Test]
-    public void ReadThen()
+    public void ReadThens()
     {
-        var prog = Id<int>().ReadThen((x, s) =>
-        {
-            return x.Pure(s + 1);
-        });
+        var prog = Id().Then(
+            ReadThen((int s) =>
+            {
+                return Pure(s + 1);
+            }));
 
         var result = _core.Eval(13, prog).Run(_core);
         Assert.That(result, Is.EqualTo((13, 14)));
     }
     
     [Test]
-    public void ThenThen()
+    public void ThenThens()
     {
-        var prog = Id<int>()
-            .Pure(1)
-            .Then((x, i) =>
-            {
-                return x.Pure(i + 1);
-            })
-            .Then((x, i) =>
-            {
-                return x.Pure(i + 1);
-            });
+        var prog = Pure(1)
+            .Then(i => Pure(i + 1))
+            .Then(i => Pure(i + 1));
 
         var result = _core.Eval(13, prog).Run(_core);
         Assert.That(result, Is.EqualTo((13, 3)));
     }
     
     [Test]
-    public void ReadThenThen()
+    public void ReadThenThens()
     {
-        var prog = Id<int>()
-            .ReadThen((x, s) =>
-            {
-                return x.Pure(s + 1);
-            })
-            .Then((x, i) =>
-            {
-                return x.Lift(i + 1);
-            });
+        var prog = ReadThen((int s) => Pure(s + 1))
+            .Then(i => Pure(i + 1));
 
         var result = _core.Eval(13, prog).Run(_core);
         Assert.That(result, Is.EqualTo((13, 15)));
@@ -71,13 +58,13 @@ public class EvalTests
     [Test]
     public void Evals()
     {
-        var prog = Id<int>().ReadThen((x, i) =>
+        var prog = ReadThen((int i) =>
         {
             Console.WriteLine(i.ToString());
-            return x.Pure(3);
-        }).Then((x, i) =>
+            return Pure(3);
+        }).Then(i =>
         {
-            return x.Write(i).Lift(20);
+            return Write(i).Then(Pure(20));
         });
 
         var result = _core.Eval(7, prog).Run(_core);

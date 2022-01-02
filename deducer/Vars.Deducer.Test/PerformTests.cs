@@ -57,19 +57,19 @@ namespace Vars.Deducer.Test
         public TestEvaluator(IEvaluator root) : base(root)
         { }
 
-        public Cont<S, string[]> Match<S>(S state, Tags.DredgeBindLog<S> tag)
+        public Cont<S, string[]> Match<S>(S state, Tags.DredgeBindLog tag)
             => new Return<S, string[]>(state, new[] { "woof" });
 
-        public Cont<S, Nil> Match<S>(S state, Tags.AppendToBindLog<S> tag)
+        public Cont<S, Nil> Match<S>(S state, Tags.AppendToBindLog tag)
             => new Return<S, Nil>(state, default);
         
-        public Cont<S, string> Match<S>(S state, Tags.Hear<S> _)
+        public Cont<S, string> Match<S>(S state, Tags.Hear _)
             => new Return<S, string>(state, "HELLO!");
         
-        public Cont<R, Nil> Match<R, W>(R state, Tags.Say<R, W> _)
-            => new Return<R, Nil>(state, default);
+        public Cont<S, Nil> Match<S>(S state, Tags.Say _)
+            => new Return<S, Nil>(state, default);
         
-        public Cont<R, Bind[]> Match<R, W>(R state, Tags.InvokeRunner<R, W> _)
-            => new Return<R, Bind[]>(state, Array.Empty<Bind>());
+        public Cont<S, Bind[]> Match<S>(S state, Tags.InvokeRunner _)
+            => new Return<S, Bind[]>(state, Array.Empty<Bind>());
     }
 }

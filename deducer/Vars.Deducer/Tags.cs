@@ -30,7 +30,7 @@ public static class Ops
     
     public static F<BV> Map<AV, BV>(this F<AV> io, Func<AV, BV> fn)
         => io.Then(v => Pure(fn(v)));
-
+    
 
     public static F<S> Read<S>()
         => new Tags.Read<S>();
@@ -72,7 +72,7 @@ public static class Ops
 
     public static F<Nil> LoopThru<V, V2>(this F<IEnumerable<V>> through, Func<V, F<V2>> @do)
         => through.Then(els => 
-            els.Aggregate(Pure(default(V2)), (ac, el) => el.Then(@do)) //?????!?!?!
+            els.Aggregate(Pure(default(V2)), (ac, el) => @do(el))
             .Then(_ => Id()));
 
     public static F<Nil> LoopThru<V, V2>(this IEnumerable<F<V>> through, Func<V, F<V2>> @do)
