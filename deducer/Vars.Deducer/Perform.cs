@@ -5,7 +5,7 @@ namespace Vars.Deducer
 {
     using static Ops;
         
-    public record RunContext(Env Env, Outline Outline, ImmutableDictionary<string, Bind> InBinds);
+    public record RunContext(Outline Outline, ImmutableDictionary<string, Bind> InBinds);
     
     public static class PlanExtensions2
     {
@@ -46,7 +46,6 @@ namespace Vars.Deducer
                                 .LoopThru(n => Perform(n, depth + 1))
                                 .Then(
                                     ReadWrite((Env env) => new RunContext(
-                                        Env: env, //no need to nest now...
                                         Outline: outline,
                                         InBinds: inputs
                                             .Select(v => env[v.Name])
@@ -91,11 +90,12 @@ namespace Vars.Deducer
                         PickVal(p.Name, vals)
                             .Map(picked => new Bind(p.Name, picked, "picked"))
                             .Then(bind =>
-                                ReadWrite((RunContext s) => s with
+                                Id()
+                                    .Then(ReadWrite((Env env) => env.Add(bind)))
+                                    .Then(ReadWrite((RunContext s) => s with
                                     {
-                                        Env = s.Env.Add(bind), //this should be updated separately
                                         InBinds = s.InBinds.SetItem(p.Name, bind)
-                                    })
+                                    }))
                                     .Then(AppendToBindLog(bind))
                             ))
                 );
@@ -133,8 +133,7 @@ namespace Vars.Deducer
         {
             //TODO store source on binds
             //TODO emit 'bound' to relay bind to screen
-            return ReadWrite((RunContext s) =>
-                    binds.Aggregate(s.Env, (ac, b) => ac.Add(b)))
+            return ReadWrite((Env env) => binds.Aggregate(env, (ac, b) => ac.Add(b)))
                 .Then(Read<Env>);
         }
     }

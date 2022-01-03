@@ -74,8 +74,17 @@ public class CoreEvaluator : Evaluator
     
     
     public Cont<S, R> Match<S, R>(S s, Tags.Read<R> _)
-        => new Return<S, R>(s, default); //todo - extract state here
+        where S : IStateContext<S, R>
+        => new Return<S, R>(s, s.Get());
     
     public Cont<S, Nil> Match<S, W>(S s, Tags.Write<W> write)
-        => new Return<S, Nil>(s, default); //todo - apply write.val here
+        where S : IStateContext<S, W>
+        => new Return<S, Nil>(s.Put(write.val), default);
+}
+
+public interface IEvalContext<TSelf>
+{
+    TState Get<TState>();
+    TSelf Put<TState>(TState state);
+    TSelf CombineWith(TSelf other);
 }
