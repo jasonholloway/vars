@@ -2,8 +2,11 @@ using System.Collections.Immutable;
 
 namespace Vars.Deducer;
 
-public interface IStateContext<out TSelf, TState> where TSelf : IStateContext<TSelf, TState>
+public interface IStateContext<out TSelf, TState> 
+    where TSelf : IStateContext<TSelf, TState>
 {
+    TSelf Self { get;  }
+    
     TState Get();
     TSelf Put(TState state);
 

@@ -75,6 +75,8 @@ public class EvalTests
 
     record Context(int State = 0) : IStateContext<Context, int>
     {
+        Context IStateContext<Context, int>.Self => this;
+
         int IStateContext<Context, int>.Get()
             => State;
 

@@ -11,7 +11,7 @@ public abstract class Evaluator : IEvaluator
 
     public bool TryEval<S, V>(S state, F<V> m, out Cont<S, V> cont)
     {
-        cont = ((dynamic)this).Match((dynamic)state!, (dynamic)m);
+        cont = ((dynamic)this).Match((dynamic)state, (dynamic)m);
         return cont != null;
     }
 
@@ -71,11 +71,14 @@ public class CoreEvaluator : Evaluator
     public Cont<S, BV> Match<S, AV, BV>(S s, Tags.FMap<AV, BV> tag)
         => _root.Eval(s, tag.io)
             .FlatMap(t => _root.Eval(t.Item1, tag.fn(t.Item2)));
-    
-    
+
+
     public Cont<S, R> Match<S, R>(S s, Tags.Read<R> _)
         where S : IStateContext<S, R>
         => new Return<S, R>(s, s.Get());
+    
+    // public Cont<object, R> Match<R>(object s, Tags.Read<R> _)
+    //     => new Return<object, R>(s, default);
     
     public Cont<S, Nil> Match<S, W>(S s, Tags.Write<W> write)
         where S : IStateContext<S, W>
