@@ -55,19 +55,22 @@ namespace Vars.Deducer
                                 .Then(EmitBoundInputs)
                                 .Then(SendToRunner(isTarget: depth == 0))
                                 .Then(MergeBinds)
+                                .Then(Read<Env>)
                         );
 
                     case PlanNode.SequencedOr _:
                         break;
 
                     case PlanNode.SequencedAnd _:
-                        return Pure(plan.Next)
-                            .LoopThru(n => n.Perform(depth))
+                        var d = Pure(plan.Next)
+                            .Map(v => v);
+                        
+                        return d.LoopThru(n => n.Perform(depth))
                             .Then(Read<Env>);
                 }
             }
 
-            return null; //Id();
+            return Read<Env>();
         }
 
         public static F<Nil> PickUndecidedInputs()
@@ -129,12 +132,11 @@ namespace Vars.Deducer
                 return InvokeRunner(s.Outline, s.InBinds.Values.ToArray(), runFlags);
             });
 
-        public static F<Env> MergeBinds(Bind[] binds)
+        public static F<Nil> MergeBinds(Bind[] binds)
         {
             //TODO store source on binds
             //TODO emit 'bound' to relay bind to screen
-            return ReadWrite((Env env) => binds.Aggregate(env, (ac, b) => ac.Add(b)))
-                .Then(Read<Env>);
+            return ReadWrite((Env env) => binds.Aggregate(env, (ac, b) => ac.Add(b)));
         }
     }
 }

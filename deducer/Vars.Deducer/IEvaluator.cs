@@ -1,7 +1,7 @@
 namespace Vars.Deducer;
 
-public interface IEvaluator
+public interface IEvaluator<X>
 {
-    bool TryEval<S, V>(S state, F<V> m, out Cont<S, V> cont);
-    Cont<S, V> Eval<S, V>(S state, F<V> m);
+    bool TryEval<V>(X x, F<V> m, out Cont<X, V> cont);
+    Cont<X, V> Eval<V>(X x, F<V> m);
 }

@@ -1,42 +1,35 @@
+using System.Collections.Immutable;
+using System.Dynamic;
+using System.Linq.Expressions;
+
 namespace Vars.Deducer;
 
-public abstract class Evaluator : IEvaluator
+public abstract record EvaluatorBuilder
 {
-    protected readonly IEvaluator _root;
-
-    protected Evaluator(IEvaluator root)
-    {
-        _root = root;
-    }
-
-    public bool TryEval<S, V>(S state, F<V> m, out Cont<S, V> cont)
-    {
-        cont = ((dynamic)this).Match((dynamic)state, (dynamic)m);
-        return cont != null;
-    }
-
-    public Cont<S, V> Eval<S, V>(S state, F<V> m)
-        => TryEval(state, m, out var cont) 
-            ? cont 
-            : throw new NotImplementedException($"Couldn't handle {m}");
-
-    protected object Match<S, M>(S state, M m) => null!;
+    public static EvaluatorBuilder<X> WithContext<X>()
+        => new(ImmutableList<Func<IEvaluator<X>, IEvaluator<X>>>.Empty);
 }
 
-public class RootEvaluator : IEvaluator
+public record EvaluatorBuilder<X>(ImmutableList<Func<IEvaluator<X>, IEvaluator<X>>> EvalFacs) : EvaluatorBuilder
 {
-    IEvaluator[] _evals;
-    
-    public RootEvaluator(params Func<IEvaluator, IEvaluator>[] facs)
-    {
-        _evals = facs.Select(fn => fn(this)).ToArray();
-    }
+    public IEvaluator<X> Build() => new RootEvaluator<X>(EvalFacs);
+}
 
-    public bool TryEval<S, V>(S state, F<V> m, out Cont<S, V> cont)
+
+public class RootEvaluator<X> : IEvaluator<X>
+{
+    IEvaluator<X>[] _evals;
+
+    public RootEvaluator(IEnumerable<Func<IEvaluator<X>, IEvaluator<X>>> evalFacs)
+    {
+        _evals = evalFacs.Select(fac => fac(this)).ToArray();
+    }
+    
+    public bool TryEval<V>(X x, F<V> m, out Cont<X, V> cont)
     {
         foreach (var eval in _evals)
         {
-            if (eval.TryEval(state, m, out cont))
+            if (eval.TryEval(x, m, out cont))
             {
                 return true;
             }
@@ -50,44 +43,67 @@ public class RootEvaluator : IEvaluator
         return false;
     }
 
-    public Cont<S, V> Eval<S, V>(S state, F<V> m)
-        => TryEval(state, m, out var cont)
+    public Cont<X, V> Eval<V>(X x, F<V> m)
+        => TryEval(x, m, out var cont)
             ? cont
             : throw new NotImplementedException($"Can't handle {m}");
 }
 
-public class CoreEvaluator : Evaluator
+
+public abstract class Evaluator<X> : IEvaluator<X>
 {
-    public CoreEvaluator(IEvaluator root) 
-        : base(root) {}
+    protected readonly IEvaluator<X> _root;
 
-    public Cont<S, Nil> Match<S>(S s, Tags.Id _)
-        => new Return<S, Nil>(s, default);
+    protected Evaluator(IEvaluator<X> root)
+    {
+        _root = root;
+    }
 
-    public Cont<S, V> Match<S, V>(S s, Tags.Pure<V> pure)
-        => new Return<S, V>(s, pure.val);
+    public bool TryEval<V>(X x, F<V> m, out Cont<X, V> cont)
+    {
+        cont = ((dynamic)this).Match(x, (dynamic)m);
+        return cont != null;
+    }
 
+    public Cont<X, V> Eval<V>(X x, F<V> m)
+        => TryEval(x, m, out var cont) 
+            ? cont 
+            : throw new NotImplementedException($"Couldn't handle {m}");
 
-    public Cont<S, BV> Match<S, AV, BV>(S s, Tags.FMap<AV, BV> tag)
-        => _root.Eval(s, tag.io)
-            .FlatMap(t => _root.Eval(t.Item1, tag.fn(t.Item2)));
-
-
-    public Cont<S, R> Match<S, R>(S s, Tags.Read<R> _)
-        where S : IStateContext<S, R>
-        => new Return<S, R>(s, s.Get());
-    
-    // public Cont<object, R> Match<R>(object s, Tags.Read<R> _)
-    //     => new Return<object, R>(s, default);
-    
-    public Cont<S, Nil> Match<S, W>(S s, Tags.Write<W> write)
-        where S : IStateContext<S, W>
-        => new Return<S, Nil>(s.Put(write.val), default);
+    protected object Match(X x, object m) => null!;
 }
 
-public interface IEvalContext<TSelf>
+
+public static class CoreEvaluatorExtensions
 {
-    TState Get<TState>();
-    TSelf Put<TState>(TState state);
-    TSelf CombineWith(TSelf other);
+    public static EvaluatorBuilder<X> AddCoreEvaluator<X>(this EvaluatorBuilder<X> builder) 
+        => new(builder.EvalFacs.Add(root => new CoreEvaluator<X>(root)));
+}
+
+public class CoreEvaluator<X> : Evaluator<X>
+{
+    public CoreEvaluator(IEvaluator<X> root) 
+        : base(root) {}
+    
+    public Cont<X, Nil> Match(X x, Tags.Id _)
+        => new Return<X, Nil>(x, default);
+
+    public Cont<X, V> Match<V>(X x, Tags.Pure<V> tag)
+        => new Return<X, V>(x, tag.val);
+
+
+    public Cont<X, BV> Match<AV, BV>(X x, Tags.FMap<AV, BV> tag)
+        => _root.Eval(x, tag.io)
+            .FlatMap((x2, av) => _root.Eval(x2, tag.fn(av)));
+
+
+    public Cont<X, R> Match<R>(X x, Tags.Read<R> tag)
+        => x is IState<X, R> state
+            ? new Return<X, R>(x, state.Get())
+            : throw new NotImplementedException($"Context doesn't implement {typeof(IState<X, R>)}");
+    
+    public Cont<X, Nil> Match<W>(X x, Tags.Write<W> tag)
+        => x is IState<X, W> state
+            ? new Return<X, Nil>(state.Put(tag.val), default)
+            : throw new NotImplementedException($"Context doesn't implement {typeof(IState<X, W>)}");
 }

@@ -30,13 +30,14 @@ namespace Vars.Deducer.Test
             var prog = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
                 .Perform();
-            
-            var root = new RootEvaluator(
-                r => new CoreEvaluator(r),
-                r => new TestEvaluator(r)
-            );
 
-            var (env, _) = root.Eval(Env.Empty, prog).Run(root);
+            var root = EvaluatorBuilder
+                .WithContext<PerformContext>()
+                .AddCoreEvaluator()
+                .AddTestEvaluator()
+                .Build();
+
+            var env = root.Eval(PerformContext.Empty, prog).Run(root).State.Env;
 
             Assert.That(runner.CalledBids.ToArray(),
                 Is.EqualTo(new[]
@@ -51,25 +52,54 @@ namespace Vars.Deducer.Test
             Assert.That(env["flour"].Value, Is.EqualTo("Self-Raising"));
         }
     }
-
-    public class TestEvaluator : Evaluator
+    
+    public static class TestEvaluatorExtensions
     {
-        public TestEvaluator(IEvaluator root) : base(root)
+        public static EvaluatorBuilder<X> AddTestEvaluator<X>(this EvaluatorBuilder<X> builder) 
+            => new(builder.EvalFacs.Add(root => new TestEvaluator<X>(root)));
+    }
+
+    public class TestEvaluator<X> : Evaluator<X>
+    {
+        public TestEvaluator(IEvaluator<X> root) : base(root)
         { }
 
-        public Cont<S, string[]> Match<S>(S state, Tags.DredgeBindLog tag)
-            => new Return<S, string[]>(state, new[] { "woof" });
+        public Cont<X, string[]> Match(X x, Tags.DredgeBindLog tag)
+            => new Return<X, string[]>(x, new[] { "woof" });
 
-        public Cont<S, Nil> Match<S>(S state, Tags.AppendToBindLog tag)
-            => new Return<S, Nil>(state, default);
+        public Cont<X, Nil> Match(X x, Tags.AppendToBindLog tag)
+            => new Return<X, Nil>(x, default);
         
-        public Cont<S, string> Match<S>(S state, Tags.Hear _)
-            => new Return<S, string>(state, "HELLO!");
+        public Cont<X, string> Match(X x, Tags.Hear _)
+            => new Return<X, string>(x, "HELLO!");
         
-        public Cont<S, Nil> Match<S>(S state, Tags.Say _)
-            => new Return<S, Nil>(state, default);
+        public Cont<X, Nil> Match(X x, Tags.Say _)
+            => new Return<X, Nil>(x, default);
         
-        public Cont<S, Bind[]> Match<S>(S state, Tags.InvokeRunner _)
-            => new Return<S, Bind[]>(state, Array.Empty<Bind>());
+        public Cont<X, Bind[]> Match(X x, Tags.InvokeRunner _)
+            => new Return<X, Bind[]>(x, Array.Empty<Bind>());
+    }
+    
+    public record PerformContext(Env Env, RunContext Run) : IState<PerformContext, Env> , IState<PerformContext, RunContext>
+    {
+        public static readonly PerformContext Empty = new(Env.Empty, null!);
+        
+        Env IState<PerformContext, Env>.Get() => Env;
+        RunContext IState<PerformContext, RunContext>.Get() => Run;
+
+        PerformContext IState<PerformContext, RunContext>.Put(RunContext run) => this with { Run = run };
+        PerformContext IState<PerformContext, Env>.Put(Env env)  => this with { Env = env };
+        
+        Env IState<PerformContext, Env>.Zero => Env.Empty;
+        Env IState<PerformContext, Env>.Combine(Env left, Env right)
+        {
+            throw new NotImplementedException();
+        }
+
+        RunContext IState<PerformContext, RunContext>.Zero => null!;
+        RunContext IState<PerformContext, RunContext>.Combine(RunContext left, RunContext right)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
