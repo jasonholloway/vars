@@ -28,7 +28,8 @@ public class EvalTests
         var prog = Id().Then(Read<int>);
 
         var result = _core.Eval(new Context(13), prog).Run(_core);
-        Assert.That(result, Is.EqualTo((new Context(13), 13)));
+        Assert.That((result.State, result.Value), 
+            Is.EqualTo((new Context(13), 13)));
     }
 
     [Test]
@@ -41,7 +42,7 @@ public class EvalTests
             }));
 
         var result = _core.Eval(new Context(13), prog).Run(_core);
-        Assert.That(result, Is.EqualTo((new Context(13), 14)));
+        Assert.That((result.State, result.Value), Is.EqualTo((new Context(13), 14)));
     }
     
     [Test]
@@ -52,7 +53,8 @@ public class EvalTests
             .Then(i => Pure(i + 1));
 
         var result = _core.Eval(new Context(13), prog).Run(_core);
-        Assert.That(result, Is.EqualTo((new Context(13), 3)));
+        Assert.That((result.State, result.Value), 
+            Is.EqualTo((new Context(13), 3)));
     }
     
     [Test]
@@ -62,7 +64,8 @@ public class EvalTests
             .Then(i => Pure(i + 1));
 
         var result = _core.Eval(new Context(13), prog).Run(_core);
-        Assert.That(result, Is.EqualTo((new Context(13), 15)));
+        Assert.That((result.State, result.Value), 
+            Is.EqualTo((new Context(13), 15)));
     }
     
     [Test]
@@ -78,7 +81,8 @@ public class EvalTests
         });
 
         var result = _core.Eval(new Context(7), prog).Run(_core);
-        Assert.That(result, Is.EqualTo((new Context(3), 20)));
+        Assert.That((result.State, result.Value), 
+            Is.EqualTo((new Context(3), 20)));
     }
     
 
