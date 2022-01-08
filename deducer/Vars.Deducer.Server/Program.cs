@@ -1,6 +1,9 @@
-﻿using System.Net.Sockets;
+﻿using System.Diagnostics;
+using System.Net.Sockets;
 
 var listener = TcpListener.Create(7777);
+Process.GetCurrentProcess().Exited += (_, _) => listener.Stop();
+listener.Start();
 
 while (true)
 {
@@ -11,10 +14,9 @@ while (true)
         try
         {
             using var str = tcp.GetStream();
-            using var writer = new StreamWriter(str);
             using var reader = new StreamReader(str);
-
-
+            using var writer = new StreamWriter(str);
+            Hub.Run(reader, writer);
         }
         finally
         {

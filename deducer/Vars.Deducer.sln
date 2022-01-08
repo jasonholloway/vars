@@ -6,7 +6,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vars.Deducer.Test", "Vars.D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vars.Deducer.Server", "Vars.Deducer.Server\Vars.Deducer.Server.csproj", "{BB29974C-0037-42B4-9235-29C3F9B52E25}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vars.Deducer.Run", "Vars.Deducer.Run\Vars.Deducer.Run.csproj", "{E1824736-F03C-4F91-A005-A1DDE13F07EE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vars.Deducer.StandAlone", "Vars.Deducer.StandAlone\Vars.Deducer.StandAlone.csproj", "{E1824736-F03C-4F91-A005-A1DDE13F07EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

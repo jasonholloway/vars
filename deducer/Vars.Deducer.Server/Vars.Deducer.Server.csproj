@@ -7,4 +7,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Vars.Deducer\Vars.Deducer.csproj" />
+    </ItemGroup>
+
 </Project>

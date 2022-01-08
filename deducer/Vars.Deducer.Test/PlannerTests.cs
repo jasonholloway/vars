@@ -100,9 +100,4 @@ namespace Vars.Deducer.Test
             Assert.That(v1.GetHashCode(), Is.EqualTo(v2.GetHashCode()));
         }
     }
-
-    public record Execution
-    {
-        
-    }
 }
