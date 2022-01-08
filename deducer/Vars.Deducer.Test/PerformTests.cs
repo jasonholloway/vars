@@ -1,25 +1,30 @@
 using System;
+using System.Collections.Immutable;
 using System.Linq;
-using System.Threading.Tasks;
 using NUnit.Framework;
+using Vars.Deducer.Evaluators;
 using Vars.Deducer.Model;
+using Vars.Deducer.Tags;
 
 namespace Vars.Deducer.Test
 {
     using static TestHelpers;
+    
+    //we want some pins as well
+    //pins can be specified up front
+    //which naturally works
+    
+    //and then they need to work through local bindings too
+    //but maybe this is a bit much for now
+    
+    //todo the bind log
+    //todo communicate via tcp
 
     public class PerformTests
     {
         [Test]
-        public async Task Performs()
+        public void Performs()
         {
-            var runner = Blocks(
-                ("block1", new[] { ("cake", "Victoria Sponge") }),
-                ("block2", new[] { ("chicken", "Charles") }),
-                ("block3", new[] { ("eggs", "Medium") }),
-                ("block4", new[] { ("flour", "Self-Raising") })
-            );
-
             var index = Outlines(
                 "block4;C;field,farm;flour;",
                 "block1;A;eggs,flour;cake;",
@@ -29,75 +34,110 @@ namespace Vars.Deducer.Test
 
             var prog = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
-                .Perform();
+                .Deduce();
 
             var root = EvaluatorBuilder
-                .WithContext<PerformContext>()
+                .WithContext<TestContext>()
                 .AddCoreEvaluator()
+                .AddRunBehaviours(
+                     ("block1", new[] { ("cake", "Victoria Sponge") }),
+                     ("block2", new[] { ("chicken", "Charles") }),
+                     ("block3", new[] { ("eggs", "Medium") }),
+                     ("block4", new[] { ("flour", "Self-Raising") })
+                 )
+                .AddPickBehaviours(
+                    ("farm", "Windy Harbour"),
+                    ("field", "Wheat1")
+                    )
                 .AddTestEvaluator()
                 .Build();
 
-            var env = root.Eval(PerformContext.Empty, prog).Run(root).State.Env;
-
-            Assert.That(runner.CalledBids.ToArray(),
+            var state = root.Eval(TestContext.Empty with { Env = Env.Empty.Add(("chicken", "Clucky")) }, prog).Run(root).State;
+            
+            Assert.That(state.Env["chicken"].Value, Is.EqualTo("Clucky"));
+            Assert.That(state.Env["flour"].Value, Is.EqualTo("Self-Raising"));
+            Assert.That(state.Env["farm"].Value, Is.EqualTo("Windy Harbour"));
+            Assert.That(state.Env["field"].Value, Is.EqualTo("Wheat1"));
+            
+            Assert.That(
+                state.Runs.Select(b => b.Bid),
                 Is.EqualTo(new[]
                 {
-                    "block2",
                     "block4",
                     "block3",
                     "block1"
                 }));
-
-            Assert.That(env["chicken"].Value, Is.EqualTo("Charles"));
-            Assert.That(env["flour"].Value, Is.EqualTo("Self-Raising"));
         }
     }
     
     public static class TestEvaluatorExtensions
     {
-        public static EvaluatorBuilder<X> AddTestEvaluator<X>(this EvaluatorBuilder<X> builder) 
+        public static EvaluatorBuilder<X> AddTestEvaluator<X>(this EvaluatorBuilder<X> builder)
             => new(builder.EvalFacs.Add(root => new TestEvaluator<X>(root)));
     }
 
-    public class TestEvaluator<X> : Evaluator<X>
+    public class TestEvaluator<X> : EvaluatorBase<X>
     {
         public TestEvaluator(IEvaluator<X> root) : base(root)
         { }
 
-        public Cont<X, string[]> Match(X x, Tags.DredgeBindLog tag)
+        public Cont<X, string[]> Match(X x, DeducerTags.DredgeBindLog tag)
             => new Return<X, string[]>(x, new[] { "woof" });
 
-        public Cont<X, Nil> Match(X x, Tags.AppendToBindLog tag)
+        public Cont<X, Nil> Match(X x, DeducerTags.AppendToBindLog tag)
             => new Return<X, Nil>(x, default);
         
-        public Cont<X, string> Match(X x, Tags.Hear _)
+        public Cont<X, string> Match(X x, CoreTags.Hear _)
             => new Return<X, string>(x, "HELLO!");
         
-        public Cont<X, Nil> Match(X x, Tags.Say _)
+        public Cont<X, Nil> Match(X x, CoreTags.Say _)
             => new Return<X, Nil>(x, default);
-        
-        public Cont<X, Bind[]> Match(X x, Tags.InvokeRunner _)
-            => new Return<X, Bind[]>(x, Array.Empty<Bind>());
     }
     
-    public record PerformContext(Env Env, RunContext Run) : IState<PerformContext, Env> , IState<PerformContext, RunContext>
+    
+    public record TestContext(Env Env, RunContext Run, ImmutableArray<RunBehaviour> Runs, (string, PickBehaviour?)[] Picks) 
+          : IState<TestContext, Env>, 
+            IState<TestContext, RunContext>, 
+            IState<TestContext, ImmutableArray<RunBehaviour>>,
+            IState<TestContext, (string, PickBehaviour?)[]>
     {
-        public static readonly PerformContext Empty = new(Env.Empty, null!);
+        public static readonly TestContext Empty = new(Env.Empty, null!, ImmutableArray<RunBehaviour>.Empty, Array.Empty<(string, PickBehaviour?)>());
         
-        Env IState<PerformContext, Env>.Get() => Env;
-        RunContext IState<PerformContext, RunContext>.Get() => Run;
 
-        PerformContext IState<PerformContext, RunContext>.Put(RunContext run) => this with { Run = run };
-        PerformContext IState<PerformContext, Env>.Put(Env env)  => this with { Env = env };
+        Env IState<TestContext, Env>.Get() => Env;
+
+        (string, PickBehaviour?)[] IState<TestContext, (string, PickBehaviour?)[]>.Zero => Array.Empty<(string, PickBehaviour?)>();
+
+        (string, PickBehaviour?)[] IState<TestContext, (string, PickBehaviour?)[]>.Combine(
+            (string, PickBehaviour?)[] left, (string, PickBehaviour?)[] right)
+            => left.Concat(right).ToArray();
+
+        TestContext IState<TestContext, (string, PickBehaviour?)[]>.Put((string, PickBehaviour?)[] state)
+            => this with { Picks = ((IState<TestContext, (string, PickBehaviour?)[]>)(this)).Combine(Picks, state) };
         
-        Env IState<PerformContext, Env>.Zero => Env.Empty;
-        Env IState<PerformContext, Env>.Combine(Env left, Env right)
+        (string, PickBehaviour?)[] IState<TestContext, (string, PickBehaviour?)[]>.Get() => Picks;
+
+        RunContext IState<TestContext, RunContext>.Get() => Run;
+
+        TestContext IState<TestContext, RunContext>.Put(RunContext run) => this with { Run = run };
+        TestContext IState<TestContext, Env>.Put(Env env)  => this with { Env = env };
+
+        Env IState<TestContext, Env>.Zero => Env.Empty;
+        Env IState<TestContext, Env>.Combine(Env left, Env right)
         {
             throw new NotImplementedException();
         }
 
-        RunContext IState<PerformContext, RunContext>.Zero => null!;
-        RunContext IState<PerformContext, RunContext>.Combine(RunContext left, RunContext right)
+        RunContext IState<TestContext, RunContext>.Zero => null!;
+        RunContext IState<TestContext, RunContext>.Combine(RunContext left, RunContext right)
+        {
+            throw new NotImplementedException();
+        }
+        
+        ImmutableArray<RunBehaviour> IState<TestContext, ImmutableArray<RunBehaviour>>.Zero => ImmutableArray<RunBehaviour>.Empty;
+        ImmutableArray<RunBehaviour> IState<TestContext, ImmutableArray<RunBehaviour>>.Get() => Runs;
+        TestContext IState<TestContext, ImmutableArray<RunBehaviour>>.Put(ImmutableArray<RunBehaviour> state) => this with { Runs = Runs.AddRange(state) };
+        ImmutableArray<RunBehaviour> IState<TestContext, ImmutableArray<RunBehaviour>>.Combine(ImmutableArray<RunBehaviour> left, ImmutableArray<RunBehaviour> right)
         {
             throw new NotImplementedException();
         }

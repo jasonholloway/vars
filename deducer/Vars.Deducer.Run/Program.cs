@@ -1,4 +1,5 @@
 ﻿using Vars.Deducer;
+using Vars.Deducer.Evaluators;
 using Vars.Deducer.Model;
 
 while (Hear2() is ("deduce", _))
@@ -32,9 +33,20 @@ static void Deduce()
     
     Say("targets blah");
 
-    Planner
+
+    var root = EvaluatorBuilder
+        .WithContext<PerformContext>()
+        .AddCoreEvaluator()
+        .Build();
+
+    var prog = Planner
         .Plan(index, targetBlocks)
-        .Perform();
+        .Deduce();
+
+    var result = root.Eval(new PerformContext(Env.Empty, null!), prog).Run(root);
+    
+    //
+    //
     
     Say("fin");
 
@@ -93,4 +105,33 @@ static (string?, string?) Split2(string str)
 {
     var parts = str.Split(" ", 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
     return (parts.ElementAtOrDefault(0), parts.ElementAtOrDefault(1));
+}
+
+namespace Vars.Deducer
+{
+    public record PerformContext(Env Env, RunContext Run)
+        : IState<PerformContext, Env>, 
+            IState<PerformContext, RunContext>
+    {
+        public static readonly PerformContext Empty = new(Env.Empty, null!);
+
+        Env IState<PerformContext, Env>.Get() => Env;
+
+        RunContext IState<PerformContext, RunContext>.Get() => Run;
+
+        PerformContext IState<PerformContext, RunContext>.Put(RunContext run) => this with { Run = run };
+        PerformContext IState<PerformContext, Env>.Put(Env env)  => this with { Env = env };
+
+        Env IState<PerformContext, Env>.Zero => Env.Empty;
+        Env IState<PerformContext, Env>.Combine(Env left, Env right)
+        {
+            throw new NotImplementedException();
+        }
+
+        RunContext IState<PerformContext, RunContext>.Zero => null!;
+        RunContext IState<PerformContext, RunContext>.Combine(RunContext left, RunContext right)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

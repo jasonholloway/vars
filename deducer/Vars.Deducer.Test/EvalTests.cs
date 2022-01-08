@@ -1,5 +1,7 @@
 using System;
 using NUnit.Framework;
+using Vars.Deducer.Evaluators;
+using Vars.Deducer.Tags;
 
 namespace Vars.Deducer.Test;
 
@@ -82,7 +84,30 @@ public class EvalTests
 
         var result = _core.Eval(new Context(7), prog).Run(_core);
         Assert.That((result.State, result.Value), 
-            Is.EqualTo((new Context(3), 20)));
+            Is.EqualTo((new Context(10), 20)));
+    }
+    
+    [Test]
+    public void Loops1()
+    {
+        var prog = 
+            Pure(new[] { 1, 2, 3 })
+            .LoopThru(i => Write(i));
+
+        var result = _core.Eval(new Context(), prog).Run(_core);
+        Assert.That((result.State, result.Value), 
+            Is.EqualTo((new Context(6), default(Nil))));
+    }
+    
+    [Test]
+    public void Loops2()
+    {
+        var prog = new[] { Pure(1), Pure(2), Pure(3) }
+            .LoopThru(i => Write(i));
+
+        var result = _core.Eval(new Context(), prog).Run(_core);
+        Assert.That((result.State, result.Value), 
+            Is.EqualTo((new Context(6), default(Nil))));
     }
     
 
@@ -92,13 +117,11 @@ public class EvalTests
             => State;
 
         Context IState<Context, int>.Put(int state)
-            => new(state);
+            => new(((IState<Context, int>)this).Combine(State, state));
 
         int IState<Context, int>.Zero => 0;
 
         int IState<Context, int>.Combine(int left, int right)
-        {
-            throw new NotImplementedException();
-        }
+            => left + right;
     }
 }

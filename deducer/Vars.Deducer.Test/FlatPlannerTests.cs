@@ -22,7 +22,7 @@ namespace Vars.Deducer.Test
                 .Plan(index, new VarTarget(new Var("cake")))
                 .ToFlatPlan();
             
-            TestContext.WriteLine(plan.ToString());
+            NUnit.Framework.TestContext.WriteLine(plan.ToString());
             
             Assert.That(plan.ToString(), 
                 Is.EqualTo(Lines(@"
@@ -50,7 +50,7 @@ namespace Vars.Deducer.Test
                 .Plan(index, new BlockTarget("sayMoo"))
                 .ToFlatPlan();
             
-            TestContext.WriteLine(plan);
+            NUnit.Framework.TestContext.WriteLine(plan);
             
             Assert.That(plan.ToString(),
                 Is.EqualTo(Lines(@"

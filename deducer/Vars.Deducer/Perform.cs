@@ -1,21 +1,24 @@
 using System.Collections.Immutable;
 using Vars.Deducer.Model;
+using Vars.Deducer.Tags;
 
 namespace Vars.Deducer
 {
     using static Ops;
+    using static DeducerOps;
         
     public record RunContext(Outline Outline, ImmutableDictionary<string, Bind> InBinds);
+    public record PlanNodeWithVars(PlanNode Node, ImmutableHashSet<Var> AllInputs);
     
     public static class PlanExtensions2
     {
-        public static F<Env> Perform(this Plan2 plan)
+        public static F<Env> Deduce(this Plan2 plan)
             => plan
-                .RoundUpInputs()
-                .Perform(0);
+                .GatherVars()
+                .DeduceInner(0);
 
-        public static Lattice<(ImmutableHashSet<Var> AllInputs, PlanNode Inner)> RoundUpInputs(this Lattice<PlanNode> from)
-                => from.MapBottomUp<PlanNode, (ImmutableHashSet<Var> AllInputs, PlanNode Inner)>(
+        public static Lattice<PlanNodeWithVars> GatherVars(this Lattice<PlanNode> from)
+                => from.MapBottomUp<PlanNode, PlanNodeWithVars>(
                     (node, below) =>
                     {
                         var allInps = below.Aggregate(
@@ -29,13 +32,13 @@ namespace Vars.Deducer
                         }
 
                         //also, need to handle wildcard case
-                        
-                        return (allInps, node);
+
+                        return new PlanNodeWithVars(node, allInps);
                     });
 
-        static F<Env> Perform(this Lattice<(ImmutableHashSet<Var>, PlanNode)> plan, int depth)
+        static F<Env> DeduceInner(this Lattice<PlanNodeWithVars> plan, int depth)
         {
-            if (plan.Node is var (allInputs, node))
+            if (plan.Node is var (node, allInputs))
             {
                 switch (node)
                 {
@@ -43,7 +46,7 @@ namespace Vars.Deducer
                         return When(
                             @if: ReadMap((Env env) => depth == 0 || outputs.Any(v => env[v.Name].Value == null)),
                             then: Pure(plan.Next)
-                                .LoopThru(n => Perform(n, depth + 1))
+                                .LoopThru(n => DeduceInner(n, depth + 1))
                                 .Then(
                                     ReadWrite((Env env) => new RunContext(
                                         Outline: outline,
@@ -65,7 +68,7 @@ namespace Vars.Deducer
                         var d = Pure(plan.Next)
                             .Map(v => v);
                         
-                        return d.LoopThru(n => n.Perform(depth))
+                        return d.LoopThru(n => n.DeduceInner(depth))
                             .Then(Read<Env>);
                 }
             }
@@ -90,7 +93,7 @@ namespace Vars.Deducer
                         @else: Pure(p.Options)
                     )
                     .Then(vals =>
-                        PickVal(p.Name, vals)
+                        PickValue(p.Name, vals)
                             .Map(picked => new Bind(p.Name, picked, "picked"))
                             .Then(bind =>
                                 Id()

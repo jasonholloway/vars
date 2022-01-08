@@ -48,7 +48,7 @@ main() {
         procs=(
           "files:$VARS_PATH/files.sh"
           "blocks:$VARS_PATH/blocks.sh"
-          "deducer:$VARS_PATH/deducer/Vars.Deducer/bin/Debug/net6.0/Vars.Deducer"
+          "deducer:$VARS_PATH/deducer/Vars.Deducer.Run/bin/Debug/net6.0/Vars.Deducer.Run"
           "walker:$VARS_PATH/walker.sh"
           "runner:$VARS_PATH/runner.sh $pts"
         )

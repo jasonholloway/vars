@@ -1,4 +1,6 @@
-namespace Vars.Deducer;
+using Vars.Deducer.Tags;
+
+namespace Vars.Deducer.Evaluators;
 
 public interface IEvaluator<X>
 {

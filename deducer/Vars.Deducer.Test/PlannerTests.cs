@@ -19,7 +19,7 @@ namespace Vars.Deducer.Test
             );
 
             var plan = Planner.Plan(index, new VarTarget(new Var("cake")));
-            TestContext.WriteLine(plan.ToString());
+            NUnit.Framework.TestContext.WriteLine(plan.ToString());
 
             Assert.That(
                 plan.Roots.Select(u => ((PlanNode.Block)(u.Node)).Outline).First().ToString(),
@@ -38,9 +38,9 @@ namespace Vars.Deducer.Test
 
             var plan = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
-                .RoundUpInputs();
+                .GatherVars();
             
-            TestContext.WriteLine(plan.ToString());
+            NUnit.Framework.TestContext.WriteLine(plan.ToString());
 
             Assert.That(
                 plan.Node.AllInputs.Select(v => v.ToString()),
@@ -66,7 +66,7 @@ namespace Vars.Deducer.Test
 
             var plan = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
-                .RoundUpInputs();
+                .GatherVars();
 
             Assert.That(
                 plan.Node.AllInputs.Select(v => v.ToString()),
@@ -88,7 +88,7 @@ namespace Vars.Deducer.Test
 
             var exec = Planner
                 .Plan(index, new VarTarget(new Var("cake")))
-                .RoundUpInputs();
+                .GatherVars();
         }
 
         [Test]
