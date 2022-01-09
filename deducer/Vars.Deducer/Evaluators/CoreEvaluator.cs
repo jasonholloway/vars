@@ -21,8 +21,8 @@ public class CoreEvaluator<X> : EvaluatorBase<X>
 
 
     public Cont<X, BV> Match<AV, BV>(X x, Tags.Tags.Bind<AV, BV> tag)
-        => _root.Eval(x, tag.io)
-            .FlatMap((x2, av) => _root.Eval(x2, tag.fn(av)));
+        => Root.Eval(x, tag.io)
+            .FlatMap((x2, av) => Root.Eval(x2, tag.fn(av)));
 
 
     public Cont<X, R> Match<R>(X x, Tags.Tags.Read<R> tag)

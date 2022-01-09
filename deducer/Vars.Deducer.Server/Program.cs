@@ -15,7 +15,7 @@ while (true)
         {
             using var str = tcp.GetStream();
             using var reader = new StreamReader(str);
-            using var writer = new StreamWriter(str);
+            using var writer = new StreamWriter(str) { AutoFlush = true };
             Hub.Run(reader, writer);
         }
         finally

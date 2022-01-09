@@ -110,6 +110,34 @@ public class EvalTests
             Is.EqualTo((new Context(6), default(Nil))));
     }
     
+    [Test]
+    public void Gathers1()
+    {
+        var prog = Gather(13, 
+            (loop, ac) => ac < 30 
+                ? loop.Continue(ac * 2) 
+                : loop.End(ac)
+                );
+
+        var result = _core.Eval(new Context(), prog).Run(_core);
+        Assert.That((result.State, result.Value), 
+            Is.EqualTo((new Context(), 52)));
+    }
+    
+    [Test]
+    public void Gathers2()
+    {
+        var prog = Gather(13, 
+            (loop, ac) => ac < 30 
+                ? Write(1).Then(loop.Continue(ac * 2)) 
+                : Write(7).Then(loop.End(ac))
+                );
+
+        var result = _core.Eval(new Context(), prog).Run(_core);
+        Assert.That((result.State, result.Value), 
+            Is.EqualTo((new Context(9), 52)));
+    }
+    
 
     public record Context(int State = 0) : IState<Context, int>
     {

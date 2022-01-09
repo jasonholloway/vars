@@ -41,6 +41,7 @@ public static class Hub
             var root = EvaluatorBuilder
                 .WithContext<PerformContext>()
                 .AddCoreEvaluator()
+                .AddIOEvaluator(input, output)
                 .Build();
 
             var prog = Planner

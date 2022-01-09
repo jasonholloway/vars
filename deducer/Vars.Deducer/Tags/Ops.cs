@@ -47,16 +47,25 @@ public static class Ops
 
 
 
-
-    
     
 
-    public static F<Nil> Say(string line)
-        => new Say(line);
+
+    public static F<Nil> Say(params string[] lines)
+        => Pure(lines).LoopThru(line => new Say(line));
 
     public static F<string> Hear()
         => new Hear();
+    
+    public static F<(string?, string?)?> Hear2()
+        => Hear()
+            .Then(line => Pure<(string?, string?)?>(line != null ? Split2(line) : null));
 
+    static (string?, string?) Split2(string? str)
+    {
+        var parts = str?.Split(" ", 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+        return (parts.ElementAtOrDefault(0), parts.ElementAtOrDefault(1));
+    }
+    
     
     public static F<Bind[]> InvokeRunner(Outline outline, Bind[] binds, string[] runFlags)
         => new InvokeRunner(outline, binds, runFlags);
@@ -76,12 +85,25 @@ public static class Ops
         => through
             .Aggregate(Pure(default(V2)), (ac, el) => ac.Then(el.Then(@do)))
             .Then(_ => Id());
-
-    // public static M<AR, AW> LoopThru<AR, AW, El>(this M<AR, AW, IEnumerable<El>> io,
-    //     Func<M<AW, AW>, El, M<AW, AW>> @do)
-    //     => io.Then((x, els) => x.LoopThru(els, @do));
-
     
+
+    public static F<V> Gather<V>(V seed, Func<GatherOps<V>, V, F<LoopResult<V>>> loop)
+        => GatherInner(Pure(new LoopResult<V>.Continue(seed)), loop);
+
+    static F<V> GatherInner<V>(F<LoopResult<V>> prev, Func<GatherOps<V>, V, F<LoopResult<V>>> loop)
+        => prev.Then(r => r switch
+        {
+            LoopResult<V>.Continue(var ac) => GatherInner(loop(new GatherOps<V>(), ac), loop),
+            LoopResult<V>.End(var ac) => Pure(ac)
+        });
+
+    public class GatherOps<V>
+    {
+        public F<LoopResult<V>> Continue(V v) => Pure(new LoopResult<V>.Continue(v));
+        public F<LoopResult<V>> End(V v) => Pure(new LoopResult<V>.End(v));
+    }
+
+
     public static F<V> When<V>(F<bool> @if, F<V> @then, F<V> @else)
         => @if.Then(result => result ? then : @else);
     
@@ -120,4 +142,10 @@ public static class Ops
     // public static M<R, S> When<R, W, S>(this M<R, W> io, M<S, S, bool> @if, M<S, S> @then)
     //     where W : S
     //     => io.Then(_ => @if).Then((x, result) => result ? then : x);
+}
+
+public abstract record LoopResult<V>
+{
+    public record Continue(V val) : LoopResult<V>;
+    public record End(V val) : LoopResult<V>;
 }
