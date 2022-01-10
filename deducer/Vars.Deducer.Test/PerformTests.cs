@@ -18,7 +18,8 @@ namespace Vars.Deducer.Test
     //but maybe this is a bit much for now
     
     //todo the bind log
-    //todo communicate via tcp
+    //todo populate picks
+    //seems to be running same blocks twice
 
     public class PerformTests
     {

@@ -27,6 +27,8 @@ public abstract class CoreTags
 
 public abstract class DeducerTags
 {
+    public record GetUserPins(string[] Names) : F<Bind[]>;
+    
     public record InvokeRunner(Outline Outline, Bind[] Binds, string[] RunFlags) : F<Bind[]>;
     
     public record PickValue(string Name, string[] Values) : F<string?>;

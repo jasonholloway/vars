@@ -70,6 +70,9 @@ public static class Ops
     public static F<Bind[]> InvokeRunner(Outline outline, Bind[] binds, string[] runFlags)
         => new InvokeRunner(outline, binds, runFlags);
     
+    public static F<Bind[]> GetUserPins(params string[] names)
+        => new GetUserPins(names);
+    
     public static F<string[]> DredgeBindLog(string name)
         => new DredgeBindLog(name);
 

@@ -41,7 +41,19 @@ namespace Vars.Deducer.Evaluators
 
         public Cont<X, Nil> Match(X x, DeducerTags.AppendToBindLog tag)
             => new Return<X, Nil>(x, default);
-        
+
+        public Cont<X, string?> Match(X x, DeducerTags.PickValue tag)
+            => Root.Eval(x,
+                Say(
+                    $"pick {tag.Name} {tag.Values}",
+                    "@YIELD"
+                )
+                .Then(Hear())
+                .Then(line =>
+                {
+                    return Pure(line);
+                })
+            );
 
         public Cont<X, Bind[]> Match(X x, DeducerTags.InvokeRunner tag)
             => Root.Eval(x,
@@ -96,6 +108,51 @@ namespace Vars.Deducer.Evaluators
                             ))
                         .Map(bs => bs.ToArray());
                 }));
+        
+        public Cont<X, Bind[]> Match(X x, DeducerTags.GetUserPins tag)
+            => Root.Eval(x,
+                Id().Then(() =>
+                {
+                    const char RS = (char)30;
+                    const char EOM = (char)25;
+
+                    return Say(
+                            $"getPins {string.Join(" ", tag.Names)}",
+                            "@YIELD"
+                        )
+                        .Then(
+                            Gather(
+                                ImmutableArray<Bind>.Empty,
+                                (loop, ac) => Hear2().Then(heard =>
+                                {
+                                    if (heard is (string type, var args))
+                                    {
+                                        switch (type)
+                                        {
+                                            case "bind" when Split2(args) is (string vn, string v):
+                                                var newBind = new Bind(vn, v.Replace(RS.ToString(), "\n"), "pinned");
+                                                return loop.Continue(ac.Add(newBind));
+
+                                            case "fin":
+                                                return Pure(ac.AsEnumerable())
+                                                    .LoopThru(b => 
+                                                        b.Value is string val
+                                                            ? Say($"bound pinned {b.Key} {val.ReplaceLineEndings(EOM.ToString())}")
+                                                            : Pure(default(Nil)))
+                                                    .Then(loop.End(ac));
+
+                                            default:
+                                                return Say($"{type} {args}")
+                                                    .Then(loop.Continue(ac));
+                                        }
+                                    }
+                                    
+                                    return loop.Continue(ac);
+                                })
+                            ))
+                        .Map(bs => bs.ToArray());
+                }));
+
         
         static (string?, string?) Split2(string str)
         {

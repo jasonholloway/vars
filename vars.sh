@@ -171,8 +171,11 @@ run() {
                   sed 's/¦//; s/¦/\n/g' <<< "$rawVals"
               } | fzy --prompt "${name}> ")
 
-              echo $val >&6
-              echo @YIELD >&6
+              say $val
+              say @YIELD
+
+              # echo $val >&6
+              # echo @YIELD >&6
           };;
 
       pin) {
@@ -180,6 +183,20 @@ run() {
               $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
               echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
           };;
+
+      getPins) {
+          local -A names=()
+          for vn in $line; do names[$vn]=1; done
+
+          local vn v
+          while read -r vn v
+          do
+              [[ ${names[$vn]} ]] && say "bind $vn $v"
+          done < <($VARS_PATH/context.sh listPinned)
+
+          say fin
+          say @YIELD
+        };;
 
       esac
   done

@@ -13,9 +13,14 @@ namespace Vars.Deducer
     public static class PlanExtensions2
     {
         public static F<Env> Deduce(this Plan2 plan)
-            => plan
-                .GatherVars()
-                .DeduceInner(0);
+        {
+            var plan2 = plan.GatherVars();
+            var allVarNames = plan2.Node.AllInputs.Select(v => v.Name).ToArray();
+
+            return GetUserPins(allVarNames)
+                .Then(MergeBinds)
+                .Then(WalkNodes(plan2, 0));
+        }
 
         public static Lattice<PlanNodeWithVars> GatherVars(this Lattice<PlanNode> from)
                 => from.MapBottomUp<PlanNode, PlanNodeWithVars>(
@@ -36,7 +41,7 @@ namespace Vars.Deducer
                         return new PlanNodeWithVars(node, allInps);
                     });
 
-        static F<Env> DeduceInner(this Lattice<PlanNodeWithVars> plan, int depth)
+        static F<Env> WalkNodes(Lattice<PlanNodeWithVars> plan, int depth)
         {
             if (plan.Node is var (node, allInputs))
             {
@@ -46,7 +51,7 @@ namespace Vars.Deducer
                         return When(
                             @if: ReadMap((Env env) => depth == 0 || outputs.Any(v => env[v.Name].Value == null)),
                             then: Pure(plan.Next)
-                                .LoopThru(n => DeduceInner(n, depth + 1))
+                                .LoopThru(n => WalkNodes(n, depth + 1))
                                 .Then(
                                     ReadWrite((Env env) => new RunContext(
                                         Outline: outline,
@@ -65,10 +70,8 @@ namespace Vars.Deducer
                         break;
 
                     case PlanNode.SequencedAnd _:
-                        var d = Pure(plan.Next)
-                            .Map(v => v);
-                        
-                        return d.LoopThru(n => n.DeduceInner(depth))
+                        return Pure(plan.Next)
+                            .LoopThru(n => WalkNodes(n, depth))
                             .Then(Read<Env>);
                 }
             }
