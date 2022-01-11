@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Vars.Deducer.Evaluators;
 using Vars.Deducer.Model;
 using Vars.Deducer.Tags;
+using Vars.Deducer.Test.Behaviours;
 
 namespace Vars.Deducer.Test
 {
@@ -21,10 +22,10 @@ namespace Vars.Deducer.Test
     //todo populate picks
     //seems to be running same blocks twice
 
-    public class PerformTests
+    public class DeduceTests
     {
         [Test]
-        public void Performs()
+        public void Deduces()
         {
             var index = Outlines(
                 "block4;C;field,farm;flour;",
@@ -40,6 +41,9 @@ namespace Vars.Deducer.Test
             var root = EvaluatorBuilder
                 .WithContext<TestContext>()
                 .AddCoreEvaluator()
+                .AddUserPinBehaviours(
+                    ("chicken", "Clucky")
+                    )
                 .AddRunBehaviours(
                      ("block1", new[] { ("cake", "Victoria Sponge") }),
                      ("block2", new[] { ("chicken", "Charles") }),
@@ -53,7 +57,7 @@ namespace Vars.Deducer.Test
                 .AddTestEvaluator()
                 .Build();
 
-            var state = root.Eval(TestContext.Empty with { Env = Env.Empty.Add(("chicken", "Clucky")) }, prog).Run(root).State;
+            var state = root.Eval(TestContext.Empty, prog).Run(root).State;
             
             Assert.That(state.Env["chicken"].Value, Is.EqualTo("Clucky"));
             Assert.That(state.Env["flour"].Value, Is.EqualTo("Self-Raising"));
@@ -96,14 +100,14 @@ namespace Vars.Deducer.Test
     }
     
     
-    public record TestContext(Env Env, RunContext Run, ImmutableArray<RunBehaviour> Runs, (string, PickBehaviour?)[] Picks) 
+    public record TestContext(Env Env, RunContext Run, ImmutableArray<RunBehaviour> Runs, (string, PickBehaviour?)[] Picks, PinBehaviour[] Pins) 
           : IState<TestContext, Env>, 
             IState<TestContext, RunContext>, 
             IState<TestContext, ImmutableArray<RunBehaviour>>,
-            IState<TestContext, (string, PickBehaviour?)[]>
+            IState<TestContext, (string, PickBehaviour?)[]>,
+            IState<TestContext, PinBehaviour[]>
     {
-        public static readonly TestContext Empty = new(Env.Empty, null!, ImmutableArray<RunBehaviour>.Empty, Array.Empty<(string, PickBehaviour?)>());
-        
+        public static readonly TestContext Empty = new(Env.Empty, null!, ImmutableArray<RunBehaviour>.Empty, Array.Empty<(string, PickBehaviour?)>(), Array.Empty<PinBehaviour>());
 
         Env IState<TestContext, Env>.Get() => Env;
 
@@ -142,5 +146,15 @@ namespace Vars.Deducer.Test
         {
             throw new NotImplementedException();
         }
+        
+
+        TestContext IState<TestContext, PinBehaviour[]>.Put(PinBehaviour[] state) => this with
+        {
+            Pins = ((IState<TestContext, PinBehaviour[]>)this).Combine(Pins, state)
+        };
+
+        PinBehaviour[] IState<TestContext, PinBehaviour[]>.Zero => Array.Empty<PinBehaviour>();
+        PinBehaviour[] IState<TestContext, PinBehaviour[]>.Combine(PinBehaviour[] left, PinBehaviour[] right) => left.Concat(right).ToArray();
+        PinBehaviour[] IState<TestContext, PinBehaviour[]>.Get() => Pins;
     }
 }

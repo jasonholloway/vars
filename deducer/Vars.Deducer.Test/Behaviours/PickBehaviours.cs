@@ -4,7 +4,7 @@ using System.Linq;
 using Vars.Deducer.Evaluators;
 using Vars.Deducer.Tags;
 
-namespace Vars.Deducer.Test
+namespace Vars.Deducer.Test.Behaviours
 {
     public record PickBehaviour(string Name, string Val);
     
