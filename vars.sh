@@ -167,15 +167,14 @@ run() {
       pick) {
               read -r name rawVals <<< "$line"
 
-              local val=$({
-                  sed 's/¦//; s/¦/\n/g' <<< "$rawVals"
-              } | fzy --prompt "${name}> ")
+              local val=$(
+                  eval "$rawVals"
+                  local IFS=$'\n'
+                  echo "${!options[*]}" | fzy --prompt "${name}> "
+              )
 
               say $val
               say @YIELD
-
-              # echo $val >&6
-              # echo @YIELD >&6
           };;
 
       pin) {

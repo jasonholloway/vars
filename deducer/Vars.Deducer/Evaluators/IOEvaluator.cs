@@ -37,7 +37,7 @@ namespace Vars.Deducer.Evaluators
         
         
         public Cont<X, string[]> Match(X x, DeducerTags.DredgeBindLog tag)
-            => new Return<X, string[]>(x, new[] { "woof" });
+            => new Return<X, string[]>(x, new[] { "blah", "blah", "blah" });
 
         public Cont<X, Nil> Match(X x, DeducerTags.AppendToBindLog tag)
             => new Return<X, Nil>(x, default);
@@ -45,7 +45,7 @@ namespace Vars.Deducer.Evaluators
         public Cont<X, string?> Match(X x, DeducerTags.PickValue tag)
             => Root.Eval(x,
                 Say(
-                    $"pick {tag.Name} {tag.Values}",
+                    $"pick {tag.Name} {BashSerializer.WriteAssocArray("options", tag.Values.Select(v => (v, "1")).ToArray())}",
                     "@YIELD"
                 )
                 .Then(Hear())

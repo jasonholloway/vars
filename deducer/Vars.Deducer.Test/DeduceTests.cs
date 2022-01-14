@@ -19,7 +19,6 @@ namespace Vars.Deducer.Test
     //but maybe this is a bit much for now
     
     //todo the bind log
-    //todo populate picks
     //seems to be running same blocks twice
 
     public class DeduceTests
@@ -34,10 +33,6 @@ namespace Vars.Deducer.Test
                 "block3;B;chicken,flour;eggs;"
             );
 
-            var prog = Planner
-                .Plan(index, new VarTarget(new Var("cake")))
-                .Deduce();
-
             var root = EvaluatorBuilder
                 .WithContext<TestContext>()
                 .AddCoreEvaluator()
@@ -48,14 +43,19 @@ namespace Vars.Deducer.Test
                      ("block1", new[] { ("cake", "Victoria Sponge") }),
                      ("block2", new[] { ("chicken", "Charles") }),
                      ("block3", new[] { ("eggs", "Medium") }),
-                     ("block4", new[] { ("flour", "Self-Raising") })
+                     ("block4", new[] { ("flour", "¦Plain¦Self-Raising") })
                  )
                 .AddPickBehaviours(
                     ("farm", "Windy Harbour"),
-                    ("field", "Wheat1")
+                    ("field", "Wheat1"),
+                    ("flour", "Self-Raising")
                     )
                 .AddTestEvaluator()
                 .Build();
+            
+            var prog = Planner
+                .Plan(index, new VarTarget(new Var("cake")))
+                .Deduce();
 
             var state = root.Eval(TestContext.Empty, prog).Run(root).State;
             
