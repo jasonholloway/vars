@@ -14,13 +14,24 @@ public class EvalTests
         .AddCoreEvaluator()
         .AddTestEvaluator()
         .Build();
-    
+
+    (Context State, V Value) Run<V>(Context x, F<V> prog) => Engine<Context>.Run(_core, x, prog);
+
     [Test]
     public void EvalsId()
     {
         var prog = Id();
 
-        var result = _core.Eval(new Context(), prog).Run(_core);
+        var result = Run(new Context(), prog);
+        Assert.That(result, Is.Not.Null);
+    }
+    
+    [Test]
+    public void IdThenId()
+    {
+        var prog = Id().Then(Id());
+
+        var result = Run(new Context(), prog);
         Assert.That(result, Is.Not.Null);
     }
 
@@ -29,7 +40,7 @@ public class EvalTests
     {
         var prog = Id().Then(Read<int>);
 
-        var result = _core.Eval(new Context(13), prog).Run(_core);
+        var result = Run(new Context(13), prog);
         Assert.That((result.State, result.Value), 
             Is.EqualTo((new Context(13), 13)));
     }
@@ -43,7 +54,7 @@ public class EvalTests
                 return Pure(s + 1);
             }));
 
-        var result = _core.Eval(new Context(13), prog).Run(_core);
+        var result = Run(new Context(13), prog);
         Assert.That((result.State, result.Value), Is.EqualTo((new Context(13), 14)));
     }
     
@@ -54,7 +65,7 @@ public class EvalTests
             .Then(i => Pure(i + 1))
             .Then(i => Pure(i + 1));
 
-        var result = _core.Eval(new Context(13), prog).Run(_core);
+        var result = Run(new Context(13), prog);
         Assert.That((result.State, result.Value), 
             Is.EqualTo((new Context(13), 3)));
     }
@@ -65,7 +76,7 @@ public class EvalTests
         var prog = ReadThen((int s) => Pure(s + 1))
             .Then(i => Pure(i + 1));
 
-        var result = _core.Eval(new Context(13), prog).Run(_core);
+        var result = Run(new Context(13), prog);
         Assert.That((result.State, result.Value), 
             Is.EqualTo((new Context(13), 15)));
     }
@@ -82,7 +93,7 @@ public class EvalTests
             return Write(i).Then(Pure(20));
         });
 
-        var result = _core.Eval(new Context(7), prog).Run(_core);
+        var result = Run(new Context(7), prog);
         Assert.That((result.State, result.Value), 
             Is.EqualTo((new Context(10), 20)));
     }
@@ -94,7 +105,7 @@ public class EvalTests
             Pure(new[] { 1, 2, 3 })
             .LoopThru(i => Write(i));
 
-        var result = _core.Eval(new Context(), prog).Run(_core);
+        var result = Run(new Context(), prog);
         Assert.That((result.State, result.Value), 
             Is.EqualTo((new Context(6), default(Nil))));
     }
@@ -105,7 +116,7 @@ public class EvalTests
         var prog = new[] { Pure(1), Pure(2), Pure(3) }
             .LoopThru(i => Write(i));
 
-        var result = _core.Eval(new Context(), prog).Run(_core);
+        var result = Run(new Context(), prog);
         Assert.That((result.State, result.Value), 
             Is.EqualTo((new Context(6), default(Nil))));
     }
@@ -119,7 +130,7 @@ public class EvalTests
                 : loop.End(ac)
                 );
 
-        var result = _core.Eval(new Context(), prog).Run(_core);
+        var result = Run(new Context(), prog);
         Assert.That((result.State, result.Value), 
             Is.EqualTo((new Context(), 52)));
     }
@@ -133,7 +144,7 @@ public class EvalTests
                 : Write(7).Then(loop.End(ac))
                 );
 
-        var result = _core.Eval(new Context(), prog).Run(_core);
+        var result = Run(new Context(), prog);
         Assert.That((result.State, result.Value), 
             Is.EqualTo((new Context(9), 52)));
     }

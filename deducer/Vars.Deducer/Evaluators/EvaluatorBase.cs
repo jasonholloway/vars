@@ -11,17 +11,17 @@ public abstract class EvaluatorBase<X> : IEvaluator<X>
         Root = root;
     }
 
-    bool IEvaluator<X>.TryEval<V>(X x, F<V> m, out Cont<X, V> cont)
+    bool IEvaluator<X>.TryEval<V>(X x, F<V> tag, out F<V> translated)
     {
-        cont = ((dynamic)this).Match(x, (dynamic)m);
-        return cont != null;
+        translated = ((dynamic)this).Match(x, (dynamic)tag);
+        return translated != null;
     }
 
-    Cont<X, V> IEvaluator<X>.Eval<V>(X x, F<V> m)
+    F<V> IEvaluator<X>.Eval<V>(X x, F<V> tag)
         => ((IEvaluator<X>)this)
-            .TryEval(x, m, out var cont) 
+            .TryEval(x, tag, out var cont) 
                 ? cont 
-                : throw new NotImplementedException($"Couldn't handle {m}");
+                : throw new NotImplementedException($"Couldn't handle {tag}");
 
     protected object Match(X x, object m) => null!;
 }

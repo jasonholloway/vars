@@ -1,11 +1,11 @@
-using System;
-using System.Collections.Immutable;
 using System.Linq;
 using Vars.Deducer.Evaluators;
 using Vars.Deducer.Tags;
 
 namespace Vars.Deducer.Test.Behaviours
 {
+    using static Ops;
+    
     public record PickBehaviour(string Name, string Val);
     
     public static class PickBehaviourExtensions
@@ -28,19 +28,12 @@ namespace Vars.Deducer.Test.Behaviours
             _lookup = behaviours.ToLookup(t => t.Name);
         }
 
-        public Cont<X, string?> Match(X x, DeducerTags.PickValue tag)
+        public F<string?> Match(X x, DeducerTags.PickValue tag)
         {
-            if (x is IState<X, (string, PickBehaviour?)[]> state)
-            {
-                var matched = _lookup[tag.Name].FirstOrDefault();
+            var matched = _lookup[tag.Name].FirstOrDefault();
 
-                return new Return<X, string?>(
-                    state.Put(new[] { (tag.Name, matched) }),
-                    matched?.Val
-                );
-            }
-            
-            throw new NotImplementedException($"Context doesn't implement {typeof(IState<X, ImmutableArray<RunBehaviour>>)}");
+            return Write(new[] { (tag.Name, matched) })
+                .Map(_ => matched?.Val);
         }
     }
 }

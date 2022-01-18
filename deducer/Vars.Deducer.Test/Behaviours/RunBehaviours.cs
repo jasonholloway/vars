@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Vars.Deducer.Evaluators;
@@ -6,6 +5,8 @@ using Vars.Deducer.Tags;
 
 namespace Vars.Deducer.Test.Behaviours
 {
+    using static Ops;
+    
     public record RunBehaviour(string Bid, Bind[] Binds);
     
     public static class RunBehaviourExtensions
@@ -31,19 +32,12 @@ namespace Vars.Deducer.Test.Behaviours
             _lookup = behaviours.ToLookup(t => t.Bid);
         }
 
-        public Cont<X, Bind[]> Match(X x, DeducerTags.InvokeRunner tag)
+        public F<Bind[]> Match(X x, DeducerTags.InvokeRunner tag)
         {
-            if (x is IState<X, ImmutableArray<RunBehaviour>> state)
-            {
-                var matched = _lookup[tag.Outline.Bid];
+            var matched = _lookup[tag.Outline.Bid];
 
-                return new Return<X, Bind[]>(
-                    state.Put(matched.ToImmutableArray()),
-                    _lookup[tag.Outline.Bid].SelectMany(r => r.Binds).ToArray()
-                );
-            }
-            
-            throw new NotImplementedException($"Context doesn't implement {typeof(IState<X, ImmutableArray<RunBehaviour>>)}");
+            return Write(matched.ToImmutableArray())
+                .Map(_ => _lookup[tag.Outline.Bid].SelectMany(r => r.Binds).ToArray());
         }
     }
 }

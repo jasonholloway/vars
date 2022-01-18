@@ -11,22 +11,22 @@ public class RootEvaluator<X> : IEvaluator<X>
         _evals = evalFacs.Select(fac => fac(this)).ToArray();
     }
     
-    public bool TryEval<V>(X x, F<V> m, out Cont<X, V> cont)
+    public bool TryEval<V>(X x, F<V> tag, out F<V> translated)
     {
         foreach (var eval in _evals)
         {
-            if (eval.TryEval(x, m, out cont))
+            if (eval.TryEval(x, tag, out translated))
             {
                 return true;
             }
         }
 
-        cont = null!;
+        translated = null!;
         return false;
     }
 
-    public Cont<X, V> Eval<V>(X x, F<V> m)
-        => TryEval(x, m, out var cont)
-            ? cont
-            : throw new NotImplementedException($"Can't handle {m}");
+    public F<V> Eval<V>(X x, F<V> tag)
+        => TryEval(x, tag, out var translated)
+            ? translated
+            : tag;
 }

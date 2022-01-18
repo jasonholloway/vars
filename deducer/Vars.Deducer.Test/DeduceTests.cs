@@ -10,6 +10,7 @@ using Vars.Deducer.Test.Behaviours;
 namespace Vars.Deducer.Test
 {
     using static TestHelpers;
+    using static Ops;
     
     //we want some pins as well
     //pins can be specified up front
@@ -57,7 +58,7 @@ namespace Vars.Deducer.Test
                 .Plan(index, new VarTarget(new Var("cake")))
                 .Deduce();
 
-            var state = root.Eval(TestContext.Empty, prog).Run(root).State;
+            var (state, _) = Engine<TestContext>.Run(root, TestContext.Empty, prog);
             
             Assert.That(state.Env["chicken"].Value, Is.EqualTo("Clucky"));
             Assert.That(state.Env["flour"].Value, Is.EqualTo("Self-Raising"));
@@ -86,17 +87,17 @@ namespace Vars.Deducer.Test
         public TestEvaluator(IEvaluator<X> root) : base(root)
         { }
 
-        public Cont<X, string[]> Match(X x, DeducerTags.DredgeBindLog tag)
-            => new Return<X, string[]>(x, new[] { "woof" });
+        public F<string[]> Match(X x, DeducerTags.DredgeBindLog tag)
+            => Pure(new[] { "woof" });
 
-        public Cont<X, Nil> Match(X x, DeducerTags.AppendToBindLog tag)
-            => new Return<X, Nil>(x, default);
+        public F<Nil> Match(X x, DeducerTags.AppendToBindLog tag)
+            => Id();
         
-        public Cont<X, string> Match(X x, CoreTags.Hear _)
-            => new Return<X, string>(x, "HELLO!");
-        
-        public Cont<X, Nil> Match(X x, CoreTags.Say _)
-            => new Return<X, Nil>(x, default);
+        public F<string> Match(X x, CoreTags.Hear _)
+            => Pure("HELLO!");
+
+        public F<Nil> Match(X x, CoreTags.Say _)
+            => Id();
     }
     
     

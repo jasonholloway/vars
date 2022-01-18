@@ -48,7 +48,9 @@ public static class Hub
                 .Plan(index, targetBlocks)
                 .Deduce();
 
-            var result = root.Eval(new PerformContext(Env.Empty, null!), prog).Run(root);
+            var result = Engine<PerformContext>.Run(root, new PerformContext(Env.Empty, null!), prog);
+
+            // var result = root.Eval(new PerformContext(Env.Empty, null!), prog).Run(root);
             
             //
             //
@@ -107,9 +109,6 @@ public static class Hub
         }
     }
 }
-
-
-
 
 
 // outlines can appear in more than one place in the tree
