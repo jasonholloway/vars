@@ -3,46 +3,54 @@ using Vars.Deducer.Tags;
 
 namespace Vars.Deducer;
 
-public static class Engine<X>
+public class Engine<X> : TagVisitor
 {
-    public static (X, V) Run<V>(IEvaluator<X> eval, X x, F<V> prog)
+    private Engine() {}
+    
+    X? _state { get; set; }
+    object? _val { get; set; }
+    Stack<Func<Tag>> _stack { get; } = new();
+    
+    public static (X, V) Run<V>(IEvaluator<X> eval, X x, Tag<V> prog)
     {
-        var curr = new Curr { State = x, Value = null };
-        curr.Stack.Push(() => prog);
+        var curr = new Engine<X> { _state = x, _val = null };
+        curr._stack.Push(() => prog);
         
-        while (curr.Stack.TryPop(out var popped))
+        while (curr._stack.TryPop(out var popped))
         {
-            var next = popped();
-            var cont = Eval(curr, eval, (dynamic)next);
-            Read(curr, cont);
+            switch(eval.Eval(curr._state, popped()))
+            {
+                case VisitableTag t:
+                    t.Receive(curr);
+                    break;
+                    
+                default:
+                    throw new NotImplementedException("bah!");
+            };
         }
 
-        return (curr.State, (V)curr.Value!);
+        return (curr._state, curr._val is V val ? val : default);
     }
 
-    static F<V> Eval<V>(Curr curr, object eval, F<V> next) //do we still need to do this???
-        => ((IEvaluator<X>)eval).Eval(curr.State!, next);
-    
-    static void Read(Curr _, Tags.Tags.Id tag)
+    public void Visit(Tags.Tags.Id tag)
+    { }
+
+    public void Visit<V>(Tags.Tags.Pure<V> tag)
     {
-    }
-    
-    static void Read<V>(Curr curr, Tags.Tags.Pure<V> tag)
-    {
-        curr.Value = tag.val;
-    }
-    
-    static void Read<AV, BV>(Curr curr, Tags.Tags.Bind<AV, BV> tag)
-    {
-        curr.Stack.Push(() => tag.fn((AV)curr.Value!)); //needs to take state as well!!!
-        curr.Stack.Push(() => tag.io);
+        _val = tag.val;
     }
 
-    static void Read<R>(Curr curr, Tags.Tags.Read<R> tag)
+    public void Visit<AV, BV>(Tags.Tags.Bind<AV, BV> tag)
     {
-        if (curr.State is IState<X, R> state)
+        _stack.Push(() => tag.fn(_val is AV val ? val : default)); //needs to take state as well!!! - or not if state always accessed via Read/Write
+        _stack.Push(() => tag.io);
+    }
+
+    public void Visit<R>(Tags.Tags.Read<R> tag)
+    {
+        if (_state is IState<X, R> state)
         {
-            curr.Value = state.Get();
+            _val = state.Get();
         }
         else
         {
@@ -50,23 +58,16 @@ public static class Engine<X>
         }
     }
 
-    static void Read<W>(Curr curr, Tags.Tags.Write<W> tag)
+    public void Visit<W>(Tags.Tags.Write<W> tag)
     {
-        if (curr.State is IState<X, W> state)
+        if (_state is IState<X, W> state)
         {
-            curr.State = state.Put(tag.val);
-            curr.Value = null;
+            _state = state.Put(tag.val);
+            _val = null;
         }
         else
         {
             throw new NotImplementedException($"Context doesn't implement {typeof(IState<X, W>)}");
         }
-    }
-    
-    class Curr
-    {
-        public X? State { get; set; }
-        public object? Value { get; set; }
-        public Stack<Func<object>> Stack { get; } = new();
     }
 }

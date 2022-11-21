@@ -2,22 +2,61 @@ using Vars.Deducer.Model;
 
 namespace Vars.Deducer.Tags;
 
-public interface M<in R, out W> {}
-public interface M<in R, out W, out V> : M<R, W> {}
+public interface Tag {}
+public interface Tag<out V> : Tag {}
 
-public interface F<out V> {}
-public abstract record Tag<V> : F<V> {}
+
+
+public interface TagVisitor
+{
+    void Visit(Tags.Id tag);
+    void Visit<V>(Tags.Pure<V> tag);
+    void Visit<AV, BV>(Tags.Bind<AV, BV> tag);
+    void Visit<R>(Tags.Read<R> tag);
+    void Visit<W>(Tags.Write<W> tag);
+}
+
+
+public interface VisitableTag
+{
+    public void Receive<Visitor>(Visitor visitor)
+        where Visitor : TagVisitor;
+}
+
 
 public struct Nil {}
 
 public abstract record Tags
 {
-    public record Id : Tag<Nil>;
-    public record Pure<V>(V val) : Tag<V>;
-    public record Bind<AV, BV>(F<AV> io, Func<AV, F<BV>> fn) : Tag<BV>;
+    public record Id : Tag<Nil>, VisitableTag
+    {
+        public void Receive<Visitor>(Visitor visitor) where Visitor : TagVisitor
+            => visitor.Visit(this);
+    };
 
-    public record Read<R> : Tag<R>;
-    public record Write<W>(W val) : Tag<Nil>;
+    public record Pure<V>(V val) : Tag<V>, VisitableTag
+    {
+        public void Receive<Visitor>(Visitor visitor) where Visitor : TagVisitor
+            => visitor.Visit(this);
+    }
+
+    public record Bind<AV, BV>(Tag<AV> io, Func<AV, Tag<BV>> fn) : Tag<BV>, VisitableTag
+    {
+        public void Receive<Visitor>(Visitor visitor) where Visitor : TagVisitor
+            => visitor.Visit(this);
+    }
+
+    public record Read<R> : Tag<R>, VisitableTag
+    {
+        public void Receive<Visitor>(Visitor visitor) where Visitor : TagVisitor
+            => visitor.Visit(this);
+    }
+
+    public record Write<W>(W val) : Tag<Nil>, VisitableTag
+    {
+        public void Receive<Visitor>(Visitor visitor) where Visitor : TagVisitor
+            => visitor.Visit(this);
+    }
 }
 
 public abstract class CoreTags

@@ -12,7 +12,7 @@ namespace Vars.Deducer
     
     public static class PlanExtensions2
     {
-        public static F<Env> Deduce(this Plan2 plan)
+        public static Tag<Env> Deduce(this Plan2 plan)
         {
             var plan2 = plan.GatherVars();
             var allVarNames = plan2.Node.AllInputs.Select(v => v.Name).ToArray();
@@ -41,7 +41,7 @@ namespace Vars.Deducer
                         return new PlanNodeWithVars(node, allInps);
                     });
 
-        static F<Env> WalkNodes(Lattice<PlanNodeWithVars> plan, int depth)
+        static Tag<Env> WalkNodes(Lattice<PlanNodeWithVars> plan, int depth)
         {
             if (plan.Node is var (node, allInputs))
             {
@@ -79,7 +79,7 @@ namespace Vars.Deducer
             return Read<Env>();
         }
 
-        public static F<Nil> PickUndecidedInputs()
+        public static Tag<Nil> PickUndecidedInputs()
             => ReadMap((RunContext s) =>
                     s.InBinds
                         .Select(kv => (
@@ -109,7 +109,7 @@ namespace Vars.Deducer
                             ))
                 );
 
-        public static F<string?> PickVal(string name, IEnumerable<string> options)
+        public static Tag<string?> PickVal(string name, IEnumerable<string> options)
             => Say($"pick {name} ¦{string.Join('¦', options)}")
                 .Then(Say("@YIELD"))
                 .Then(Hear)
@@ -125,20 +125,20 @@ namespace Vars.Deducer
                     return Pure(pickedVal);
                 });
         
-        public static F<Nil> EmitBoundInputs()
+        public static Tag<Nil> EmitBoundInputs()
             => ReadMap((RunContext s) => s.InBinds.Values
                     .Select(b => $"bound {s.Outline.Bid} {b.Key} {b.Value?.ReplaceLineEndings(((char)60).ToString()) ?? string.Empty}")
                 )
                 .LoopThru(line => Say(line));
 
-        public static F<Bind[]> SendToRunner(bool isTarget)
+        public static Tag<Bind[]> SendToRunner(bool isTarget)
             => ReadThen((RunContext s) =>
             {
                 var runFlags = isTarget ? new[] { "T" } : Array.Empty<string>();
                 return InvokeRunner(s.Outline, s.InBinds.Values.ToArray(), runFlags);
             });
 
-        public static F<Nil> MergeBinds(Bind[] binds)
+        public static Tag<Nil> MergeBinds(Bind[] binds)
         {
             //TODO store source on binds
             //TODO emit 'bound' to relay bind to screen

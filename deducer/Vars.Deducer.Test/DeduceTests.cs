@@ -36,7 +36,6 @@ namespace Vars.Deducer.Test
 
             var root = EvaluatorBuilder
                 .WithContext<TestContext>()
-                .AddCoreEvaluator()
                 .AddUserPinBehaviours(
                     ("chicken", "Clucky")
                     )
@@ -79,24 +78,21 @@ namespace Vars.Deducer.Test
     public static class TestEvaluatorExtensions
     {
         public static EvaluatorBuilder<X> AddTestEvaluator<X>(this EvaluatorBuilder<X> builder)
-            => new(builder.EvalFacs.Add(root => new TestEvaluator<X>(root)));
+            => new(builder.Evals.Add(new TestEvaluator<X>()));
     }
 
     public class TestEvaluator<X> : EvaluatorBase<X>
     {
-        public TestEvaluator(IEvaluator<X> root) : base(root)
-        { }
-
-        public F<string[]> Match(X x, DeducerTags.DredgeBindLog tag)
+        public Tag<string[]> Match(X x, DeducerTags.DredgeBindLog tag)
             => Pure(new[] { "woof" });
 
-        public F<Nil> Match(X x, DeducerTags.AppendToBindLog tag)
+        public Tag<Nil> Match(X x, DeducerTags.AppendToBindLog tag)
             => Id();
         
-        public F<string> Match(X x, CoreTags.Hear _)
+        public Tag<string> Match(X x, CoreTags.Hear _)
             => Pure("HELLO!");
 
-        public F<Nil> Match(X x, CoreTags.Say _)
+        public Tag<Nil> Match(X x, CoreTags.Say _)
             => Id();
     }
     

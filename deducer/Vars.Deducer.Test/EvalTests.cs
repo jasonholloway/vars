@@ -11,11 +11,10 @@ public class EvalTests
 {
     IEvaluator<Context> _core = EvaluatorBuilder
         .WithContext<Context>()
-        .AddCoreEvaluator()
         .AddTestEvaluator()
         .Build();
 
-    (Context State, V Value) Run<V>(Context x, F<V> prog) => Engine<Context>.Run(_core, x, prog);
+    (Context State, V Value) Run<V>(Context x, Tag<V> prog) => Engine<Context>.Run(_core, x, prog);
 
     [Test]
     public void EvalsId()

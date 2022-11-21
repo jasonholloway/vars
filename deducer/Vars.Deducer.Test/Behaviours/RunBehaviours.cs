@@ -12,7 +12,7 @@ namespace Vars.Deducer.Test.Behaviours
     public static class RunBehaviourExtensions
     {
         public static EvaluatorBuilder<X> AddRunBehaviours<X>(this EvaluatorBuilder<X> builder, params RunBehaviour[] behaviours)
-            => new(builder.EvalFacs.Add(root => new RunBehaviourEvaluator<X>(root, behaviours)));
+            => new(builder.Evals.Add(new RunBehaviourEvaluator<X>(behaviours)));
         
         public static EvaluatorBuilder<X> AddRunBehaviours<X>(this EvaluatorBuilder<X> builder, params (string Bid, (string Key, string Val)[] Binds)[] behaviours)
             => builder.AddRunBehaviours(
@@ -27,12 +27,12 @@ namespace Vars.Deducer.Test.Behaviours
     {
         readonly ILookup<string, RunBehaviour> _lookup;
 
-        public RunBehaviourEvaluator(IEvaluator<X> root, RunBehaviour[] behaviours) : base(root)
+        public RunBehaviourEvaluator(RunBehaviour[] behaviours)
         {
             _lookup = behaviours.ToLookup(t => t.Bid);
         }
 
-        public F<Bind[]> Match(X x, DeducerTags.InvokeRunner tag)
+        public Tag<Bind[]> Match(X x, DeducerTags.InvokeRunner tag)
         {
             var matched = _lookup[tag.Outline.Bid];
 

@@ -9,7 +9,7 @@ namespace Vars.Deducer.Evaluators
     public static class IOEvaluatorExtensions
     {
         public static EvaluatorBuilder<X> AddIOEvaluator<X>(this EvaluatorBuilder<X> builder, TextReader input, TextWriter output)
-            => builder with { EvalFacs = builder.EvalFacs.Add(root => new IOEvaluator<X>(root, input, output)) };
+            => builder with { Evals = builder.Evals.Add(new IOEvaluator<X>(input, output)) };
     }
 
     public class IOEvaluator<X> : EvaluatorBase<X>
@@ -17,32 +17,32 @@ namespace Vars.Deducer.Evaluators
         readonly TextReader _input;
         readonly TextWriter _output;
 
-        public IOEvaluator(IEvaluator<X> root, TextReader input, TextWriter output) : base(root)
+        public IOEvaluator(TextReader input, TextWriter output)
         {
             _input = input;
             _output = output;
         }
 
-        public F<Nil> Match(X x, CoreTags.Say tag)
+        public Tag<Nil> Match(X x, CoreTags.Say tag)
         {
             _output.WriteLine(tag.Line);
             return Id();
         }
         
-        public F<string?> Match(X x, CoreTags.Hear tag)
+        public Tag<string?> Match(X x, CoreTags.Hear tag)
         {
             var line = _input.ReadLine();
             return Pure(line);
         }
         
         
-        public F<string[]> Match(X x, DeducerTags.DredgeBindLog tag)
+        public Tag<string[]> Match(X x, DeducerTags.DredgeBindLog tag)
             => Pure(new[] { "blah", "blah", "blah" });
 
-        public F<Nil> Match(X x, DeducerTags.AppendToBindLog tag)
+        public Tag<Nil> Match(X x, DeducerTags.AppendToBindLog tag)
             => Id();
 
-        public F<string?> Match(X x, DeducerTags.PickValue tag)
+        public Tag<string?> Match(X x, DeducerTags.PickValue tag)
             => Say(
                     $"pick {tag.Name} {BashSerializer.WriteAssocArray("options", tag.Values.Select(v => (v, "1")).ToArray())}",
                     "@YIELD"
@@ -57,7 +57,7 @@ namespace Vars.Deducer.Evaluators
         const char RS = (char)30;
         const char EOM = (char)25;
 
-        public F<Bind[]> Match(X x, DeducerTags.InvokeRunner tag) 
+        public Tag<Bind[]> Match(X x, DeducerTags.InvokeRunner tag) 
         {
             var flagsPart = string.Join(' ', tag.RunFlags);
             var bindsPart = BashSerializer.WriteAssocArray("boundIns",
@@ -106,7 +106,7 @@ namespace Vars.Deducer.Evaluators
                 .Map(bs => bs.ToArray());
         }
         
-        public F<Bind[]> Match(X x, DeducerTags.GetUserPins tag)
+        public Tag<Bind[]> Match(X x, DeducerTags.GetUserPins tag)
             => Say(
                     $"getPins {string.Join(" ", tag.Names)}",
                     "@YIELD"

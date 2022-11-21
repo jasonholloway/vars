@@ -8,41 +8,41 @@ using static DeducerTags;
 
 public static class Ops
 {
-    public static F<V> Pure<V>(V val)
+    public static Tag<V> Pure<V>(V val)
         => new Pure<V>(val);
     
-    public static F<Nil> Id()
+    public static Tag<Nil> Id()
         => new Id();
     
     
-    public static F<BV> Then<AV, BV>(this F<AV> io, Func<AV, F<BV>> fn)
+    public static Tag<BV> Then<AV, BV>(this Tag<AV> io, Func<AV, Tag<BV>> fn)
         => new Bind<AV, BV>(io, fn);
     
-    public static F<BV> Then<AV, BV>(this F<AV> io, Func<F<BV>> fn)
+    public static Tag<BV> Then<AV, BV>(this Tag<AV> io, Func<Tag<BV>> fn)
         => new Bind<AV, BV>(io, _ => fn());
     
-    public static F<BV> Then<AV, BV>(this F<AV> io, F<BV> next)
+    public static Tag<BV> Then<AV, BV>(this Tag<AV> io, Tag<BV> next)
         => new Bind<AV, BV>(io, _ => next);
     
     
-    public static F<BV> Map<AV, BV>(this F<AV> io, Func<AV, BV> fn)
+    public static Tag<BV> Map<AV, BV>(this Tag<AV> io, Func<AV, BV> fn)
         => io.Then(v => Pure(fn(v)));
     
 
-    public static F<S> Read<S>()
+    public static Tag<S> Read<S>()
         => new Read<S>();
 
-    public static F<V> ReadMap<S, V>(Func<S, V> fn)
+    public static Tag<V> ReadMap<S, V>(Func<S, V> fn)
         => Read<S>().Map(fn);
 
-    public static F<V> ReadThen<S, V>(Func<S, F<V>> fn)
+    public static Tag<V> ReadThen<S, V>(Func<S, Tag<V>> fn)
         => Read<S>().Then(fn);
 
 
-    public static F<Nil> Write<W>(W newState)
+    public static Tag<Nil> Write<W>(W newState)
         => new Write<W>(newState);
 
-    public static F<Nil> ReadWrite<R, W>(Func<R, W> fn)
+    public static Tag<Nil> ReadWrite<R, W>(Func<R, W> fn)
         => Read<R>().Then(s => Write(fn(s)));
 
 
@@ -50,13 +50,13 @@ public static class Ops
     
 
 
-    public static F<Nil> Say(params string[] lines)
+    public static Tag<Nil> Say(params string[] lines)
         => Pure(lines).LoopThru(line => new Say(line));
 
-    public static F<string> Hear()
+    public static Tag<string> Hear()
         => new Hear();
     
-    public static F<(string?, string?)?> Hear2()
+    public static Tag<(string?, string?)?> Hear2()
         => Hear()
             .Then(line => Pure<(string?, string?)?>(line != null ? Split2(line) : null));
 
@@ -67,33 +67,33 @@ public static class Ops
     }
     
     
-    public static F<Bind[]> InvokeRunner(Outline outline, Bind[] binds, string[] runFlags)
+    public static Tag<Bind[]> InvokeRunner(Outline outline, Bind[] binds, string[] runFlags)
         => new InvokeRunner(outline, binds, runFlags);
     
-    public static F<Bind[]> GetUserPins(params string[] names)
+    public static Tag<Bind[]> GetUserPins(params string[] names)
         => new GetUserPins(names);
     
-    public static F<string[]> DredgeBindLog(string name)
+    public static Tag<string[]> DredgeBindLog(string name)
         => new DredgeBindLog(name);
 
-    public static F<Nil> AppendToBindLog(Bind bind)
+    public static Tag<Nil> AppendToBindLog(Bind bind)
         => new AppendToBindLog(bind);
 
-    public static F<Nil> LoopThru<V, V2>(this F<IEnumerable<V>> through, Func<V, F<V2>> @do)
+    public static Tag<Nil> LoopThru<V, V2>(this Tag<IEnumerable<V>> through, Func<V, Tag<V2>> @do)
         => through.Then(els => 
             els.Aggregate(Pure(default(V2)), (ac, el) => ac.Then(@do(el)))
                 .Then(_ => Id()));
 
-    public static F<Nil> LoopThru<V, V2>(this IEnumerable<F<V>> through, Func<V, F<V2>> @do)
+    public static Tag<Nil> LoopThru<V, V2>(this IEnumerable<Tag<V>> through, Func<V, Tag<V2>> @do)
         => through
             .Aggregate(Pure(default(V2)), (ac, el) => ac.Then(el.Then(@do)))
             .Then(_ => Id());
     
 
-    public static F<V> Gather<V>(V seed, Func<GatherOps<V>, V, F<LoopResult<V>>> loop)
+    public static Tag<V> Gather<V>(V seed, Func<GatherOps<V>, V, Tag<LoopResult<V>>> loop)
         => GatherInner(Pure(new LoopResult<V>.Continue(seed)), loop);
 
-    static F<V> GatherInner<V>(F<LoopResult<V>> prev, Func<GatherOps<V>, V, F<LoopResult<V>>> loop)
+    static Tag<V> GatherInner<V>(Tag<LoopResult<V>> prev, Func<GatherOps<V>, V, Tag<LoopResult<V>>> loop)
         => prev.Then(r => r switch
         {
             LoopResult<V>.Continue(var ac) => GatherInner(loop(new GatherOps<V>(), ac), loop),
@@ -102,39 +102,39 @@ public static class Ops
 
     public class GatherOps<V>
     {
-        public F<LoopResult<V>> Continue(V v) => Pure(new LoopResult<V>.Continue(v));
-        public F<LoopResult<V>> End(V v) => Pure(new LoopResult<V>.End(v));
+        public Tag<LoopResult<V>> Continue(V v) => Pure(new LoopResult<V>.Continue(v));
+        public Tag<LoopResult<V>> End(V v) => Pure(new LoopResult<V>.End(v));
     }
 
 
-    public static F<V> When<V>(F<bool> @if, F<V> @then, F<V> @else)
+    public static Tag<V> When<V>(Tag<bool> @if, Tag<V> @then, Tag<V> @else)
         => @if.Then(result => result ? then : @else);
     
-    public static F<V> When<V>(F<bool> @if, F<V> @then)
+    public static Tag<V> When<V>(Tag<bool> @if, Tag<V> @then)
         => @if.Then(result => result ? then : Pure(default(V)!));
 
-    public static F<V> Do<V>(F<V> fv)
+    public static Tag<V> Do<V>(Tag<V> fv)
         => fv;
     
-    public static F<V> Do<V>(Func<F<V>> f)
+    public static Tag<V> Do<V>(Func<Tag<V>> f)
         => f();
 
-    public static F<BV> Do<AV, BV>(F<AV> f, Func<AV, F<BV>> af)
+    public static Tag<BV> Do<AV, BV>(Tag<AV> f, Func<AV, Tag<BV>> af)
         => f.Then(af);
     
-    public static F<CV> Do<AV, BV, CV>(F<AV> f, Func<AV, F<BV>> af, Func<BV, F<CV>> bf)
+    public static Tag<CV> Do<AV, BV, CV>(Tag<AV> f, Func<AV, Tag<BV>> af, Func<BV, Tag<CV>> bf)
         => f.Then(af).Then(bf);
     
-    public static F<DV> Do<AV, BV, CV, DV>(F<AV> f, Func<AV, F<BV>> af, Func<BV, F<CV>> bf, Func<CV, F<DV>> cf)
+    public static Tag<DV> Do<AV, BV, CV, DV>(Tag<AV> f, Func<AV, Tag<BV>> af, Func<BV, Tag<CV>> bf, Func<CV, Tag<DV>> cf)
         => f.Then(af).Then(bf).Then(cf);
     
-    public static F<EV> Do<AV, BV, CV, DV, EV>(F<AV> f, Func<AV, F<BV>> af, Func<BV, F<CV>> bf, Func<CV, F<DV>> cf, Func<DV, F<EV>> df)
+    public static Tag<EV> Do<AV, BV, CV, DV, EV>(Tag<AV> f, Func<AV, Tag<BV>> af, Func<BV, Tag<CV>> bf, Func<CV, Tag<DV>> cf, Func<DV, Tag<EV>> df)
         => f.Then(af).Then(bf).Then(cf).Then(df);
     
-    public static F<FV> Do<AV, BV, CV, DV, EV, FV>(F<AV> f, Func<AV, F<BV>> af, Func<BV, F<CV>> bf, Func<CV, F<DV>> cf, Func<DV, F<EV>> df, Func<EV, F<FV>> ef)
+    public static Tag<FV> Do<AV, BV, CV, DV, EV, FV>(Tag<AV> f, Func<AV, Tag<BV>> af, Func<BV, Tag<CV>> bf, Func<CV, Tag<DV>> cf, Func<DV, Tag<EV>> df, Func<EV, Tag<FV>> ef)
         => f.Then(af).Then(bf).Then(cf).Then(df).Then(ef);
     
-    public static F<GV> Do<AV, BV, CV, DV, EV, FV, GV>(F<AV> f, Func<AV, F<BV>> af, Func<BV, F<CV>> bf, Func<CV, F<DV>> cf, Func<DV, F<EV>> df, Func<EV, F<FV>> ef, Func<FV, F<GV>> ff)
+    public static Tag<GV> Do<AV, BV, CV, DV, EV, FV, GV>(Tag<AV> f, Func<AV, Tag<BV>> af, Func<BV, Tag<CV>> bf, Func<CV, Tag<DV>> cf, Func<DV, Tag<EV>> df, Func<EV, Tag<FV>> ef, Func<FV, Tag<GV>> ff)
         => f.Then(af).Then(bf).Then(cf).Then(df).Then(ef).Then(ff);
 
     // public static M<R, BW, BV> When<R, W, AR, AW, BR, BW, BV>(this M<R, W> io, M<AR, AW, bool> @if, M<BR, BW, BV> @then, M<BR, BW, BV> @else)

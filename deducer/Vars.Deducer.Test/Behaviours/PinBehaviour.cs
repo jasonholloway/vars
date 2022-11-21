@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Vars.Deducer.Evaluators;
 using Vars.Deducer.Tags;
@@ -11,7 +12,7 @@ namespace Vars.Deducer.Test.Behaviours
     public static class PinBehaviourExtensions
     {
         public static EvaluatorBuilder<X> AddUserPinBehaviours<X>(this EvaluatorBuilder<X> builder, PinBehaviour[] behaviours)
-            => new(builder.EvalFacs.Add(root => new UserPinBehaviourEvaluator<X>(root, behaviours)));
+            => new(builder.Evals.Add(new UserPinBehaviourEvaluator<X>(behaviours)));
 
         public static EvaluatorBuilder<X> AddUserPinBehaviours<X>(this EvaluatorBuilder<X> builder, params (string Name, string Val)[] pins)
             => builder.AddUserPinBehaviours(
@@ -23,12 +24,12 @@ namespace Vars.Deducer.Test.Behaviours
     {
         readonly ILookup<string, PinBehaviour> _lookup;
 
-        public UserPinBehaviourEvaluator(IEvaluator<X> root, PinBehaviour[] behaviours) : base(root)
+        public UserPinBehaviourEvaluator(IEnumerable<PinBehaviour> behaviours)
         {
             _lookup = behaviours.ToLookup(t => t.Name);
         }
 
-        public F<Bind[]> Match(X x, DeducerTags.GetUserPins tag)
+        public Tag<Bind[]> Match(X x, DeducerTags.GetUserPins tag)
         {
             var matched = tag.Names
                 .SelectMany(n => _lookup[n].TakeLast(1));

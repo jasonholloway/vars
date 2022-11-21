@@ -6,27 +6,14 @@ public class RootEvaluator<X> : IEvaluator<X>
 {
     IEvaluator<X>[] _evals;
 
-    public RootEvaluator(IEnumerable<Func<IEvaluator<X>, IEvaluator<X>>> evalFacs)
+    public RootEvaluator(IEnumerable<IEvaluator<X>> evals)
     {
-        _evals = evalFacs.Select(fac => fac(this)).ToArray();
-    }
-    
-    public bool TryEval<V>(X x, F<V> tag, out F<V> translated)
-    {
-        foreach (var eval in _evals)
-        {
-            if (eval.TryEval(x, tag, out translated))
-            {
-                return true;
-            }
-        }
-
-        translated = null!;
-        return false;
+        _evals = evals.ToArray();
     }
 
-    public F<V> Eval<V>(X x, F<V> tag)
-        => TryEval(x, tag, out var translated)
-            ? translated
-            : tag;
+    public RootEvaluator(params IEvaluator<X>[] evals) : this(evals.AsEnumerable()) 
+    {}
+
+    public Tag Eval(X x, Tag tag)
+        => _evals.Aggregate(tag, (t, eval) => eval.Eval(x, t));
 }
