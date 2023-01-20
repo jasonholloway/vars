@@ -38,11 +38,12 @@ readBlock() {
     fi
   } <<<"$block"
 
-  case $macro in
-      map)
-          block="$(awk -f "$VARS_PATH/macros/map.awk" <<<"$block")"
-      ;;
-  esac
+  if [[ ! -z $macro ]]; then
+      local macroFile="$VARS_PATH/macros/${macro}.awk"
+      if [[ -e $macroFile ]]; then
+          block="$(awk -f "$macroFile" <<<"$block")"
+      fi
+  fi
 
   {
       local body0=""
