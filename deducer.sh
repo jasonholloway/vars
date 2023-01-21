@@ -138,7 +138,7 @@ trimBlocks() {
     trimmables[$bid]=1
 
     for vn in ${outs[$bid]}; do
-      supplying[$vn]+=" $bid"
+      supplying[${vn%\*}]+=" $bid"
     done
   done
 
@@ -146,18 +146,19 @@ trimBlocks() {
     unset "trimmables[$bid]"
 
     for vn in ${ins[$bid]}; do
-      pending[$vn]=1
+      pending[${vn%\*}]=1
     done
   done
   
   while [[ ${#pending[@]} -gt 0 ]]; do
-    for vn in ${!pending[*]}; do
+    for pvn in ${!pending[*]}; do #vns pre-trimmed here
 
-      if [[ -z ${pinned[$vn]} ]]; then
-        for bid in ${supplying[$vn]}; do
+      if [[ -z ${pinned[$pvn]} ]]; then
+        for bid in ${supplying[$pvn]}; do
           unset "trimmables[$bid]"
 
           for ivn in ${ins[$bid]}; do
+            ivn=${ivn%\*}
             if [[ -z ${seen[$ivn]} ]]; then
               pending[$ivn]=1
             fi
@@ -165,8 +166,8 @@ trimBlocks() {
         done
       fi
 
-      seen[$vn]=1
-      unset "pending[$vn]"
+      seen[$pvn]=1
+      unset "pending[$pvn]"
     done
   done
 
@@ -180,10 +181,12 @@ orderBlocks() {
 
   for bid in ${!blocks[*]}; do
     for vn in ${ins[$bid]}; do
+      vn=${vn%\*}
       echo "@$vn $bid"
     done
 
     for vn in ${outs[$bid]}; do
+      vn=${vn%\*}
       echo "$bid @$vn"
     done
   done \
@@ -192,7 +195,7 @@ orderBlocks() {
 }
 
 runBlocks() {
-  local bid vn v isTargetBlock isNeeded source
+  local bid ivn vn v isTargetBlock isNeeded source isMultiIn isMultiVal
   local -a flags
   local -A binds boundIns boundOuts attrs
     
@@ -206,16 +209,17 @@ runBlocks() {
 
     # Can skip if nothing needed
     isNeeded=$isTargetBlock
-    for vn in ${outs[$bid]}; do [[ -z ${binds[$vn]} ]] && isNeeded=1; done
+    for vn in ${outs[$bid]}; do [[ -z ${binds[${vn%\*}]} ]] && isNeeded=1; done
     [[ ! $isNeeded ]] && continue
 
     # Bind in vars, either from pinned or via pick
-    for vn in ${ins[$bid]}; do
+    for ivn in ${ins[$bid]}; do
+      vn=${ivn%\*}
+        
       source=
       v=${binds[$vn]}
 
       if [[ ! $v ]]; then
-
         v=${pinned[$vn]}
         if [[ $v ]]; then source=pinned
         else
@@ -233,7 +237,13 @@ runBlocks() {
         fi
       fi
 
-      if [[ -z $v || ${v:0:1} == '¦' ]]; then
+      isMultiIn=
+      [[ ${ivn: -1} == '*' ]] && isMultiIn=1
+
+      isMultiVal=
+      [[ ${v:0:1} == '¦' ]] && isMultiVal=1
+
+      if [[ -z $v || ( ! $isMultiIn && $isMultiVal ) ]]; then
         say "pick $vn $v"
         say "@YIELD"
         hear v

@@ -26,7 +26,7 @@ main() {
 
 run() {
 		local cacheFile
-		local runFlags blockFlags
+		local runFlags blockFlags ivn vn isMultiIn v
 
 		IFS=$'\031' read -r runFlags assignBinds outline <<< "$*"
 		IFS=';' read -r bid _ _ blockFlags <<< "$outline"
@@ -73,16 +73,44 @@ run() {
 										decode body body
 
 										(
+												[[ $VARS_DEBUG ]] && set -x
+
+												local -a lines=()
+												
 												eval "$assignBinds"
-												for n in ${!boundIns[*]}; do
-														export "$n=${boundIns[$n]}"
+												for vn in ${!boundIns[*]}; do
+														v=${boundIns[$vn]}
+
+														isMulti=
+														if [[ ${v:0:1} = ¦ ]]; then
+																isMulti=1
+
+																local -a vs=()
+
+																oIFS=$IFS
+																IFS=¦
+																for e in ${v#¦}; do
+																		vs+=("$e")
+																done
+																IFS=$oIFS
+														fi
+
+														if [[ $isMulti ]]; then
+																pres+=("declare -a $vn;")
+
+																for e in "${vs[@]}"; do
+																		pres+=("$vn+=(\"$e\");")
+																done
+														else
+																pres+=("$vn=\"$v\";")
+														fi
 												done
 
 												source $VARS_PATH/helpers.sh 
 
 												shopt -s extglob
 
-												eval "$body" <"$pts"
+												eval "${pres[*]}$body" <"$pts"
 										)
 								;;
 						esac \

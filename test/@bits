@@ -76,3 +76,19 @@ vim ~/.vars/out >"$(tty)"
 # n: tty_noContext
 echo hello >&2
 @tty 'echo HELLO! $(tty) >&2' 
+
+
+
+
+#++++++++++
+# in: rat*
+# out: cageSize
+ratCount=${#rat[@]}
+@bind cageSize $ratCount
+
+#++++++++++++++++++ val
+rat
+; Roderick
+; Basil
+; Ratty
+; Roland
