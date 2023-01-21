@@ -269,13 +269,22 @@ runBlocks() {
     [[ ${targetBlocks[$bid]} ]] && flags+=(T)
 
     # Run the block!
-
     say "@ASK runner"
-    say "run ${flags[*]}"$'\031'"${boundIns[*]@A}"$'\031'"${outlines[$bid]}"
-    # todo:
-    # should emit all binds individually here
+    say "run ${flags[*]}"$'\031'"${outlines[$bid]}"
+    for vn in ${!boundIns[@]}; do
+        biv=${boundIns[$vn]}
+
+        local -a vs=()
+        split ¦ "${biv#¦}" vs
+        
+        for v in "${vs[@]}"; do
+            say val $vn $v
+        done
+    done
+    say "go"
     say "@YIELD"
     say "@END"
+
     while hear type line; do
       case "$type" in
           'fin') break;;
@@ -283,7 +292,7 @@ runBlocks() {
           'bind')
               read -r vn v <<<"$line"
               decode v v
-              boundOuts[$vn]="${boundOuts[$vn]}¦$v"
+              boundOuts[$vn]="${boundOuts[$vn]}¦${v#¦}"
           ;;
 
           'set')
@@ -297,6 +306,7 @@ runBlocks() {
 
     for vn in ${!boundOuts[*]}; do
       v=${boundOuts[$vn]}
+      v=${v#¦}
       binds[$vn]=$v
       say "bound $bid $vn ${v//$'\n'/$'\60'}"
     done

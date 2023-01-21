@@ -382,7 +382,7 @@ parseArg() {
 }
 
 render() {
-  "$VARS_PATH/render.sh"
+  source "$VARS_PATH/render.sh"
 }
 
 main "$@"

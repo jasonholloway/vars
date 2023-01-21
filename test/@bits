@@ -19,7 +19,7 @@ dog > food
 #+++++++++++++++++++++++
 # n: sayHello
 # in: dog
-echo Hello, ${dog}!
+echo "\"Hello, ${dog}!\""
 
 
 #+++++++++++++++++++++++

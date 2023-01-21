@@ -27,15 +27,23 @@ main() {
 run() {
 		local cacheFile
 		local runFlags blockFlags ivn vn isMultiIn v
+		local -a vals=()
 
-		IFS=$'\031' read -r runFlags assignBinds outline <<< "$*"
+		while hear type line; do
+				case $type in
+						val) vals+=("$line");;
+						go) break;
+				esac
+		done
+
+		IFS=$'\031' read -r runFlags outline <<< "$*"
 		IFS=';' read -r bid _ _ blockFlags <<< "$outline"
 
 		isCacheable=
 		[[ $blockFlags =~ C ]] && isCacheable=1
 
 		if [[ $isCacheable ]]; then
-				local hash=$(sha1sum <<< "$bid $assignBinds")
+				local hash=$(sha1sum <<< "$bid ${vals[*]}")
 				cacheFile="$cacheDir/R-${hash%% *}"
 		fi
 
@@ -57,10 +65,14 @@ run() {
 								get:*)
 										vn="${bid##*:}"
 
-										(
-												eval "$assignBinds"
-												echo @out ${boundIns[$vn]}
-										)
+										for val in "${vals[@]}"; do
+												read vvn v <<< "$val"
+												if [[ $vvn == $vn ]]; then
+														decode v v
+														say "@out $v"
+														break
+												fi
+										done
 								;;
 								*)
 										say "@ASK files"
@@ -73,44 +85,21 @@ run() {
 										decode body body
 
 										(
-												[[ $VARS_DEBUG ]] && set -x
-
-												local -a lines=()
-												
-												eval "$assignBinds"
-												for vn in ${!boundIns[*]}; do
-														v=${boundIns[$vn]}
-
-														isMulti=
-														if [[ ${v:0:1} = ¦ ]]; then
-																isMulti=1
-
-																local -a vs=()
-
-																oIFS=$IFS
-																IFS=¦
-																for e in ${v#¦}; do
-																		vs+=("$e")
-																done
-																IFS=$oIFS
-														fi
-
-														if [[ $isMulti ]]; then
-																pres+=("declare -a $vn;")
-
-																for e in "${vs[@]}"; do
-																		pres+=("$vn+=(\"$e\");")
-																done
-														else
-																pres+=("$vn=\"$v\";")
-														fi
-												done
-
 												source $VARS_PATH/helpers.sh 
 
 												shopt -s extglob
 
-												eval "${pres[*]}$body" <"$pts"
+												for val in "${vals[@]}"; do
+														read vn v <<< "$val"
+														decode v v
+														pres+=("$vn+=(\"$v\");")
+												done
+
+												eval "
+														[[ $VARS_DEBUG ]] && set -x
+														${pres[*]}
+														$body
+														" <"$pts"
 										)
 								;;
 						esac \

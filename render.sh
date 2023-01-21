@@ -6,8 +6,8 @@
 val="$(cat)"
 
 if [[ -t 1 ]]; then
-  jq -C . 2>/dev/null <<<"$val"
-  [[ $? -ne 0 ]] && echo "$val"
+  jq -eC . 2>/dev/null <<< "$val"
+  [[ $? == 4 ]] && echo "$val"
 else
   echo "$val"
 fi
