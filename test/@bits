@@ -86,9 +86,17 @@ echo hello >&2
 ratCount=${#rat[@]}
 @bind cageSize $ratCount
 
+
 #++++++++++++++++++ val
 rat
 ; Roderick
 ; Basil
 ; Ratty
 ; Roland
+
+
+#++++++++++++
+# out: pig
+@bind pig Huxley
+@bind pig Oinker
+@bind pig Pigathy

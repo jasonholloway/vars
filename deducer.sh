@@ -218,6 +218,7 @@ runBlocks() {
         
       source=
       v=${binds[$vn]}
+      v="${v#¦}"
 
       if [[ ! $v ]]; then
         v=${pinned[$vn]}
@@ -241,7 +242,7 @@ runBlocks() {
       [[ ${ivn: -1} == '*' ]] && isMultiIn=1
 
       isMultiVal=
-      [[ ${v:0:1} == '¦' ]] && isMultiVal=1
+      [[ $v =~ ¦ ]] && isMultiVal=1
 
       if [[ -z $v || ( ! $isMultiIn && $isMultiVal ) ]]; then
         say "pick $vn $v"
@@ -271,6 +272,8 @@ runBlocks() {
 
     say "@ASK runner"
     say "run ${flags[*]}"$'\031'"${boundIns[*]@A}"$'\031'"${outlines[$bid]}"
+    # todo:
+    # should emit all binds individually here
     say "@YIELD"
     say "@END"
     while hear type line; do
@@ -280,7 +283,7 @@ runBlocks() {
           'bind')
               read -r vn v <<<"$line"
               decode v v
-              boundOuts[$vn]=$v
+              boundOuts[$vn]="${boundOuts[$vn]}¦$v"
           ;;
 
           'set')

@@ -142,10 +142,10 @@ run() {
 
       pick) {
               read -r name rawVals <<< "$line"
+              rawVals=${rawVals#¦}
+              rawVals=${rawVals//¦/$'\n'}
 
-              local val=$({
-                  sed 's/¦//; s/¦/\n/g' <<< "$rawVals"
-              } | fzy --prompt "${name}> ")
+              local val=$(fzy --prompt "${name}> " <<< "$rawVals")
 
               echo $val >&6
               echo @YIELD >&6
