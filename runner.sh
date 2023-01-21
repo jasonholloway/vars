@@ -96,7 +96,7 @@ run() {
 												done
 
 												eval "
-														[[ $VARS_DEBUG ]] && set -x
+														[[ \$VARS_DEBUG ]] && set -x
 														${pres[*]}
 														$body
 														" <"$pts"
