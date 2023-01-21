@@ -35,7 +35,7 @@ run() {
 		[[ $blockFlags =~ C ]] && isCacheable=1
 
 		if [[ $isCacheable ]]; then
-				local hash=$(echo "$bid $assignBinds" | sha1sum)
+				local hash=$(sha1sum <<< "$bid $assignBinds")
 				cacheFile="$cacheDir/R-${hash%% *}"
 		fi
 
