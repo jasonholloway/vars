@@ -195,7 +195,7 @@ orderBlocks() {
 }
 
 runBlocks() {
-  local bid ivn vn v isTargetBlock isNeeded source isMultiIn isMultiVal
+  local bid ivn vn v isTargetBlock isNeeded source isSingleIn isMultiVal
   local -a flags
   local -A binds boundIns boundOuts attrs
     
@@ -238,13 +238,13 @@ runBlocks() {
         fi
       fi
 
-      isMultiIn=
-      [[ ${ivn: -1} == '*' ]] && isMultiIn=1
+      isSingleIn=
+      [[ ${ivn: -1} != '*' ]] && isSingleIn=1
 
       isMultiVal=
       [[ $v =~ ¦ ]] && isMultiVal=1
 
-      if [[ -z $v || ( ! $isMultiIn && $isMultiVal ) ]]; then
+      if [[ -z $v || ( $isSingleIn && $isMultiVal ) ]]; then
         say "pick $vn $v"
         say "@YIELD"
         hear v
