@@ -105,3 +105,8 @@ rat
 @bind pig Huxley
 @bind pig Oinker
 @bind pig Pigathy
+
+
+
+#+ val
+mouse: Speedy Gonzalez|Mickey|Minnie

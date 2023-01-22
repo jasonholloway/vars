@@ -3,6 +3,19 @@ BEGIN {
     delete vals
 }
 
+NR == 1 && sub(":$","",$1) > 0 {
+    name=$1
+
+    sub("^\\w+\\W+","")
+
+    split($0,r,"\|")
+    for(i in r) {
+        vals[length(vals)]=r[i]
+    }
+    
+    exit
+}
+
 NR == 1 {
     name=$1
 }
