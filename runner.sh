@@ -66,7 +66,7 @@ run() {
 										vn="${bid##*:}"
 
 										for val in "${vals[@]}"; do
-												read vvn v <<< "$val"
+												read -r vvn v <<< "$val"
 												if [[ $vvn == $vn ]]; then
 														decode v v
 														say "@out $v"
@@ -90,7 +90,7 @@ run() {
 												shopt -s extglob
 
 												for val in "${vals[@]}"; do
-														read vn v <<< "$val"
+														read -r vn v <<< "$val"
 														decode v v
 														pres+=("$vn+=('$v');")
 												done

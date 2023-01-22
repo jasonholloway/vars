@@ -29,7 +29,7 @@ NR > 1 && $1 ~ /[;:]/ {
 END {
     print "#++++++++++++++++++++++++++";
     print "# out: "name;
-    print "@bind "name" ¦"join(vals, "¦");
+    print "@bind '"name"' '"join(vals, "¦")"'";
     print "";
 }
 
