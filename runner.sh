@@ -92,7 +92,7 @@ run() {
 												for val in "${vals[@]}"; do
 														read vn v <<< "$val"
 														decode v v
-														pres+=("$vn+=(\"$v\");")
+														pres+=("$vn+=('$v');")
 												done
 
 												eval "

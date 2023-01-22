@@ -183,11 +183,11 @@ list() {
       done
 
       for inp in $ins; do
-          echo "I;$inp;$bid"
+          echo "I;${inp%\*};$bid"
       done
 
       for out in $outs; do
-          echo "O;$out;$bid"
+          echo "O;${out%\*};$bid"
       done
 
   done | sort | uniq
