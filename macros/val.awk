@@ -8,7 +8,7 @@ NR == 1 && sub(":$","",$1) > 0 {
 
     sub("^\\w+\\W+","")
 
-    split($0,r,"\|")
+    split($0,r,"\\|")
     for(i in r) {
         vals[length(vals)]=r[i]
     }
