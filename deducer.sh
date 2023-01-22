@@ -179,17 +179,23 @@ trimBlocks() {
 orderBlocks() {
   local bid vn
 
-  for bid in ${!blocks[*]}; do
-    for vn in ${ins[$bid]}; do
-      vn=${vn%\*}
-      echo "@$vn $bid"
+  {
+    for bid in ${!targetBlocks[*]}; do
+        echo "$bid @GOAL!" 
     done
 
-    for vn in ${outs[$bid]}; do
-      vn=${vn%\*}
-      echo "$bid @$vn"
+    for bid in ${!blocks[*]}; do
+        for vn in ${ins[$bid]}; do
+            vn=${vn%\*}
+            echo "@$vn $bid"
+        done
+
+        for vn in ${outs[$bid]}; do
+            vn=${vn%\*}
+            echo "$bid @$vn"
+        done
     done
-  done \
+  } \
   | tsort \
   | sed '/^@/d'
 }
