@@ -79,7 +79,13 @@
 }
 
 @bind() {
-    echo @bind "$@"
+    if [[ $# == 1 ]]; then
+        while read line; do
+            echo @bind "$1" "$line"
+        done
+    else
+        echo @bind "$@"
+    fi
 }
 
 @bindMany() {
