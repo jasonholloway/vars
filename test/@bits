@@ -94,10 +94,10 @@ ratCount=${#rat[@]}
 
 #++++++++++++++++++ val
 rat
-; Roderick
-; Basil
-; Ratty
-; Roland
+: Roderick
+: Basil
+: Ratty
+: Roland
 
 
 #++++++++++++
