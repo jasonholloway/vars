@@ -2,10 +2,8 @@
 echo firstName=bob$(date +%s)
 echo age=70
 
-#++++++++++++++++++++++++
-# out: dog
-echo dog=¦Bert¦Rex¦Biter¦Nobby
-
+#+ val
+dog: Bert|Rex|Biter|Nobby
 
 
 #++++++++++++++++++++ map
@@ -46,15 +44,15 @@ echo wibble wibble wibble
 @bind cowName ¦Daisy¦Betsy¦Kev
 
 
-#+++++++++++++++++++++
+#+++++++++++++++++++++ tty
 # n: less
 # out: blah
-less /etc/hosts >"$(tty)"
+less /etc/hosts
 
-#+++++++++++++++++++++
+#+++++++++++++++++++++ tty
 # n: vim
 # out: blah
-vim ~/.vars/out >"$(tty)"
+vim ~/.vars/out
 
 #+++++++++++++++++++++
 # n: curl
