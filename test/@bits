@@ -110,9 +110,15 @@ rat
 mouse: Speedy Gonzalez|Mickey|Minnie
 
 
-
-
 #++++++++++++
 # out: horse
 { echo Whinney; echo Dobbin; echo Jumper; } |
 		@bind horse
+
+
+#+ val
+path
+: /home/jason/src/
+: ~/src
+: blah
+: $HOME/blah
