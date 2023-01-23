@@ -147,8 +147,8 @@ run() {
 
               local val=$(fzy --prompt "${name}> " <<< "$rawVals")
 
-              echo $val >&6
-              echo @YIELD >&6
+              echo "$val" >&6
+              echo "@YIELD" >&6
           };;
 
       pin) {
