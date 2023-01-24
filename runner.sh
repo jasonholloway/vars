@@ -69,7 +69,7 @@ run() {
 												read -r vvn v <<< "$val"
 												if [[ $vvn == $vn ]]; then
 														decode v v
-														say "@out $v"
+														say "out $v"
 														break
 												fi
 										done
