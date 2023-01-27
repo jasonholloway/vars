@@ -64,13 +64,13 @@ run() {
 						case "$bid" in
 								get:*)
 										vn="${bid##*:}"
+										vn="${vn%\*}"
 
 										for val in "${vals[@]}"; do
 												read -r vvn v <<< "$val"
 												if [[ $vvn == $vn ]]; then
 														decode v v
 														say "out $v"
-														break
 												fi
 										done
 								;;
@@ -147,27 +147,27 @@ run() {
 
 								@bind[[:space:]][[:word:]]*)
 										read -r _ vn v <<< "$line"
-										say bind $vn $v
+										say bind "$vn" "$v"
 								;;
 
 								@set[[:space:]][[:word:]]*)
 										read -r _ n v <<< "$line"
-										say set $n $v
+										say set "$n" "$v"
 								;;
 
 								@out*)
 										read -r _  v <<< "$line"
-										echo $v
+										echo "$v"
 								;;
 
 								+([[:word:]])=*)
-										vn=${line%%=*}
-										v=${line#*=}
-										say bind $vn $v
+										vn="${line%%=*}"
+										v="${line#*=}"
+										say bind "$vn" "$v"
 								;;
 
 								*)
-										echo $line
+										echo "$line"
 								;;
 						esac
 				done
