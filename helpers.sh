@@ -134,6 +134,50 @@
     bcp $@ $opts >&2
 }
 
+@sql2() {
+		local query="$1"
+		local line
+
+		IFS=':' read -r sqlServer sqlDb sqlUser sqlPass <<<"$_sql"
+
+		export sqlServer
+		export sqlDb
+		export sqlUser
+		export sqlPass
+		export query
+
+		docker run -it \
+				--network=host \
+				-e sqlServer \
+				-e sqlDb \
+				-e sqlUser \
+				-e sqlPass \
+				-e query \
+				sqlcmd \
+				/bin/sh -c '
+						sqlcmd \
+								-S "$sqlServer" \
+								-C -U "$sqlUser" \
+								-P "$sqlPass" \
+								-d "$sqlDb" \
+								-K ReadOnly \
+								-h -1 \
+								-Q "
+										SET NOCOUNT ON;
+										${query}"
+				' |
+		while read -r line; do
+				case "$line" in
+						"Sqlcmd:"*) {
+								echo "$line"
+								cat
+						} >&2;;
+
+						*) echo "$line";;
+				esac
+		done
+}
+
 @sql() {
 		local query="$1"
 		local -n sink="${2:-results}"
