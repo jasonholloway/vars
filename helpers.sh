@@ -3,71 +3,71 @@
 @curl() {
     local line
 
-		resp=$(curl -Ss -Lk -i \
-					$([[ $VARS_VERBOSE ]] && echo "-v") \
-					$([[ $VARS_PROXY ]] && echo "--proxy $VARS_PROXY") \
-					"$@" 2>&1)
+    resp=$(curl -Ss -Lk -i \
+          $([[ $VARS_VERBOSE ]] && echo "-v") \
+          $([[ $VARS_PROXY ]] && echo "--proxy $VARS_PROXY") \
+          "$@" 2>&1)
 
-		{
-			local mode=start
-			local move=1
-			local schema status isError
+    {
+      local mode=start
+      local move=1
+      local schema status isError
 
-			while true; do
-				[[ $move ]] && { read -r line || break; }
-				move=
+      while true; do
+        [[ $move ]] && { read -r line || break; }
+        move=
 
-				line=${line//$'\r'/}
+        line=${line//$'\r'/}
 
-				case $mode in
-						start)
-						  case $line in
-								HTTP*) mode=http ;;
-								*) mode=error ;;
-						  esac
-						;;
+        case $mode in
+            start)
+              case $line in
+                HTTP*) mode=http ;;
+                *) mode=error ;;
+              esac
+            ;;
 
-						http)
-							read -r schema status rest <<<"$line"
-							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+            http)
+              read -r schema status rest <<<"$line"
+              [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
 
-							if [[ $rest =~ "Connection Established" ]]; then
-								mode=proxyHeader
-						  else
-								mode=header
-							fi
+              if [[ $rest =~ "Connection Established" ]]; then
+                mode=proxyHeader
+              else
+                mode=header
+              fi
 
-							move=1
-						;;
+              move=1
+            ;;
 
-						header)
-							[[ -z $line ]] && mode=body
-							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
-							move=1
-						;;
+            header)
+              [[ -z $line ]] && mode=body
+              [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+              move=1
+            ;;
 
-						proxyHeader)
-							[[ -z $line ]] && mode=start
-							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
-							move=1
-						;;
+            proxyHeader)
+              [[ -z $line ]] && mode=start
+              [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+              move=1
+            ;;
 
-						body)
-							echo "$line" 
-							[[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
-							move=1
-						;;
+            body)
+              echo "$line" 
+              [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+              move=1
+            ;;
 
-						error)
-							isError=1
-							move=1
-						;;
-				esac
-			done
+            error)
+              isError=1
+              move=1
+            ;;
+        esac
+      done
 
-			[[ $isError ]] && return 1
+      [[ $isError ]] && return 1
 
-		} <<<"$resp"
+    } <<<"$resp"
 }
 
 @cacheTill() {
@@ -89,10 +89,10 @@
 }
 
 @bindMany() {
-		local vn="$1"
-		local -n __r="${2:-results}"
-		local IFS='¦'
-		echo @bind "$vn" "¦${__r[*]}"
+    local vn="$1"
+    local -n __r="${2:-results}"
+    local IFS='¦'
+    echo @bind "$vn" "¦${__r[*]}"
 }
 
 @tty() {
@@ -135,71 +135,109 @@
 }
 
 @sql2() {
-		local query="$1"
-		local line
+    local query="$1"
+    local line
 
-		IFS=':' read -r sqlServer sqlDb sqlUser sqlPass <<<"$_sql"
+    IFS=':' read -r sqlServer sqlDb sqlUser sqlPass <<<"$_sql"
 
-		export sqlServer
-		export sqlDb
-		export sqlUser
-		export sqlPass
-		export query
+    export sqlServer
+    export sqlDb
+    export sqlUser
+    export sqlPass
+    export query
 
-		docker run -it \
-				--network=host \
-				-e sqlServer \
-				-e sqlDb \
-				-e sqlUser \
-				-e sqlPass \
-				-e query \
-				sqlcmd \
-				/bin/sh -c '
-						sqlcmd \
-								-S "$sqlServer" \
-								-C -U "$sqlUser" \
-								-P "$sqlPass" \
-								-d "$sqlDb" \
-								-K ReadOnly \
-								-h -1 \
-								-Q "
-										SET NOCOUNT ON;
-										${query}"
-				' |
-		while read -r line; do
-				case "$line" in
-						"Sqlcmd:"*) {
-								echo "$line"
-								cat
-						} >&2;;
+    docker run -it \
+        --network=host \
+        -e sqlServer \
+        -e sqlDb \
+        -e sqlUser \
+        -e sqlPass \
+        -e authMode=$([[ $sqlUser =~ '@' ]] && echo "-G " || echo "") \
+        -e query \
+        sqlcmd \
+        /bin/sh -c '
+            sqlcmd \
+                -S "$sqlServer" \
+                $authMode \
+                -U "$sqlUser" -P "$sqlPass" \
+                -C -K ReadOnly \
+                -d "$sqlDb" \
+                -h -1 \
+                -Q "
+                    SET NOCOUNT ON;
+                    ${query}"
+        ' |
+    while read -r line; do
+        case "$line" in
+            "Sqlcmd:"*) {
+                echo "$line"
+                cat
+            } >&2;;
 
-						*) echo "$line";;
-				esac
-		done
+            *) echo "$line";;
+        esac
+    done
 }
 
 @sql() {
-		local query="$1"
-		local -n sink="${2:-results}"
-		local line
+    local query="$1"
+    local -n sink="${2:-results}"
+    local line
 
-		IFS=':' read -r sqlServer sqlDb sqlUser sqlPass <<<"$_sql"
+    IFS=':' read -r sqlServer sqlDb sqlUser sqlPass <<<"$_sql"
 
-		sink=()
+    sink=()
 
-		while read -r line
-		do sink+=("$line")
-		done < <(
-				SQLCMDPASSWORD="$sqlPass" \
-						sqlcmd \
-								-S $sqlServer \
-								-C -G -U "$sqlUser" \
-								-K ReadOnly \
-								-d $sqlDb \
-								-h -1 \
-								-Q "
-				SET NOCOUNT ON;
-				${query}
-				")
+    {
+        while read -r line; do
+            case "$line" in
+                "Sqlcmd:"*) {
+                    echo "$line" >&2
+                    cat
+                } >&2 ;;
+                *) {
+                    sink+=("$line")
+                };;
+            esac
+        done
+    } < <(
+        export sqlServer
+        export sqlDb
+        export sqlUser
+        export sqlPass
+        export query
+
+        docker run -it \
+            -e sqlServer \
+            -e sqlDb \
+            -e sqlUser \
+            -e sqlPass \
+            -e query \
+            sqlcmd \
+            /bin/sh -c '
+                sqlcmd \
+                    -S "$sqlServer" \
+                    -C -U "$sqlUser" \
+                    -P "$sqlPass" \
+                    -d "$sqlDb" \
+                    -K ReadOnly \
+                    -h -1 \
+                    -Q "
+                      SET NOCOUNT ON;
+                      ${query}"
+            '
+        # above needs to add -G for shipments connections
+        )
+}
+
+@rmf() {
+    for p in "$@"; do
+        if [[ $p =~ ^/|/\w+|/usr/\w+|/usr/local/\w+|/var/.*|/etc/.*|/lib(64)?/.*$ ]]; then
+            echo "Refusing to remove path $p" >&2
+            exit 1
+        fi
+
+        echo __rm -rf "$p"
+    done
 }
 
