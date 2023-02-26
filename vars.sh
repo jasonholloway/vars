@@ -189,8 +189,7 @@ list() {
       for out in $outs; do
           echo "O;${out%\*};$bid"
       done
-
-  done | sort | uniq
+  done
 }
 
 filterList() {

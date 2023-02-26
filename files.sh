@@ -188,22 +188,35 @@ getRawFile() {
 }
 
 findFiles() {
-	local pattern='@*'
-	local peekDepth=2
+  local pattern='@*'
+  local peekDepth=2
+  local globalDir="$HOME/.vars/global"
+  local globalPeekDepth=3
 
-	while read -r fid; do
-			echo -n "${fid%.*} "
-	done < <(
-			{ find -L ~+ -maxdepth "$peekDepth" ! -readable -prune -o -name "$pattern" -printf "%p,%T@\n"
+  {
+    find -L ~+ -maxdepth "$peekDepth" ! -readable -prune -o -name "$pattern" -printf "0,%p,%T@\n"
 
-          while cd ..; do
-            find ~+ -maxdepth 1 ! -readable -prune -o -name "$pattern" -printf "%p,%T@\n"
-            [[ $PWD = / ]] && exit 0
-          done
-      } | sort
-	)
+    (
+      while cd ..; do
+        find ~+ -maxdepth 1 ! -readable -prune -o -name "$pattern" -printf "0,%p,%T@\n"
+        [[ $PWD = / ]] && exit 0
+      done
+    )
 
-	echo
+    if [[ -d "$globalDir" ]]; then
+      find -L "$globalDir" -maxdepth "$globalPeekDepth" ! -readable -prune -o -name "$pattern" -printf "9,%p,%T@\n"
+    fi
+  } \
+  | sort -u -t, -k2 \
+  | sort -t, -k1 \
+  | {
+      IFS=,
+      while read -r _ fid; do
+        echo -n "${fid%.*} "
+      done
+    }
+
+  echo
 }
 
 main "$@"
