@@ -72,14 +72,14 @@ readInputs() {
   done
   
   # Create and set blocks for var targets
-  hear raw
-  for n in $raw; do
-      vbid="get:$n"
-      blocks[$vbid]=1
-      outlines[$vbid]=$vbid
-      targetBlocks[$vbid]=1
-      ins[$vbid]="$n"
-  done
+  # hear raw
+  # for n in $raw; do
+  #     vbid="get:$n"
+  #     blocks[$vbid]=1
+  #     outlines[$vbid]=$vbid
+  #     targetBlocks[$vbid]=1
+  #     ins[$vbid]="$n"
+  # done
 
   # Set mode flags
   hear raw
@@ -134,6 +134,8 @@ trimBlocks() {
   local bid vn ivn
   local -A trimmables pending supplying seen
 
+  # put all known bids in trimmables
+  # and for each build up the supplying map
   for bid in ${!blocks[*]}; do
     trimmables[$bid]=1
 
@@ -142,6 +144,10 @@ trimBlocks() {
     done
   done
 
+  # note: supplying index could be built up front
+
+  # remove targets from trimmables
+  # and mark all target inputs as pending
   for bid in ${!targetBlocks[*]}; do
     unset "trimmables[$bid]"
 
@@ -149,6 +155,7 @@ trimBlocks() {
       pending[${vn%\*}]=1
     done
   done
+  
   
   while [[ ${#pending[@]} -gt 0 ]]; do
     for pvn in ${!pending[*]}; do #vns pre-trimmed here

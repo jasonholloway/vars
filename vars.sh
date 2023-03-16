@@ -7,7 +7,6 @@ source "${VARS_PATH:-.}/common.sh"
 
 declare -a words=($@)
 declare -a blocks=()
-declare -a targets=()
 declare -a flags=()
 declare -a adHocs=()
 declare -a cmds=()
@@ -46,7 +45,10 @@ main() {
   if [[ ${#cmds[@]} -gt 0 ]]; then
     {
       coproc {
-        stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.sh;runner:$VARS_PATH/runner.sh $pts"
+          if [[ $VARS_V2 ]];
+          then stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;runner:$VARS_PATH/runner.sh $pts"
+          else stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.sh;runner:$VARS_PATH/runner.sh $pts"
+          fi
       }
       exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
@@ -71,9 +73,8 @@ run() {
 
   say "@ASK deducer"
   say "deduce"
-  say "$outlines"
+  say "$outlines" #should inject get:blah here?
   say "${blocks[*]}"
-  say "${targets[*]}"
   say "${flags[*]}"
   say "@YIELD"
 

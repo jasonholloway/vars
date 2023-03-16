@@ -203,7 +203,7 @@ findFiles() {
       done
     )
 
-    if [[ -d "$globalDir" ]]; then
+    if [[ -z $VARS_LOCAL && -d "$globalDir" ]]; then
       find -L "$globalDir" -maxdepth "$globalPeekDepth" ! -readable -prune -o -name "$pattern" -printf "9,%p,%T@\n"
     fi
   } \
