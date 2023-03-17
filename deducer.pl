@@ -23,6 +23,8 @@ sub main {
                 foreach my $target (keys %{$x{targets}}) {
                     evalBlock(\%x, $target);
                 }
+
+                say 'fin';
             }
         }
         
@@ -40,10 +42,13 @@ sub main {
 sub evalBlock {
     my %x = %{$_[0]};
     my $target = $_[1];
+    my %block = %{$x{blocks}{$target}};
 
     my %boundIns;
 
-    foreach my $in (@{$x{blocks}{$target}{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
+    #todo pins fix var in scope here
+
+    foreach my $in (@{$block{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
         my $vn = $in->{name};
         my $v = summonVar(\%x, $vn);
 
@@ -54,20 +59,51 @@ sub evalBlock {
     }
 
     say '@ASK runner';
-    # say "run ${flags[*]}"$'\031'"${outlines[$bid]}"
-    # for vn in ${!boundIns[@]}; do
-    #     biv=${boundIns[$vn]}
+    say "run @{$block{flags}}\031$block{outline}";
 
-    #     local -a vs=()
-    #     split ¦ "${biv#¦}" vs
-        
-    #     for v in "${vs[@]}"; do
-    #         say val $vn $v
-    #     done
+    foreach my $vn (keys %boundIns) {
+        my %v = %{$boundIns{$vn}};
+
+        my $rawVal = $v{val};
+        $rawVal =~ s/^¦//; #todo this should be sanitised up front
+
+        my @vals = split(/¦/, $rawVal);
+        foreach my $val (@vals) {
+            say "val $vn $val"
+        }
+    }
+
+    say 'go';
+    say '@YIELD';
+    say '@END';
+
+    while(my $line = hear()) {
+        given($line) {
+            when(/^bind (?<vn>[^ ]+) (?<val>.+)/) {
+                lg("BIND $+{vn} to be $+{val}");
+    #           decode v v
+    #           boundOuts[$vn]="${boundOuts[$vn]}¦${v#¦}"
+                #...
+                #todo surely vars sent to runner need to be encoded?
+            }
+            when(/^set (?<name>[^ ]+) (?<val>.+)/) {
+                lg("SET $+{vn} to be $+{val}");
+    #           attrs[$n]="$v"
+                #...
+            }
+            when('fin') { last }
+            default { say $line }
+        }
+    }
+
+    # for vn in ${!boundOuts[*]}; do
+    #   v=${boundOuts[$vn]}
+    #   v=${v#¦}
+    #   binds[$vn]=$v
+    #   say "bound $bid $vn ${v//$'\n'/$'\60'}"
     # done
-    # say "go"
-    # say "@YIELD"
-    # say "@END"
+
+    #todo blurt to context file here
 
     # lg(Dumper([ $target, \%boundIns ]));
 }
@@ -160,10 +196,10 @@ sub readBlock {
     my ($bid, $names, $ins, $outs, $flags) = split(';',$outline);
     {
         bid => $bid,
-        names => [ split(',',$names) ],
-        ins => [ map {readVar($_)} split(',',$ins) ],
-        outs => [ map {readVar($_)} split(',',$outs) ],
-        flags => [ split(',',$flags) ],
+        names => [ split(',',$names || '') ],
+        ins => [ map {readVar($_)} split(',',$ins || '') ],
+        outs => [ map {readVar($_)} split(',',$outs || '') ],
+        flags => [ split(',',$flags || '') ],
         outline => $outline
     };
 }
@@ -253,7 +289,7 @@ sub hearWords {
 
 sub hear {
   start:
-    chomp(my $line = <STDIN>);
+    chomp(my $line = <STDIN> || '');
     given($line) {
         when('@PUMP') {
             say '@PUMP';
