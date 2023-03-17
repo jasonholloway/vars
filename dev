@@ -8,13 +8,15 @@ trap 'rm -f $inp' EXIT
 
 clear
 
+exec 5<&0 6>&1
+
 {
-		(eval "$cmd") &
+		(eval "$cmd" <&5 >&6) &
 
 		while read -r _; do
 				kill %eval
 				clear
-				(eval "$cmd") &
+				(eval "$cmd" <&5 >&6 ) &
 
 		done < <(inotifywait -me CLOSE_WRITE -r $watch)
 }
