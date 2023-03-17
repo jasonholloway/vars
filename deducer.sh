@@ -76,16 +76,6 @@ readInputs() {
           targetBlocks[$bid]=1
       done
   done
-  
-  # Create and set blocks for var targets
-  # hear raw
-  # for n in $raw; do
-  #     vbid="get:$n"
-  #     blocks[$vbid]=1
-  #     outlines[$vbid]=$vbid
-  #     targetBlocks[$vbid]=1
-  #     ins[$vbid]="$n"
-  # done
 
   # Set mode flags
   hear raw

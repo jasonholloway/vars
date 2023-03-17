@@ -78,6 +78,7 @@ run() {
   say "${blocks[*]}"
   say "${flags[*]}"
   say "@YIELD"
+  say "@END"
 
   while hear type line; do
     # echo "+++ $type $line" >&2
