@@ -19,6 +19,8 @@ BEGIN {
     }
 }
 
+debug2 { print RED" "PROCINFO["pid"]" "head"["from" -> "to"] "$0" "NC >"/dev/stderr" }
+
 { swap=0; pop=0; printIt=1; talkTo="" }
 
 
