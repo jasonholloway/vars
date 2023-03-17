@@ -10,6 +10,7 @@ declare -a blocks=()
 declare -a flags=()
 declare -a adHocs=()
 declare -a cmds=()
+declare -a extraOutlines=()
 declare w
 
 colBindName='\033[0;36m'
@@ -73,7 +74,7 @@ run() {
 
   say "@ASK deducer"
   say "deduce"
-  say "$outlines" #should inject get:blah here?
+  say "$outlines ${extraOutlines[*]}"
   say "${blocks[*]}"
   say "${flags[*]}"
   say "@YIELD"
@@ -242,6 +243,7 @@ parseGet() {
     && {
       for t in $targets; do
         blocks+=("get:$t")
+        extraOutlines+=("get:$t")
       done
       cmds+=("run")
     }

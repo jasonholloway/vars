@@ -157,7 +157,7 @@ run() {
 
 								@out*)
 										read -r _  v <<< "$line"
-										echo "$v"
+										say out "$v"
 								;;
 
 								+([[:word:]])=*)
@@ -167,21 +167,21 @@ run() {
 								;;
 
 								*)
-										echo "$line"
+										say out "$line"
 								;;
 						esac
 				done
 			} \
-		| {
-		    >"$outFile"
+		# | {
+		#     >"$outFile"
 		
-				if [[ ${runFlags[*]} =~ "T" ]]; then
-						while read -r line; do
-								say out "$line"
-								echo "$line" >>"$outFile"
-						done
-				fi
-			}
+		# 		if [[ ${runFlags[*]} =~ "T" ]]; then
+		# 				while read -r line; do
+		# 						say out "$line"
+		# 						echo "$line" >>"$outFile"
+		# 				done
+		# 		fi
+		# 	}
 
 		say fin
 }

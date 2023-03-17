@@ -53,14 +53,20 @@ readInputs() {
     blocks[$bid]=1
     outlines[$bid]=$outline
 
-    for n in ${rawBlockNames//,/ }; do
-        blockNames[$n]="$bid"
-    done
+    if [[ $bid =~ ^get:([^ ]+) ]]; then
+        blockNames[$bid]="$bid"
+        ins[$bid]=${BASH_REMATCH[1]}
+        outs[$bid]=""
+        flags[$bid]=""
+    else
+        for n in ${rawBlockNames//,/ }; do
+            blockNames[$n]="$bid"
+        done
 
-    ins[$bid]="${rawIns//,/ }"
-    outs[$bid]="${rawOuts//,/ }"
-    flags[$bid]="${rawFlags//,/ }"
-
+        ins[$bid]="${rawIns//,/ }"
+        outs[$bid]="${rawOuts//,/ }"
+        flags[$bid]="${rawFlags//,/ }"
+    fi
   done
 
   # Set target blocks
