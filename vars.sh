@@ -22,6 +22,7 @@ colDim='\e[38;5;240m'
 colDimmest='\e[38;5;236m'
 
 cacheDir="$HOME/.vars/cache"
+contextFile="$HOME/.vars/context"
 
 pts=$(tty)
 
@@ -78,7 +79,6 @@ run() {
   say "${blocks[*]}"
   say "${flags[*]}"
   say "@YIELD"
-  say "@END"
 
   while hear type line; do
     # echo "+++ $type $line" >&2
@@ -106,18 +106,15 @@ run() {
           ;;
 
       bound)
+          read -r src key val <<< "$line"
+
+          if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
+              val='****'
+          else
+              echo "$key=${val//$'\60'/$'\30'}" >> $contextFile 
+          fi
+
           [[ ! $quietMode ]] && {
-              read -r src key val <<< "$line"
-              #unescape val here?? TODO
-
-              if [[ ${#val} -gt 80 ]]; then
-                val="$(echo "$val" | cut -c -80)..."
-              fi
-
-              [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]] && {
-                val='****'
-              }
-
               IFS='|' read path index <<< "$src"
               shortPath=$(realpath --relative-to=$PWD $path) >&2
               src=${shortPath}$([[ $index ]] && echo "|$index")
@@ -127,6 +124,7 @@ run() {
                   pin*) key="!$key";;
               esac
 
+              [[ ${#val} -gt 80 ]] && { val="${val::80}..."; }
               echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
           }
           ;;
@@ -150,9 +148,23 @@ run() {
 
               local val=$(fzy --prompt "${name}> " <<< "$rawVals")
 
-              echo "$val" >&6
-              echo "@YIELD" >&6
-          };;
+              echo "$val"
+              echo "@YIELD"
+          } >&6;;
+
+      dredge) {
+              read -r vn <<< "$line"
+              if [[ -e $contextFile ]]; then
+                  tac $contextFile |
+                  sed -n '/^'$vn'=/ { s/^.*=//p }' |
+                  nl |
+                  sort -k2 -u |
+                  sort |
+                  while read _ v; do echo -n ¦$v; done
+              fi
+              echo
+              echo "@YIELD"
+          } >&6;;
 
       pin) {
               read -r key val <<< "$line"
@@ -162,6 +174,8 @@ run() {
 
       esac
   done
+
+  say "@END"
 }
 
 list() {

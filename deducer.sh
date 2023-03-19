@@ -6,8 +6,6 @@ source "${VARS_PATH:-.}/common.sh"
 export pinnedDir="${PINNED:-$HOME/.vars/pinned}"
 mkdir -p "$pinnedDir"
 
-export contextFile="$HOME/.vars/context"
-
 main() {
 		local type line
 		
@@ -233,17 +231,10 @@ runBlocks() {
         v=${pinned[$vn]}
         if [[ $v ]]; then source=pinned
         else
-          #yield to history-dredging process here... TODO
-          v=$(
-            if [[ -e $contextFile ]]; then
-                tac $contextFile |
-                sed -n '/^'$vn'=/ { s/^.*=//p }' |
-                nl |
-                sort -k2 -u |
-                sort |
-                while read _ v; do echo -n ¦$v; done
-            fi
-            )
+          say "dredge $vn"
+          say "@YIELD"
+          hear v
+          source=dredged
         fi
       fi
 
@@ -322,15 +313,6 @@ runBlocks() {
   done
 
   say "fin"
-
-  # Blurt all binds to context file at end
-  {
-    for vn in ${!binds[@]}; do
-      if [[ ${vn:0:1} != '_' ]]; then
-        echo "$vn=${binds[$vn]//$'\n'/$'\30'}"
-      fi
-    done
-  } >> "$contextFile"
 }
 
 main "$@"

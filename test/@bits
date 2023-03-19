@@ -13,6 +13,10 @@ dog > food
 ;	* > meat
 
 
+#+++++++++++
+# n: strokePet
+# in: fluffyPet
+echo "Stroking $fluffyPet"
 
 #+++++++++++++++++++++++
 # n: sayHello
