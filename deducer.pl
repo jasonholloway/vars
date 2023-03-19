@@ -202,7 +202,10 @@ sub readInputs {
 
     my %targets;
     foreach my $targetName (hearWords()) {
-        if(exists $blocksByName{$targetName}) {
+        if(exists $blocks->{$targetName}) {
+            $targets{$targetName} = 1;
+        }
+        elsif(exists $blocksByName{$targetName}) {
             my $bid = $blocksByName{$targetName}{bid};
             $targets{$bid} = 1;
         }
@@ -229,6 +232,11 @@ sub readBlocks {
 sub readBlock {
     my $outline = $_[0];
     my ($bid, $names, $ins, $outs, $flags) = split(';',$outline);
+
+    if($bid =~ /^get:(?<vn>.+)/) {
+        $ins = $+{vn};
+    }
+
     {
         bid => $bid,
         names => [ split(',',$names // '') ],

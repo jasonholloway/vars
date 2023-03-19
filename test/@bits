@@ -47,12 +47,6 @@ echo wibble wibble wibble
 # out: cowName
 @bind cowName ¦Daisy¦Betsy¦Kev
 
-#+++++++++++++++++++++
-# n: nameRats
-# out: rat
-@bind rat Roderick
-@bind rat Roland
-@bind rat Rattus
 
 
 #+++++++++++++++++++++ tty
