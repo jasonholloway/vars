@@ -14,7 +14,7 @@ sub main {
             when("deduce") {
                 my %x = (
                     %{ readInputs() },
-                    scopes => [{ readUserPins() }]
+                    scopes => [ readUserPins() ]
                     );
 
                 # lg("+++++ X:");
@@ -52,8 +52,18 @@ sub evalBlock {
         my $vn = $in->{name};
         my $v = summonVar(\%x, $vn);
 
-        # todo if single, pick here...
-        # (tho would be nice if was simplified in runner)
+        if($in->{single} and @{$v->{vals}} > 1) {
+            say "pick $vn ¦".join('¦', @{$v->{vals}});
+            say '@YIELD';
+            hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
+
+            if($+{pin}) {
+                say "pin $vn $+{val}";
+            }
+
+            addVar(\%x, $vn, [$+{val}], "picked"); # todo this sets rather than adds - narrows
+            say "bound picked $vn $+{val}"
+        }
         
         $boundIns{$vn} = $v;
     }
@@ -63,12 +73,7 @@ sub evalBlock {
 
     foreach my $vn (keys %boundIns) {
         my %v = %{$boundIns{$vn}};
-
-        my $rawVal = $v{val};
-        $rawVal =~ s/^¦//; #todo this should be sanitised up front
-
-        my @vals = split(/¦/, $rawVal);
-        foreach my $val (@vals) {
+        foreach my $val (@{$v{vals}}) {
             say "val $vn $val"
         }
     }
@@ -77,14 +82,23 @@ sub evalBlock {
     say '@YIELD';
     say '@END';
 
+    # we collect individual binds into sets via boundOuts
+    # then communicate these steps up the stack
+    # shouldn't this again be the responsibility of the runner?
+    #
+    
+    
+    my %boundOuts;
+
     while(my $line = hear()) {
         given($line) {
             when(/^bind (?<vn>[^ ]+) (?<val>.+)/) {
-                lg("BIND $+{vn} to be $+{val}");
+                # todo decode
     #           decode v v
-    #           boundOuts[$vn]="${boundOuts[$vn]}¦${v#¦}"
-                #...
+
                 #todo surely vars sent to runner need to be encoded?
+                #tho this should be done by runner
+                push(@{$boundOuts{$+{vn}} //= []}, $+{val});
             }
             when(/^set (?<name>[^ ]+) (?<val>.+)/) {
                 lg("SET $+{vn} to be $+{val}");
@@ -96,39 +110,53 @@ sub evalBlock {
         }
     }
 
-    # for vn in ${!boundOuts[*]}; do
-    #   v=${boundOuts[$vn]}
-    #   v=${v#¦}
-    #   binds[$vn]=$v
-    #   say "bound $bid $vn ${v//$'\n'/$'\60'}"
-    # done
+    foreach my $vn (keys %boundOuts) {
+        my @vs = @{$boundOuts{$vn}};
+        addVar(\%x, $vn, \@vs, $target);
 
-    #todo blurt to context file here
-
-    # lg(Dumper([ $target, \%boundIns ]));
+        my $vals = join('¦', @vs);
+        say "bound $target $vn $vals";
+    }
 }
 
+# sometimes we want to narrow
+# sometimes we want to add
+# 
+#
+#
+
 sub summonVar {
-    my %x = %{$_[0]};
-    my $vn = $_[1];
+    my $x = shift;
+    my $vn = shift;
 
-    scopeBind(\%x, $vn) or do {
-
-        foreach my $source (@{$x{supplying}{$vn} or []}) {
-            evalBlock(\%x, $source);
+    getVar($x, $vn) or do {
+        foreach my $source (@{$x->{supplying}{$vn} or []}) {
+            evalBlock($x, $source);
             #on overlap, don't overwrite but add
         }
 
-        scopeBind(\%x, $vn);
+        getVar($x, $vn);
 
-    } or askVar(\%x, $vn);
+    } or askVar($x, $vn);
 }
 
-sub scopeBind {
-    my %x = %{$_[0]};
-    my $vn = $_[1];
+sub addVar {
+    my $x = shift;
+    my $vn = shift;
+    my $vals = shift;
+    my $source = shift;
 
-    foreach my $scope (@{$x{scopes}}) {
+    #should merge vals and sources
+    my $scope = $x->{scopes}[0];
+    $scope->{$vn}{vals} = $vals;
+    $scope->{$vn}{source} = $source; # todo should be source per val
+}
+
+sub getVar {
+    my $x = shift;
+    my $vn = shift;
+
+    foreach my $scope (@{$x->{scopes}}) {
         if(exists($scope->{$vn})) {
             return $scope->{$vn};
         }
@@ -136,22 +164,28 @@ sub scopeBind {
 }
 
 sub askVar {
-    my %x = %{$_[0]};
-    my $vn = $_[1];
+    my $x = shift;
+    my $vn = shift;
 
-    $x{scopes}[0]{$vn} = {
-        val => "BLAH",
-        source => "Dummy"
+    say "dredge $vn";
+    say '@YIELD';
+
+    my $dredged = hear();
+    $dredged =~ s/^¦//;
+
+    $x->{scopes}[0]{$vn} = {
+        vals => [ split(/¦/, $dredged) ],
+        source => "Dredged"
     };
 }
 
 sub readInputs {
-    my %blocks = readBlocks();
+    my $blocks = readBlocks();
 
     my %blocksByName;
     my %supplying;
-    foreach my $bid (keys %blocks) {
-        my $block = $blocks{$bid};
+    foreach my $bid (keys %$blocks) {
+        my $block = $blocks->{$bid};
 
         foreach my $name (@{$block->{names}}) {
             $blocksByName{$name} = $block;
@@ -175,20 +209,21 @@ sub readInputs {
     }
     
     {
-        blocks => { %blocks },
+        blocks => $blocks,
         targets => { %targets },
         flags => [ hearWords() ],
-        blocksByName => { %blocksByName },
         supplying => { %supplying },
     };
 }
 
 sub readBlocks {
     my %ac;
+
     foreach my $block (map {readBlock($_)} hearWords()) {
         $ac{$block->{bid}} = $block;
     }
-    %ac;
+    
+    \%ac;
 }
 
 sub readBlock {
@@ -196,10 +231,10 @@ sub readBlock {
     my ($bid, $names, $ins, $outs, $flags) = split(';',$outline);
     {
         bid => $bid,
-        names => [ split(',',$names || '') ],
-        ins => [ map {readVar($_)} split(',',$ins || '') ],
-        outs => [ map {readVar($_)} split(',',$outs || '') ],
-        flags => [ split(',',$flags || '') ],
+        names => [ split(',',$names // '') ],
+        ins => [ map {readVar($_)} split(',',$ins // '') ],
+        outs => [ map {readVar($_)} split(',',$outs // '') ],
+        flags => [ split(',',$flags // '') ],
         outline => $outline
     };
 }
@@ -218,69 +253,25 @@ sub readVar {
     \%v;
 }
 
-
 sub readUserPins {
     my %ac;
     # below could be supplied lazily...
     while(my $file = glob("$ENV{HOME}/.vars/pinned/*")) {
         open FILE,$file or die "Failed to open $file";
-        chomp(my $val = decode_base64 <FILE>);
+        chomp(my $rawVals = decode_base64 <FILE>);
         close FILE;
 
         $file =~ /(?<vn>[^\/]+)$/;
-        $ac{$+{vn}} = {
-            val => $val,
+        my $vn = $+{vn};
+        $vn =~ s/^¦//;
+        
+        $ac{$vn} = {
+            vals => [ split(/¦/, $rawVals) ],
             source => "pinned"
         };
     }
 
-    %ac;
-}
-
-sub trimBlocks {
-    my %x = %{$_[0]};
-
-    my %trimmables;
-    foreach my $bid (keys %{$x{blocks}}) {
-        $trimmables{$bid} = 1;
-    } 
-
-    my %pending;
-    foreach my $bid (keys %{$x{targets}}) {
-        delete $trimmables{$bid};
-
-        foreach my $vn (@{$x{blocks}{$bid}{ins}}) {
-            #TODO vns need to be trimmed
-            $pending{$vn} = 1;
-        }
-    }
-
-    my %seen;
-    while(keys %pending) {
-        foreach my $pvn (keys %pending) {
-            if(exists($x{pinned}{$pvn})) {
-                continue
-            };
-
-            foreach my $bid (@{$x{supplying}{$pvn}}) {
-                delete $trimmables{$bid};
-
-                foreach my $ivn (@{$x{blocks}{$bid}{ins}}) {
-                    #TODO trim vn
-                    if(!exists($seen{$ivn})) {
-                        $pending{$ivn} = 1;
-                    }
-                }
-            }
-
-            $seen{$pvn} = 1;
-            delete $pending{$pvn};
-        }
-    }
-
-    foreach my $bid (keys %trimmables) {
-        delete $x{blocks}{$bid};
-    }
+    \%ac;
 }
 
 sub hearWords {
