@@ -107,12 +107,12 @@ sub evalBlock {
     while(my $line = hear()) {
         given($line) {
             when(/^bind (?<vn>[^ ]+) (?<val>.+)/) {
-                # todo decode
-    #           decode v v
+                my $v = decode($+{val});
+                my @vs = split(/¦/, $v);
 
                 #todo surely vars sent to runner need to be encoded?
                 #tho this should be done by runner
-                push(@{$boundOuts{$+{vn}} //= []}, $+{val});
+                push(@{$boundOuts{$+{vn}} //= []}, @vs);
             }
             when(/^set (?<name>[^ ]+) (?<val>.+)/) {
                 lg("SET $+{vn} to be $+{val}");
@@ -130,9 +130,6 @@ sub evalBlock {
     foreach my $vn (keys %boundOuts) {
         my @vs = @{$boundOuts{$vn}};
         addVar($x, $vn, \@vs, $target);
-
-        my $vals = join('¦', @vs);
-        say "bound $target $vn $vals";
     }
 }
 
@@ -327,6 +324,12 @@ sub hear {
 sub lg {
     my ($line) = @_;
     print STDERR "$line\n";
+}
+
+sub decode {
+    my $s = shift;
+    $s =~ s/\36/\n/;
+    $s
 }
 
 main();
