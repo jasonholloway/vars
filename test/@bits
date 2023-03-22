@@ -6,6 +6,15 @@ echo age=70
 dog: Bert|Rex|Biter|Nobby
 
 
+#++++++++++++
+# in: dog*
+# out: dogCount
+@bind dogCount ${#dog[@]}
+
+
+
+
+
 #++++++++++++++++++++ map
 dog > food
 ;	Bert > bones
