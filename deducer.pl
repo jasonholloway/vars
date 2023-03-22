@@ -12,13 +12,9 @@ sub main {
     while (my $line = hear()) {
         given($line) {
             when("deduce") {
-                my %x = (
-                    %{ readInputs() },
-                    scopes => [ readUserPins() ]
-                    );
-
-                # lg("+++++ X:");
-                # lg(Dumper(\%x));
+                my %x = readInputs();
+                $x{scopes} = [ {} ];
+                $x{pins} = readUserPins();
 
                 foreach my $target (keys %{$x{targets}}) {
                     evalBlock(\%x, $target);
@@ -40,19 +36,40 @@ sub main {
 # slight problem with pending not being ordered: means its not programmable
 
 sub evalBlock {
-    my %x = %{$_[0]};
-    my $target = $_[1];
-    my %block = %{$x{blocks}{$target}};
+    my $x = shift;
+    my $target = shift;
+    my $block = $x->{blocks}{$target};
+
+    if(grep(/P/, @{$block->{flags}})) {
+        say '@ASK files';
+        say "pins $target";
+        say '@YIELD';
+
+        my @blockPins;
+
+        while(my $vn = hear()) {
+            if($vn =~ /fin/) { last; }
+
+            my $val = hear();
+            push(@blockPins, [ $vn, $val ]);
+        }
+
+        say '@END';
+
+        foreach my $tup (@blockPins) {
+            addVar($x, $tup->[0], [$tup->[1]], "pinned");
+        }
+    }
 
     my %boundIns;
 
-    #todo pins fix var in scope here
-
-    foreach my $in (@{$block{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
+    foreach my $in (@{$block->{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
         my $vn = $in->{name};
-        my $v = summonVar(\%x, $vn);
+        my $v = summonVar($x, $vn);
 
-        if($in->{single} and @{$v->{vals}} > 1) {
+        my $vals = $v->{vals};
+        
+        if($in->{single} and scalar(@{$vals}) != 1) {
             say "pick $vn ¦".join('¦', @{$v->{vals}});
             say '@YIELD';
             hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
@@ -61,15 +78,14 @@ sub evalBlock {
                 say "pin $vn $+{val}";
             }
 
-            addVar(\%x, $vn, [$+{val}], "picked"); # todo this sets rather than adds - narrows
-            say "bound picked $vn $+{val}"
+            addVar($x, $vn, [$+{val}], "picked"); # todo this sets rather than adds - narrows
         }
         
         $boundIns{$vn} = $v;
     }
 
     say '@ASK runner';
-    say "run @{$block{flags}}\031$block{outline}";
+    say "run @{$block->{flags}}\031$block->{outline}";
 
     foreach my $vn (keys %boundIns) {
         my %v = %{$boundIns{$vn}};
@@ -85,8 +101,6 @@ sub evalBlock {
     # we collect individual binds into sets via boundOuts
     # then communicate these steps up the stack
     # shouldn't this again be the responsibility of the runner?
-    #
-    
     
     my %boundOuts;
 
@@ -110,34 +124,49 @@ sub evalBlock {
         }
     }
 
+    # if addVar appended to disjunctions
+    # then we wouldn't need boundOuts
+
     foreach my $vn (keys %boundOuts) {
         my @vs = @{$boundOuts{$vn}};
-        addVar(\%x, $vn, \@vs, $target);
+        addVar($x, $vn, \@vs, $target);
 
         my $vals = join('¦', @vs);
         say "bound $target $vn $vals";
     }
 }
 
-# sometimes we want to narrow
-# sometimes we want to add
-# 
-#
-#
-
 sub summonVar {
     my $x = shift;
     my $vn = shift;
 
-    getVar($x, $vn) or do {
-        foreach my $source (@{$x->{supplying}{$vn} or []}) {
-            evalBlock($x, $source);
-            #on overlap, don't overwrite but add
-        }
+    getVar($x, $vn)
+        or tryPinned($x, $vn)
+        or do {
+            foreach my $source (@{$x->{supplying}{$vn} or []}) {
+                evalBlock($x, $source);
+                #on overlap, don't overwrite but add
+            }
+            getVar($x, $vn);
 
-        getVar($x, $vn);
+        } or askVar($x, $vn);
+}
 
-    } or askVar($x, $vn);
+sub tryPinned {
+    my $x = shift;
+    my $vn = shift;
+
+    if(my $pin = $x->{pins}{$vn}) {
+        return $pin->{summoned} //= do {
+            my $file;
+
+            open $file,$pin->{path} or die "Failed to open $pin->{path}";
+            chomp(my $rawVals = decode_base64 <$file>);
+            close $file;
+
+            addVar($x, $vn, [ split(/¦/, $rawVals) ], 'pinned');
+        };
+    }
 }
 
 sub addVar {
@@ -148,8 +177,14 @@ sub addVar {
 
     #should merge vals and sources
     my $scope = $x->{scopes}[0];
-    $scope->{$vn}{vals} = $vals;
-    $scope->{$vn}{source} = $source; # todo should be source per val
+    my $v = $scope->{$vn} //= {};
+
+    $v->{vals} = $vals;
+    $v->{source} = $source; # todo should be source per val
+
+    say "bound $source $vn " . join('¦', @{$vals});
+
+    $v;
 }
 
 sub getVar {
@@ -167,16 +202,11 @@ sub askVar {
     my $x = shift;
     my $vn = shift;
 
-    say "dredge $vn";
+    say "ask $vn";
     say '@YIELD';
+    my $val = hear();
 
-    my $dredged = hear();
-    $dredged =~ s/^¦//;
-
-    $x->{scopes}[0]{$vn} = {
-        vals => [ split(/¦/, $dredged) ],
-        source => "Dredged"
-    };
+    addVar($x, $vn, [ $val ], 'asked');
 }
 
 sub readInputs {
@@ -211,12 +241,12 @@ sub readInputs {
         }
     }
     
-    {
+    (
         blocks => $blocks,
         targets => { %targets },
         flags => [ hearWords() ],
         supplying => { %supplying },
-    };
+    );
 }
 
 sub readBlocks {
@@ -263,19 +293,13 @@ sub readVar {
 
 sub readUserPins {
     my %ac;
-    # below could be supplied lazily...
-    while(my $file = glob("$ENV{HOME}/.vars/pinned/*")) {
-        open FILE,$file or die "Failed to open $file";
-        chomp(my $rawVals = decode_base64 <FILE>);
-        close FILE;
 
-        $file =~ /(?<vn>[^\/]+)$/;
+    while(my $path = glob("$ENV{HOME}/.vars/pinned/*")) {
+        $path =~ /(?<vn>[^\/]+)$/;
         my $vn = $+{vn};
-        $vn =~ s/^¦//;
-        
+
         $ac{$vn} = {
-            vals => [ split(/¦/, $rawVals) ],
-            source => "pinned"
+            path => $path
         };
     }
 

@@ -152,6 +152,25 @@ run() {
               echo "@YIELD"
           } >&6;;
 
+      ask) {
+              read -r vn <<< "$line"
+
+              [[ ! -e $contextFile ]] && touch $contextFile
+              
+              local val=$(
+                  tac $contextFile |
+                  sed -n '/^'$vn'=/ { s/^.*=//p }' |
+                  nl |
+                  sort -k2 -u |
+                  sort |
+                  while read _ v; do echo "$v"; done |
+                  fzy --prompt "${vn}> "
+              )
+
+              echo "$val"
+              echo "@YIELD"
+          } >&6;;
+
       dredge) {
               read -r vn <<< "$line"
               if [[ -e $contextFile ]]; then
