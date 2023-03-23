@@ -47,9 +47,9 @@ main() {
   if [[ ${#cmds[@]} -gt 0 ]]; then
     {
       coproc {
-          if [[ $VARS_V2 ]];
-          then stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;runner:$VARS_PATH/runner.sh $pts"
-          else stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.sh;runner:$VARS_PATH/runner.sh $pts"
+          if [[ $VARS_V1 ]];
+          then stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.sh;runner:$VARS_PATH/runner.sh $pts"
+          else stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;runner:$VARS_PATH/runner.sh $pts"
           fi
       }
       exec 5<&${COPROC[0]} 6>&${COPROC[1]}
