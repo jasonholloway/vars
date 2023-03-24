@@ -6,6 +6,9 @@ use MIME::Base64 qw( decode_base64 );
 use 5.034;
 no warnings 'experimental';
 
+use lib $ENV{VARS_PATH};
+use Sig;
+
 $|++;
 
 sub main {
@@ -23,16 +26,10 @@ sub main {
                 say 'fin';
             }
         }
-        
         say '@YIELD';
     }
 }
 
-# owner dog{breed="doberman"} cat{breed="persian"}
-# would do the trick, as owner will already have been fixed up top
-# the sequencing then matters - common vars should be listed first
-
-# simple stuff first: deduce without scopes
 # slight problem with pending not being ordered: means its not programmable
 
 sub evalBlock {
@@ -65,10 +62,20 @@ sub evalBlock {
 
     foreach my $in (@{$block->{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
         my $vn = $in->{name};
+
+        my $pins = $in->{pins};
+        if($pins) {
+          pushScope($x);
+
+          foreach my $pvn (keys %{$pins}) {
+            addVar($x, $pvn, [$pins->{$pvn}], "pinned")
+          }
+        }
+
         my $v = summonVar($x, $vn);
 
         my $vals = $v->{vals};
-        
+
         if($in->{single} and scalar(@{$vals}) != 1) {
             say "pick $vn ¦".join('¦', @{$v->{vals}});
             say '@YIELD';
@@ -78,9 +85,15 @@ sub evalBlock {
                 say "pin $vn $+{val}";
             }
 
-            addVar($x, $vn, [$+{val}], "picked"); # todo this sets rather than adds - narrows
+            $v = addVar($x, $vn, [$+{val}], "picked");
         }
-        
+
+        if($pins) {
+          popScope($x);
+        }
+
+        $x->{scopes}[0]{$vn} = $v;
+
         $boundIns{$vn} = $v;
     }
 
@@ -164,6 +177,16 @@ sub tryPinned {
             addVar($x, $vn, [ split(/¦/, $rawVals) ], 'pinned');
         };
     }
+}
+
+sub pushScope {
+  my $x = shift;
+  push(@{$x->{scopes}}, {});
+}
+
+sub popScope {
+  my $x = shift;
+  pop(@{$x->{scopes}});
 }
 
 sub addVar {
@@ -267,7 +290,7 @@ sub readBlock {
     {
         bid => $bid,
         names => [ split(',',$names // '') ],
-        ins => [ map {readVar($_)} split(',',$ins // '') ],
+        ins => Sig::parseInps($ins), # map {readVar($_)} split(',',$ins // '') ],
         outs => [ map {readVar($_)} split(',',$outs // '') ],
         flags => [ split(',',$flags // '') ],
         outline => $outline

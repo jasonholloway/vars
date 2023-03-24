@@ -12,14 +12,18 @@ dog: Bert|Rex|Biter|Nobby
 @bind dogCount ${#dog[@]}
 
 
+#++++++++++++
+# n: testPins
+# in: food{dog=Rex} shop
+echo $food from $shop
 
 
 
 #++++++++++++++++++++ map
-dog > food
-;	Bert > bones
-;	Rex > biscuits
-;	* > meat
+food > shop
+; bones > butcher
+; biscuits > corner
+
 
 
 #+++++++++++
