@@ -134,7 +134,7 @@
     bcp $@ $opts >&2
 }
 
-@sql2() {
+@sql() {
     local query="$1"
     local line
 
@@ -177,59 +177,6 @@
             *) echo "$line";;
         esac
     done
-}
-
-@sql() {
-    local query="$1"
-    local -n sink="${2:-results}"
-    local line
-
-    IFS=':' read -r sqlServer sqlDb sqlUser sqlPass <<<"$_sql"
-
-    sink=()
-
-    {
-        while read -r line; do
-            case "$line" in
-                "Sqlcmd:"*) {
-                    echo "$line" >&2
-                    cat
-                } >&2 ;;
-                *) {
-                    sink+=("$line")
-                };;
-            esac
-        done
-    } < <(
-        export sqlServer
-        export sqlDb
-        export sqlUser
-        export sqlPass
-        export query
-
-        docker run -it \
-            -e sqlServer \
-            -e sqlDb \
-            -e sqlUser \
-            -e sqlPass \
-            -e authMode=$([[ $sqlUser =~ '@' ]] && echo "-G " || echo "") \
-            -e query \
-            sqlcmd \
-            /bin/sh -c '
-                sqlcmd \
-                    -S "$sqlServer" \
-                    $authMode \
-                    -C -U "$sqlUser" \
-                    -P "$sqlPass" \
-                    -d "$sqlDb" \
-                    -K ReadOnly \
-                    -h -1 \
-                    -Q "
-                      SET NOCOUNT ON;
-                      ${query}"
-            '
-        # above needs to add -G for shipments connections
-        )
 }
 
 @rmf() {
