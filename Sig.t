@@ -95,5 +95,28 @@ is(
 	"parse multifarious names"
 );
 
+is(
+	Sig::parseInps("teddy:dog{breed=Pomeranian} boris:dog{breed=Alsation}"),
+	[
+		{
+			name => "dog",
+			alias => "teddy",
+			single => 1,
+			pins => {
+				breed => "Pomeranian"
+			}
+		},
+		{
+			name => "dog",
+			alias => "boris",
+			single => 1,
+			pins => {
+				breed => "Alsation"
+			}
+		},
+	],
+	"parse aliased vars"
+);
+
 
 done_testing;

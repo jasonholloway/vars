@@ -14,10 +14,14 @@ dog: Bert|Rex|Biter|Nobby
 
 #++++++++++++
 # n: testPins
-# in: food{dog=Rex} shop
-echo $food from $shop
+# in: nosh:food{dog=Boris} food{dog=Rex} shop
+echo $nosh and $food from $shop
 
-
+#++++++++++++++++++++ map
+dog > food
+;	[Bb]* > bones
+;	[Rr]* > biscuits
+;	* > meat
 
 #++++++++++++++++++++ map
 food > shop

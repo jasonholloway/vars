@@ -7,10 +7,14 @@ sub parseInps {
 	my $raw = shift;
 	my @ac;
 
-	while($raw =~ /(?<name>\w+)(?<postfix>[\*]?)({(?<pins>[^}]*)})?/g) {
+	while($raw =~ /((?<alias>\w+):)?(?<name>\w+)(?<postfix>[\*]?)({(?<pins>[^}]*)})?/g) {
 		my %inp;
 
 		$inp{name} = $+{name};
+
+		if($+{alias}) {
+			$inp{alias} = $+{alias};
+		}
 
 		unless($+{postfix} eq '*') {
 			$inp{single} = 1;

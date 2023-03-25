@@ -61,7 +61,8 @@ sub evalBlock {
     my %boundIns;
 
     foreach my $in (@{$block->{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
-        my $vn = $in->{name};
+        my $vn0 = $in->{name};
+        my $vn = $in->{alias} // $vn0;
 
         my $pins = $in->{pins};
         if($pins) {
@@ -72,7 +73,7 @@ sub evalBlock {
           }
         }
 
-        my $v = summonVar($x, $vn);
+        my $v = summonVar($x, $vn0);
 
         my $vals = $v->{vals};
 
@@ -92,7 +93,7 @@ sub evalBlock {
           popScope($x);
         }
 
-        $x->{scopes}[0]{$vn} = $v;
+        $x->{scopes}[-1]{$vn} = $v;
 
         $boundIns{$vn} = $v;
     }
@@ -196,7 +197,7 @@ sub addVar {
     my $source = shift;
 
     #should merge vals and sources
-    my $scope = $x->{scopes}[0];
+    my $scope = $x->{scopes}[-1];
     my $v = $scope->{$vn} //= {};
 
     $v->{vals} = $vals;
@@ -290,7 +291,7 @@ sub readBlock {
     {
         bid => $bid,
         names => [ split(',',$names // '') ],
-        ins => Sig::parseInps($ins), # map {readVar($_)} split(',',$ins // '') ],
+        ins => Sig::parseInps($ins),
         outs => [ map {readVar($_)} split(',',$outs // '') ],
         flags => [ split(',',$flags // '') ],
         outline => $outline
