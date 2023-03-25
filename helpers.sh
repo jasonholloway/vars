@@ -212,11 +212,13 @@
             -e sqlDb \
             -e sqlUser \
             -e sqlPass \
+            -e authMode=$([[ $sqlUser =~ '@' ]] && echo "-G " || echo "") \
             -e query \
             sqlcmd \
             /bin/sh -c '
                 sqlcmd \
                     -S "$sqlServer" \
+                    $authMode \
                     -C -U "$sqlUser" \
                     -P "$sqlPass" \
                     -d "$sqlDb" \
