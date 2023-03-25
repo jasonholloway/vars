@@ -225,9 +225,15 @@ sub askVar {
 
     say "ask $vn";
     say '@YIELD';
-    my $val = hear();
+    my $v = hear();
 
-    addVar($x, $vn, [ $val ], 'asked');
+    $v =~ /(?<val>.+?)(?<pin>\!?)$/;
+
+    if($+{pin}) {
+      # add to pin file... todo
+    }
+
+    addVar($x, $vn, [ $+{val} ], 'asked');
 }
 
 sub readInputs {
