@@ -37,6 +37,7 @@ main() {
     || parseContext \
     || parsePrep \
     || parseLs \
+    || parseEdit \
     || parseLoad \
     || parseCache
     }
@@ -54,11 +55,35 @@ main() {
       }
       exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
-      eval "${cmds[@]}"
+      dispatch ${cmds[@]}
 
       exec 5<&- 6>&-
     } | render
   fi
+}
+
+dispatch() {
+    local curr
+    local -a ac;
+
+    while :; do
+        curr=$1
+        shift
+        
+        case "$curr" in
+            "|")
+                "${ac[@]}" | dispatch $@
+                break
+                ;;
+            "")
+                "${ac[@]}"
+                break
+                ;;
+            *)
+                ac+=("$curr")
+                ;;
+        esac
+    done
 }
 
 run() {
@@ -198,19 +223,13 @@ run() {
 }
 
 list() {
-  local fids outlines names outs ins
+  local fids names outs ins
+  local -a outlines
 
-  say "@ASK files"
-  say "find"
-  say "@YIELD"
-  hear fids
-  say "outline $fids"
-  say "@YIELD"
-  hear outlines
-  say "@END"
+  findOutlines outlines
 
-  local IFS=$' '
-  for outline in $outlines; do
+  for outline in ${outlines[@]}; do
+      
       IFS=\; read -r bid names ins outs <<<"$outline"
 
       local IFS=$','
@@ -226,6 +245,41 @@ list() {
           echo "O;${out%\*};$bid"
       done
   done
+}
+
+findOutlines() {
+  local -n __into=$1
+  local fids _outlines
+
+  say "@ASK files"
+  say "find"
+  say "@YIELD"
+  hear fids
+  say "outline $fids"
+  say "@YIELD"
+  hear _outlines
+  say "@END"
+
+  __into+=($_outlines)
+}
+
+edit() {
+    local bid
+    
+    while [[ "$1" ]]; do
+        bid=$1;
+        IFS=\, read file _ <<< "$bid"
+        $EDITOR $file >$pts
+        shift
+    done
+}
+
+editPick() {
+    local -a outlines
+
+    findOutlines outlines
+
+    edit $(for o in ${outlines[@]}; do echo "$o"; done | fzy --prompt "${name}> ")
 }
 
 filterList() {
@@ -318,6 +372,20 @@ parseLs() {
 
       parse1 '^rel' \
         && cmds+=("| relativizeList")
+  }
+}
+
+parseEdit() {
+  parse1 '^(e|ed|edit)$' \
+    && {
+      {
+        parse1 'pick' \
+          && cmds+=('editPick')
+      } || {
+        parse1 'bid' \
+            && parseMany "parseName bids" \
+            && cmds+=("edit" "${bids[@]}")
+      }
   }
 }
 
