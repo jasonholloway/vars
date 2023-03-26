@@ -264,12 +264,24 @@ findOutlines() {
 }
 
 edit() {
-    local bid
+    local bid file ln
     
     while [[ "$1" ]]; do
         bid=$1;
-        IFS=\, read file _ <<< "$bid"
-        $EDITOR $file >$pts
+
+        [[ $bid =~ ^([^,]+),([0-9]+)\|([0-9]+) ]] || exit 1
+        file=${BASH_REMATCH[1]}
+        ln=${BASH_REMATCH[3]}
+
+        case "$EDITOR" in
+            emacsclient*)
+                $EDITOR +$ln "$file" >$pts;;
+            vi*)
+                $EDITOR +'100|norm! zt' "$file" >$pts;;
+            *)
+                $EDITOR "$file" >$pts;;
+        esac
+
         shift
     done
 }

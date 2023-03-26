@@ -127,8 +127,11 @@ loadFile() {
         local i=0
 
         while read -r -d$'\x02' block; do
-          local bid="$fid|$i"
-          local outline bodyHints body
+          local bid outline bodyHints body ln
+
+          read ln <<<"$block"
+          block=${block#*$'\n'}
+          bid="$fid|$ln"
 
           encode block block
 
@@ -157,7 +160,13 @@ loadFile() {
 
       } < <(
           getRawFile "$fid" |
-                sed -e '/^#+/i\\x02' -e '$a\\x02'
+              sed \
+                  -e '1=' \
+                  -e '/^#+/ {
+                             i\\x02
+                             =
+                             }' \
+                  -e '$a\\x02'
           )
   fi
 
