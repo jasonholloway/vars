@@ -96,6 +96,19 @@ bindkey '^[vr' vars_run
 bindkey 'jvr' vars_run
 
 
+vars_edit() {
+  BUFFER="vars edit pick"
+  CURSOR=${#BUFFER}
+  zle accept-line
+  zle reset-prompt
+}
+
+zle -N vars_edit
+bindkey '^[jve' vars_edit
+bindkey '^[ve' vars_edit
+bindkey 'jve' vars_edit
+
+
 vars_pinArbitrary() {
   allTargets=$(vars list ins)
 

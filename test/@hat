@@ -7,12 +7,10 @@ age > hat,cat
 #++++ bash
 # n: getSurname
 # out: surname
-
 echo surname=Boggins 
 
 
 #++++++
 # n: curl
 # in: age
-
 @curl localhost:9999
