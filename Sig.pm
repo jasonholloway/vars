@@ -24,7 +24,7 @@ sub parseInps {
 			$inp{pins} = {};
 
 			while($pins =~ /(?<name>\w+)=(?<val>\w*)/g) {
-				$inp{pins}{$+{name}} = $+{val};
+				$inp{pins}{$+{name}} = [$+{val}];
 			}
 		}
 

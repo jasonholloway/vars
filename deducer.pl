@@ -69,7 +69,7 @@ sub evalBlock {
           pushScope($x);
 
           foreach my $pvn (keys %{$pins}) {
-            addVar($x, $pvn, [$pins->{$pvn}], "pinned")
+            addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
           }
         }
 
