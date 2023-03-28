@@ -40,6 +40,16 @@ is(
  );
 
 is(
+	Sig::parse("dog"),
+	[
+		{
+			alias => "dog",
+			from => [{ name => "dog" }]
+		}
+	]
+ );
+
+is(
 	Sig::parse("boris:dog"),
 	[
 		{
@@ -49,176 +59,196 @@ is(
 	]
  );
 
-# is(
-# 	Sig::parseInps("woof"),
-# 	[
-# 		{
-# 			alias => "woof",
-# 			single => 1,
-# 			from => [{
-# 				name => "woof"
-# 			}]
-# 		},
-# 	],
-# 	"parse single var"
-# );
+is(
+	Sig::parse("boris:dog{breed=Alsation}"),
+	[
+		{
+			alias => "boris",
+			from => [{
+				name => "dog",
+				pins => {
+					breed => ["Alsation"]
+				}
+			}]
+		}
+	]
+ );
 
-# is(
-# 	Sig::parseInps("woof*"),
-# 	[
-# 		{
-# 			alias => "woof",
-# 			from => [{
-# 				name => "woof"
-# 			}]
-# 		}
-# 	],
-# 	"parse single multi var"
-# );
+is(
+	Sig::parse("boris:dog{breed=Alsation&temperament=loyal}"),
+	[
+		{
+			alias => "boris",
+			from => [{
+				name => "dog",
+				pins => {
+					breed => ["Alsation"],
+					temperament => ["loyal"]
+				}
+			}]
+		}
+	]
+ );
 
-# is(
-# 	Sig::parseInps("dog{breed=Pomeranian}"),
-# 	[
-# 		{
-# 			alias => "dog",
-# 			single => 1,
-# 			from => [{
-# 				name => "dog",
-# 				pins => {
-# 					breed => ["Pomeranian"]
-# 				}
-# 			}]
-# 		},
-# 	],
-# 	"parse var with scoped pins"
-# );
+is(
+	Sig::parse("colette:dog{breed=Collie|Chihuahua}"),
+	[
+		{
+			alias => "colette",
+			from => [
+				{
+					name => "dog",
+					pins => {
+						breed => ["Collie", "Chihuahua"]
+					}
+				}
+			]
+		}
+	]
+ );
 
-# is(
-# 	Sig::parseInps("dog{breed=Pomeranian,fur=fluffy}"),
-# 	[
-# 		{
-# 			alias => "dog",
-# 			single => 1,
-# 			from => [{
-# 					name => "dog",
-# 					pins => {
-# 						breed => [ "Pomeranian" ],
-# 						fur => [ "fluffy" ]
-# 					}
-# 			}]
-# 		},
-# 	],
-# 	"parse var with multiple scoped pins"
-# );
+is(
+	Sig::parse("bazza:donkey+pony"),
+	[
+		{
+			alias => "bazza",
+			from => [
+				{
+					name => "donkey",
+				},
+				{
+					name => "pony"
+				}
+			]
+		}
+	]
+ );
 
-# is(
-# 	Sig::parseInps("dog{breed=Pomeranian,fur=fluffy},cat*{breed=Tabby},hamster"),
-# 	[
-# 		{
-# 			alias => "dog",
-# 			single => 1,
-# 			from => [{
-# 				name => "dog",
-# 				pins => {
-# 					breed => "Pomeranian",
-# 					fur => "fluffy"
-# 				}
-# 			}]
-# 		},
-# 		{
-# 			alias => "cat",
-# 			from => [{
-# 				name => "cat",
-# 				pins => {
-# 					breed => "Tabby"
-# 				}
-# 			}]
-# 		},
-# 		{
-# 			alias => "hamster",
-# 			single => 1
-# 		}
-# 	],
-# 	"parse multiple vars with scoped pins"
-# );
+is(
+	Sig::parse("bazza:donkey+pony{hair=long}+tapir"),
+	[
+		{
+			alias => "bazza",
+			from => [
+				{
+					name => "donkey",
+				},
+				{
+					name => "pony",
+					pins => {
+						hair => ["long"]
+					}
+				},
+				{
+					name => "tapir"
+				}
+			]
+		}
+	]
+ );
 
-# is(
-# 	Sig::parseInps("Hairy_dog5*{BREED123=Doberman7,Num_Legs=13}"),
-# 	[
-# 		{
-# 			alias => "Hairy_dog5",
-# 			from => {
-# 				name => "Hairy_dog5",
-# 				pins => {
-# 					BREED123 => "Doberman7",
-# 					Num_Legs => 13
-# 				}
-# 			}
-# 		}
-# 	],
-# 	"parse multifarious names"
-# );
+is(
+	Sig::parse("donkey{outlook=grumpy}"),
+	[
+		{
+			alias => "donkey",
+			from => [
+				{
+					name => "donkey",
+					pins => {
+						outlook => ["grumpy"]
+					}
+				}
+			]
+		}
+	]
+ );
 
-# is(
-# 	Sig::parseInps("teddy:dog{breed=Pomeranian} boris:dog{breed=Alsation}"),
-# 	[
-# 		{
-# 			alias => "teddy",
-# 			single => 1,
-# 			from => [{
-# 				name => "dog",
-# 				pins => {
-# 					breed => ["Pomeranian"]
-# 				}
-# 			}]
-# 		},
-# 		{
-# 			alias => "boris",
-# 			single => 1,
-# 			from => [{
-# 				name => "dog",
-# 				pins => {
-# 					breed => ["Alsation"]
-# 				}
-# 			}]
-# 		},
-# 	],
-# 	"parse aliased vars"
-# );
+is(
+	Sig::parse("morris:monkey{temperament=cheeky|naughty}+baboon doris:donkey"),
+	[
+		{
+			alias => "morris",
+			from => [
+				{
+					name => "monkey",
+					pins => {
+						temperament => ["cheeky","naughty"]
+					}
+				},
+				{
+					name => "baboon",
+				}
+			]
+		},
+		{
+			alias => "doris",
+			from => [
+				{
+					name => "donkey"
+				}
+			]
+		}
+	]
+ );
 
-# is(
-# 	Sig::parseInps("dog:poodle+doberman+terrier"),
-# 	[
-# 		{
-# 			alias => "dog",
-# 			from => [
-# 				{
-# 					name => "poodle"
-# 				},
-# 				{
-# 					name => "doberman"
-# 				},
-# 				{
-# 					name => "terrier"
-# 				}
-# 			]
-# 		}
-# 	],
-# 	"parses var sums"
-# );
+is(
+	Sig::parse("bert:dog{breed=Pomeranian&fur=fluffy}! cat{breed=Tabby}* hamster! pet:bunny+gerbil*"),
+	[
+		{
+			alias => "bert",
+			from => [{
+				name => "dog",
+				pins => {
+					breed => ["Pomeranian"],
+					fur => ["fluffy"]
+				}
+			}],
+			modifier => '!'
+		},
+		{
+			alias => "cat",
+			from => [{
+				name => "cat",
+				pins => {
+					breed => ["Tabby"]
+				}
+			}],
+			modifier => '*'
+		},
+		{
+			alias => "hamster",
+			from => [{
+				name => "hamster"
+			}],
+			modifier => '!'
+		},
+		{
+			alias => "pet",
+			from => [
+				{ name => "bunny" },
+				{ name => "gerbil" },
+			],
+			modifier => '*'
+		}
+	]
+);
 
-# is(
-# 	Sig::parseInps("dog*{breed=Poodle|Doberman}"),
-# 	[
-# 		{
-# 			name => "dog",
-# 			pins => {
-# 				breed => ["Poodle", "Doberman"]
-# 			}
-# 		}
-# 	],
-# 	"parses pin sums"
-# );
-
+is(
+	Sig::parse("Hairy_dog5{BREED123=Doberman7&Num_Legs=13}"),
+	[
+		{
+			alias => "Hairy_dog5",
+			from => [{
+				name => "Hairy_dog5",
+				pins => {
+					BREED123 => ["Doberman7"],
+					Num_Legs => [5 + 5 + 3]
+				}
+			}]
+		}
+	],
+	"parse multifarious names"
+);
 
 done_testing;
