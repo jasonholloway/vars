@@ -3,13 +3,26 @@ echo firstName=bob$(date +%s)
 echo age=70
 
 #+ val
+hamster: Hammy
+
+#+ val
 dog: Bert|Rex|Biter|Nobby
 
+#+ val
+pig: Babe|Pigathy
 
 #++++++++++++
 # in: dog*
 # out: dogCount
 @bind dogCount ${#dog[@]}
+
+
+#+++++++
+# in: potentialPet:dog+pig* hamster
+# n: buyPets
+for pet in ${potentialPet[@]}; do
+		echo "pet $pet"
+done
 
 
 #++++++++++++

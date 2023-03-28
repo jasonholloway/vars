@@ -61,49 +61,70 @@ sub evalBlock {
     my %boundIns;
 
     foreach my $in (@{$block->{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
-        my $vn0 = $in->{name};
-        my $vn = $in->{alias} // $vn0;
+        my $alias = $in->{alias};
 
-        my $pins = $in->{pins};
-        if($pins) {
-          pushScope($x);
+        foreach my $source (@{$in->{from}}) {
+          my $vn = $source->{name};
+          my $pins = $source->{pins};
 
-          foreach my $pvn (keys %{$pins}) {
-            addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
-          }
-        }
-
-        my $v = summonVar($x, $vn0);
-
-        my $vals = $v->{vals};
-
-        if($in->{single} and scalar(@{$vals}) != 1) {
-            say "pick $vn ¦".join('¦', @{$v->{vals}});
-            say '@YIELD';
-            hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
-
-            if($+{pin}) {
-                say "pin $vn $+{val}";
+          if($pins) {
+            pushScope($x);
+            foreach my $pvn (keys %{$pins}) {
+              addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
             }
+          }
 
-            $v = addVar($x, $vn, [$+{val}], "picked");
+          my $v = summonVar($x, $vn);
+          lg(Dumper($v));
+
+          my $vals = $v->{vals};
+          my $mod = $in->{modifier};
+
+          if($mod and $mod ne '*' and scalar(@{$vals}) != 1) {
+              say "pick $alias ¦".join('¦', @{$v->{vals}});
+              say '@YIELD';
+              hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
+
+              if($+{pin}) {
+                  say "pin $alias $+{val}";
+              }
+
+              $v = addVar($x, $alias, [$+{val}], "picked");
+          }
+
+          if($pins) {
+            my $popped = popScope($x);
+            # my $curr = $x->{scopes}[-1];
+
+            # if(!exists($curr->{$alias})) {
+            #   $curr->{$alias} = {};
+            # }
+
+            # push(@{$curr->{$alias}{vals}}, @{$popped->{vn}{vals}});
+            # $curr->{$alias}{source} = $popped->{vn}{source};
+          }
+
+          # lg(Dumper($x->{scopes}));
+          lg(Dumper($v));
+
+
+          if(!exists($boundIns{$alias})) {
+            $boundIns{$alias} = {};
+          }
+
+          push(@{$boundIns{$alias}{vals}}, @{$v->{vals}});
+          lg(Dumper(\%boundIns));
         }
-
-        if($pins) {
-          popScope($x);
-        }
-
-        $x->{scopes}[-1]{$vn} = $v;
-
-        $boundIns{$vn} = $v;
     }
 
     say '@ASK runner';
     say "run @{$block->{flags}}\031$block->{outline}";
 
     foreach my $vn (keys %boundIns) {
-        my %v = %{$boundIns{$vn}};
-        foreach my $val (@{$v{vals}}) {
+        my $v = $boundIns{$vn};
+          lg(Dumper($v));
+
+        foreach my $val (@{$v->{vals}}) {
             say "val $vn $val"
         }
     }
@@ -115,7 +136,7 @@ sub evalBlock {
     # we collect individual binds into sets via boundOuts
     # then communicate these steps up the stack
     # shouldn't this again be the responsibility of the runner?
-    
+
     my %boundOuts;
 
     while(my $line = hear()) {
@@ -297,7 +318,7 @@ sub readBlock {
     {
         bid => $bid,
         names => [ split(',',$names // '') ],
-        ins => Sig::parseInps($ins),
+        ins => Sig::parse($ins),
         outs => [ map {readVar($_)} split(',',$outs // '') ],
         flags => [ split(',',$flags // '') ],
         outline => $outline
