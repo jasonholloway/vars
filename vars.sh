@@ -276,11 +276,11 @@ edit() {
 
         case "$EDITOR" in
             emacsclient*)
-                $EDITOR +$ln "$file" >$pts;;
+                eval "$EDITOR +$ln $file" >$pts;;
             vi*)
-                $EDITOR +'100|norm! zt' "$file" >$pts;;
+                eval "$EDITOR +'100|norm! zt' $file" >$pts;;
             *)
-                $EDITOR "$file" >$pts;;
+                eval "$EDITOR $file" >$pts;;
         esac
 
         shift
@@ -292,7 +292,7 @@ editPick() {
 
     findOutlines outlines
 
-    edit $(for o in ${outlines[@]}; do echo "$o"; done | fzy --prompt "${name}> ")
+    edit $(for o in ${outlines[@]}; do echo "${o//$FS/;}"; done | fzy --prompt "${name}> ")
 }
 
 filterList() {
