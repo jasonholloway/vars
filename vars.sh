@@ -171,7 +171,7 @@ run() {
               rawVals=${rawVals#¦}
               rawVals=${rawVals//¦/$'\n'}
 
-              local val=$(fzy --prompt "${name}> " <<< "$rawVals")
+              local val=$(fzy --prompt "pick ${name}> " <<< "$rawVals")
 
               echo "$val"
               echo "@YIELD"
@@ -189,7 +189,7 @@ run() {
                   sort -k2 -u |
                   sort |
                   while read _ v; do echo "$v"; done |
-                  fzy --prompt "${vn}> "
+                  fzy --prompt "dredge ${vn}> "
               )
 
               echo "$val"

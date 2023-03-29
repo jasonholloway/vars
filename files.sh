@@ -51,9 +51,7 @@ getOutlines() {
   allOutlines=$(IFS=$RS; echo "${outlines[*]}")
   echo "$allOutlines" >"$cacheFile"
 
-  set -x
   say "$allOutlines"
-  set +x
 }
 
 getBody() {

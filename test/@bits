@@ -18,7 +18,7 @@ pig: Babe|Pigathy
 
 
 #+++++++
-# in: potentialPet!:dog+pig+food hamster
+# in: potentialPet*:dog+pig+food hamster
 # n: buyPets
 for pet in ${potentialPet[@]}; do
 		echo "pet $pet"

@@ -66,21 +66,19 @@ sub parse {
 	sub parseInp {
 		my %ac;
 
-		if(my ($alias) = take(WORD, COLON)) {
+		if(my ($alias, $mod) = take(WORD, MODIFIER, COLON)) {
 			$ac{alias} = $alias;
 			$ac{from} = [parseSources()];
-
-			if(my ($mod) = take(MODIFIER)) {
-				$ac{modifier} = $mod;
-			}
+			$ac{modifier} = $mod;
+		}
+		elsif(my ($alias) = take(WORD, COLON)) {
+			$ac{alias} = $alias;
+			$ac{from} = [parseSources()];
 		}
 		elsif(my %source = parseSource()) {
 			$ac{alias} = $source{name};
 			$ac{from} = [\%source];
-
-			if(my ($mod) = take(MODIFIER)) {
-				$ac{modifier} = $mod;
-			}
+			$ac{modifier} = $source{modifier} if $source{modifier};
 		}
 
 		%ac
@@ -106,6 +104,10 @@ sub parse {
 			my %ac = (
 				name => $name
 			);
+
+			if(my ($mod) = take(MODIFIER)) {
+				$ac{modifier} = $mod;
+			}
 
 			if(my %pins = parsePins()) {
 				$ac{pins} = \%pins;

@@ -75,20 +75,22 @@ sub evalBlock {
           }
 
           my $v = summonVar($x, $vn);
-
           my $vals = $v->{vals};
           my $mod = $in->{modifier};
 
           lg(Dumper($in));
 
-          if(($mod and $mod eq '!') and scalar(@{$vals}) != 1) {
-              say "pick $alias ¦".join('¦', @{$v->{vals}});
+          if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
+              say "pick $alias ¦".join('¦', @{$vals});
               say '@YIELD';
               hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
 
               if($+{pin}) {
                   say "pin $alias $+{val}";
               }
+
+							# $v->{vals} = [$+{val}];
+							# $v->{source} = "picked";
 
               $v = addVar($x, $alias, [$+{val}], "picked");
           }
