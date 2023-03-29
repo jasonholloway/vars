@@ -51,7 +51,7 @@ readBlock() {
       while read -r line; do
         case "$line" in
           '# n: '*)   for n in ${line:5}; do names+=($n); done ;;
-          '# in: '*)  for n in ${line:6}; do ins+=($n); done ;;
+          '# in: '*)  ins+=("${line:6}");;
           '# out: '*) for n in ${line:7}; do outs+=($n); done ;;
           '# pin: '*) pins+=(${line:7}) ;;
           '# cache'*) flags+=("C") ;;
@@ -69,7 +69,7 @@ readBlock() {
 
   (
     local IFS=,
-    say "${names[*]};${ins[*]};${outs[*]};${flags[*]}"
+    say "${names[*]};${outs[*]};${flags[*]}"
   )
 
   for p in "${pins[@]}"; do
@@ -78,6 +78,8 @@ readBlock() {
     encode v v
     say "$v"
   done
+
+  say "in ${ins[*]}"
 
 	encode body body
   say "body bash" #"say body bash"

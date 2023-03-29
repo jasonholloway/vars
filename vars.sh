@@ -223,23 +223,23 @@ run() {
 }
 
 list() {
-  local fids names outs ins
+  local fids names outs #ins
   local -a outlines
 
   findOutlines outlines
 
   for outline in ${outlines[@]}; do
       
-      IFS=\; read -r bid names ins outs <<<"$outline"
+      IFS=\; read -r bid names outs <<<"$outline"
 
       local IFS=$','
       for name in $names; do
           echo "B;$name;$bid"
       done
 
-      for inp in $ins; do
-          echo "I;${inp%\*};$bid"
-      done
+      # for inp in $ins; do
+      #     echo "I;${inp%\*};$bid"
+      # done
 
       for out in $outs; do
           echo "O;${out%\*};$bid"
@@ -377,10 +377,11 @@ parseLs() {
       } || {
         parse1 '^(o|out|outs)' \
           && cmds+=("| filterList O")
-      } || {
-        parse1 '^(i|in|ins)' \
-          && cmds+=("| filterList I")
       }
+      # } || {
+      #   parse1 '^(i|in|ins)' \
+      #     && cmds+=("| filterList I")
+      # }
 
       parse1 '^rel' \
         && cmds+=("| relativizeList")

@@ -36,6 +36,19 @@ sub evalBlock {
     my $x = shift;
     my $target = shift;
     my $block = $x->{blocks}{$target};
+    my $ins;
+
+    if($target =~ /^get:(?<vn>.+)/) {
+      $ins = [{ alias => $+{vn}, from => [{ name => $+{vn} }] }];
+    }
+    else {
+      say '@ASK files';
+      say "ins $target";
+      say '@YIELD';
+      my $rawIns = hear();
+      $ins = Sig::parse($rawIns);
+      say '@END';
+    }
 
     if(grep(/P/, @{$block->{flags}})) {
         say '@ASK files';
@@ -60,7 +73,7 @@ sub evalBlock {
 
     my %boundIns;
 
-    foreach my $in (@{$block->{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
+    foreach my $in (@{$ins}) { #todo synthetic blocks won't as is appear in blocks
         my $alias = $in->{alias};
 
         foreach my $source (@{$in->{from}}) {
@@ -75,7 +88,6 @@ sub evalBlock {
           }
 
           my $v = summonVar($x, $vn);
-          lg(Dumper($v));
 
           my $vals = $v->{vals};
           my $mod = $in->{modifier};
@@ -93,7 +105,7 @@ sub evalBlock {
           }
 
           if($pins) {
-            my $popped = popScope($x);
+            popScope($x);
             # my $curr = $x->{scopes}[-1];
 
             # if(!exists($curr->{$alias})) {
@@ -104,16 +116,12 @@ sub evalBlock {
             # $curr->{$alias}{source} = $popped->{vn}{source};
           }
 
-          # lg(Dumper($x->{scopes}));
-          lg(Dumper($v));
+          # if(!exists($boundIns{$alias})) {
+          #   $boundIns{$alias} = {};
+          # }
 
-
-          if(!exists($boundIns{$alias})) {
-            $boundIns{$alias} = {};
-          }
-
-          push(@{$boundIns{$alias}{vals}}, @{$v->{vals}});
-          lg(Dumper(\%boundIns));
+          push(@{($boundIns{$alias} //= {})->{vals}}, @{$v->{vals}});
+          # lg(Dumper(\%boundIns));
         }
     }
 
@@ -122,7 +130,6 @@ sub evalBlock {
 
     foreach my $vn (keys %boundIns) {
         my $v = $boundIns{$vn};
-          lg(Dumper($v));
 
         foreach my $val (@{$v->{vals}}) {
             say "val $vn $val"
@@ -309,20 +316,22 @@ sub readBlocks {
 
 sub readBlock {
     my $outline = $_[0];
-    my ($bid, $names, $ins, $outs, $flags) = split(';',$outline);
+    my ($bid, $names, $outs, $flags) = split(';',$outline);
 
-    if($bid =~ /^get:(?<vn>.+)/) {
-        $ins = $+{vn};
-    }
+    # if($bid =~ /^get:(?<vn>.+)/) {
+    #     $ins = $+{vn};
+    # }
+
+    # lg($ins);
 
     {
         bid => $bid,
         names => [ split(',',$names // '') ],
-        ins => Sig::parse($ins),
+        # ins => Sig::parse($ins),
         outs => [ map {readVar($_)} split(',',$outs // '') ],
         flags => [ split(',',$flags // '') ],
         outline => $outline
-    };
+    }
 }
 
 sub readVar {

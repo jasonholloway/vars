@@ -17,6 +17,7 @@ main() {
       raw) getRawFile "$rest";;
       outline) getOutlines "$rest";;
       body) getBody "$rest";;
+      ins) getIns "$rest";;
       pins) getPins "$rest";;
     esac
 
@@ -67,6 +68,22 @@ getBody() {
           read -r body
           say "$body"
           break
+        ;;
+    esac
+  done <<<"${blocks[$bid]}"
+}
+
+getIns() {
+  local bid=$1
+  local fid type rest
+  
+  IFS='|' read -r fid i <<<"$bid"
+  loadFile "$fid"
+
+  while read -r type rest; do
+    case "$type" in
+        "in")
+          say "$rest"
         ;;
     esac
   done <<<"${blocks[$bid]}"
