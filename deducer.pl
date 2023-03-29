@@ -92,7 +92,7 @@ sub evalBlock {
           my $vals = $v->{vals};
           my $mod = $in->{modifier};
 
-          if($mod and $mod ne '*' and scalar(@{$vals}) != 1) {
+          if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
               say "pick $alias ¦".join('¦', @{$v->{vals}});
               say '@YIELD';
               hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
