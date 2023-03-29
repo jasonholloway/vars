@@ -230,7 +230,7 @@ list() {
 
   for outline in ${outlines[@]}; do
       
-      IFS=\; read -r bid names ins outs <<<"$outline"
+      local IFS=$FS; read -r bid names ins outs <<<"$outline"
 
       local IFS=$','
       for name in $names; do
@@ -260,6 +260,7 @@ findOutlines() {
   hear _outlines
   say "@END"
 
+  IFS=$RS
   __into+=($_outlines)
 }
 
@@ -377,10 +378,11 @@ parseLs() {
       } || {
         parse1 '^(o|out|outs)' \
           && cmds+=("| filterList O")
-      } || {
-        parse1 '^(i|in|ins)' \
-          && cmds+=("| filterList I")
       }
+      # } || {
+      #   parse1 '^(i|in|ins)' \
+      #     && cmds+=("| filterList I")
+      # }
 
       parse1 '^rel' \
         && cmds+=("| relativizeList")

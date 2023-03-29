@@ -75,12 +75,13 @@ sub evalBlock {
           }
 
           my $v = summonVar($x, $vn);
-          lg(Dumper($v));
 
           my $vals = $v->{vals};
           my $mod = $in->{modifier};
 
-          if($mod and $mod ne '*' and scalar(@{$vals}) != 1) {
+          lg(Dumper($in));
+
+          if(($mod and $mod eq '!') and scalar(@{$vals}) != 1) {
               say "pick $alias ¦".join('¦', @{$v->{vals}});
               say '@YIELD';
               hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
@@ -93,7 +94,7 @@ sub evalBlock {
           }
 
           if($pins) {
-            my $popped = popScope($x);
+            popScope($x);
             # my $curr = $x->{scopes}[-1];
 
             # if(!exists($curr->{$alias})) {
@@ -104,25 +105,21 @@ sub evalBlock {
             # $curr->{$alias}{source} = $popped->{vn}{source};
           }
 
-          # lg(Dumper($x->{scopes}));
-          lg(Dumper($v));
+          # if(!exists($boundIns{$alias})) {
+          #   $boundIns{$alias} = {};
+          # }
 
-
-          if(!exists($boundIns{$alias})) {
-            $boundIns{$alias} = {};
-          }
-
-          push(@{$boundIns{$alias}{vals}}, @{$v->{vals}});
-          lg(Dumper(\%boundIns));
+          push(@{($boundIns{$alias} //= {})->{vals}}, @{$v->{vals}});
+          # lg(Dumper(\%boundIns));
         }
     }
 
     say '@ASK runner';
-    say "run @{$block->{flags}}\031$block->{outline}";
+    say "run $block->{outline}";
+    say "flags @{$block->{flags}}";
 
     foreach my $vn (keys %boundIns) {
         my $v = $boundIns{$vn};
-          lg(Dumper($v));
 
         foreach my $val (@{$v->{vals}}) {
             say "val $vn $val"
@@ -300,7 +297,7 @@ sub readInputs {
 sub readBlocks {
     my %ac;
 
-    foreach my $block (map {readBlock($_)} hearWords()) {
+    foreach my $block (map {readBlock($_)} hearWords("\030")) {
         $ac{$block->{bid}} = $block;
     }
     
@@ -309,7 +306,7 @@ sub readBlocks {
 
 sub readBlock {
     my $outline = $_[0];
-    my ($bid, $names, $ins, $outs, $flags) = split(';',$outline);
+    my ($bid, $names, $ins, $outs, $flags) = split("\031",$outline);
 
     if($bid =~ /^get:(?<vn>.+)/) {
         $ins = $+{vn};
@@ -355,7 +352,7 @@ sub readUserPins {
 }
 
 sub hearWords {
-    return split(' ', hear());
+    return split($_[0] // ' ', hear());
 }
 
 sub hear {

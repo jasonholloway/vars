@@ -1,5 +1,8 @@
 #!/bin/bash
 
+declare RS=$'\030'
+declare FS=$'\031'
+
 setupBus() {
   exec 5<&0 6>&1
 }

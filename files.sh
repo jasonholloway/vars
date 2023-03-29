@@ -25,7 +25,7 @@ main() {
 }
 
 getOutlines() {
-  local fids hash cacheFile outlineList
+  local fids hash cacheFile allOutlines
 
   fids=$*
 
@@ -34,8 +34,8 @@ getOutlines() {
 
   if [[ -e $cacheFile && ! $DISABLE_VARS_CACHE ]]; then
     {
-      read -r outlineList
-      say "$outlineList"
+      read -r allOutlines
+      say "$allOutlines"
       return
     } <"$cacheFile"
   fi
@@ -48,9 +48,12 @@ getOutlines() {
     outlines+=("${files[$fid]}")
   done
 
-  outlineList="${outlines[*]}"
-  echo "$outlineList" >"$cacheFile"
-  say "$outlineList"
+  allOutlines=$(IFS=$RS; echo "${outlines[*]}")
+  echo "$allOutlines" >"$cacheFile"
+
+  set -x
+  say "$allOutlines"
+  set +x
 }
 
 getBody() {
@@ -124,10 +127,11 @@ loadFile() {
 
   if [[ ! -v "acOutlines[@]" || ! -v "acBlocks[@]" ]]; then
       {
+        local block
         local i=0
 
         while read -r -d$'\x02' block; do
-          local bid outline bodyHints body ln
+          local bid ln
 
           read ln <<<"$block"
           block=${block#*$'\n'}
@@ -140,8 +144,12 @@ loadFile() {
           say "$block"
           say "@YIELD"
 
-          hear outline
-          acOutlines+=("$bid;$outline")
+          local names ins outs flags
+          hear names
+          hear ins
+          hear outs
+          hear flags
+          acOutlines+=("$bid$FS$names$FS$ins$FS$outs$FS$flags")
 
           acBlocks[$bid]=$(
             while hear line; do
@@ -170,7 +178,7 @@ loadFile() {
           )
   fi
 
-  files[$fid]=${acOutlines[*]}
+  files[$fid]=$(IFS=$RS; echo "${acOutlines[*]}")
 
   for bid in ${!acBlocks[*]}; do
     blocks[$bid]="${acBlocks[$bid]}"

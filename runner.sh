@@ -26,18 +26,18 @@ main() {
 
 run() {
 		local cacheFile
-		local runFlags blockFlags ivn vn isMultiIn v
+		local outline runFlags blockFlags ivn vn isMultiIn v
 		local -a vals=()
+
+		IFS=$FS read -r bid _ _ _ blockFlags <<< "$*"
 
 		while hear type line; do
 				case $type in
+						flags) runFlags=$line;;
 						val) vals+=("$line");;
 						go) break;
 				esac
 		done
-
-		IFS=$'\031' read -r runFlags outline <<< "$*"
-		IFS=';' read -r bid _ _ blockFlags <<< "$outline"
 
 		isCacheable=
 		[[ $blockFlags =~ C ]] && isCacheable=1
