@@ -78,7 +78,7 @@ sub evalBlock {
           my $vals = $v->{vals};
           my $mod = $in->{modifier};
 
-          lg(Dumper($in));
+          # lg(Dumper($in));
 
           if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
               say "pick $alias ¦".join('¦', @{$vals});
