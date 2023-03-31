@@ -15,37 +15,14 @@ use constant PLUS => 7;
 use constant AND => 8;
 use constant MODIFIER => 9;
 
-sub parseInps {
-	my $raw = shift;
-	my @ac;
-
-	while($raw =~ /((?<alias>\w+):)?(?<name>\w+)(?<postfix>[\*]?)({(?<pins>[^}]*)})?/g) {
-		my %inp;
-
-		$inp{name} = $+{name};
-		$inp{alias} = $+{alias} // $+{name};
-
-		unless($+{postfix} eq '*') {
-			$inp{single} = 1;
-		}
-
-		if(my $pins = $+{pins}) {
-			$inp{pins} = {};
-
-			while($pins =~ /(?<name>\w+)=(?<val>\w*)/g) {
-				$inp{pins}{$+{name}} = [$+{val}];
-			}
-		}
-
-		push(@ac, \%inp);
-	}
-
-	\@ac;
-}
-
-
 sub parse {
-	$_ = tokenize(shift);
+	my $raw = shift;
+
+	$_ = {
+		raw => $raw,
+		tokens => tokenize($raw)
+	};
+
 	parseAll();
 
 	sub parseAll {
@@ -71,8 +48,8 @@ sub parse {
 			$ac{from} = [parseSources()];
 			$ac{modifier} = $mod;
 		}
-		elsif(my ($alias) = take(WORD, COLON)) {
-			$ac{alias} = $alias;
+		elsif(my ($alias2) = take(WORD, COLON)) {
+			$ac{alias} = $alias2;
 			$ac{from} = [parseSources()];
 		}
 		elsif(my %source = parseSource()) {
@@ -132,7 +109,10 @@ sub parse {
 				}
 			}
 
-			take(BRACE_CLOSE) or die "Missing closing brace after pins!";
+			take(BRACE_CLOSE) or do {
+				my $raw = $_->{raw};
+				die "Missing closing brace after pins! when parsing $raw";
+			};
 
 			%ac;
 		}
@@ -159,7 +139,7 @@ sub parse {
 	sub skip {
 		my $c = shift;
 		for(my $i = 0; $i < $c; $i++) {
-			shift(@{$_});
+			shift(@{$_->{tokens}});
 		}
 	}
 
@@ -169,7 +149,7 @@ sub parse {
 
 		foreach my $expected (@_) {
 			my $next;
-			if($next = $_->[$x] and $next->[0] == $expected) {
+			if($next = $_->{tokens}[$x] and $next->[0] == $expected) {
 				push(@ac, $next->[1]);
 				$x++;
 			}
@@ -192,7 +172,7 @@ sub parse {
 	}
 
 	sub atEnd {
-		scalar @{$_} == 0
+		scalar @{$_->{tokens}} == 0
 	}
 }
 
@@ -205,7 +185,7 @@ sub tokenize {
 	while(my $token = readToken()) {
 		push(@ac, $token);
 	}
-
+	
 	\@ac;
 
 	sub readToken {
