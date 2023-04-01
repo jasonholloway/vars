@@ -62,6 +62,7 @@ sub evalBlock {
 
     foreach my $in (@{$block->{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
         my $alias = $in->{alias};
+        my @vs;
 
         foreach my $source (@{$in->{from}}) {
           my $vn = $source->{name};
@@ -89,8 +90,8 @@ sub evalBlock {
                   say "pin $alias $+{val}";
               }
 
-							# $v->{vals} = [$+{val}];
-							# $v->{source} = "picked";
+              # $v->{vals} = [$+{val}];
+              # $v->{source} = "picked";
 
               $v = addVar($x, $alias, [$+{val}], "picked");
           }
@@ -107,13 +108,14 @@ sub evalBlock {
             # $curr->{$alias}{source} = $popped->{vn}{source};
           }
 
-          # if(!exists($boundIns{$alias})) {
-          #   $boundIns{$alias} = {};
-          # }
-
-          push(@{($boundIns{$alias} //= {})->{vals}}, @{$v->{vals}});
-          # lg(Dumper(\%boundIns));
+          push(@vs, @{$v->{vals}});
         }
+
+        putVar($x, $alias, \@vs, $target);
+        push(@{($boundIns{$alias} //= {})->{vals}}, @vs);
+
+        # whatever we summon via v should be put into the exisiting scope under its alias
+        # todo !!!!!!!!!
     }
 
     say '@ASK runner';
@@ -211,6 +213,24 @@ sub popScope {
 }
 
 sub addVar {
+    my $x = shift;
+    my $vn = shift;
+    my $vals = shift;
+    my $source = shift;
+
+    #should merge vals and sources
+    my $scope = $x->{scopes}[-1];
+    my $v = $scope->{$vn} //= {};
+
+    $v->{vals} = $vals;
+    $v->{source} = $source; # todo should be source per val
+
+    say "bound $source $vn " . join('¦', @{$vals});
+
+    $v;
+}
+
+sub putVar {
     my $x = shift;
     my $vn = shift;
     my $vals = shift;

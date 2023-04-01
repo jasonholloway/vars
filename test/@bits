@@ -28,7 +28,10 @@ done
 #++++++++++++
 # n: testPins
 # in: nosh:food{dog=Boris} food{dog=Rex} shop
-echo $nosh and $food from $shop
+echo $nosh and $food from $shop to feed $food__dog
+
+# todo: bound food should be used for shop above...
+
 
 #++++++++++++++++++++ map
 dog > food
@@ -39,7 +42,7 @@ dog > food
 #++++++++++++++++++++ map
 food > shop
 ; bones > butcher
-; biscuits > corner
+; biscuits > corner shop
 
 
 
