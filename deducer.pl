@@ -30,8 +30,6 @@ sub main {
     }
 }
 
-# slight problem with pending not being ordered: means its not programmable
-
 sub evalBlock {
     my $x = shift;
     my $target = shift;
@@ -60,62 +58,9 @@ sub evalBlock {
 
     my %boundIns;
 
-    foreach my $in (@{$block->{ins} or []}) { #todo synthetic blocks won't as is appear in blocks
-        my $alias = $in->{alias};
-        my @vs;
-
-        foreach my $source (@{$in->{from}}) {
-          my $vn = $source->{name};
-          my $pins = $source->{pins};
-
-          if($pins) {
-            pushScope($x);
-            foreach my $pvn (keys %{$pins}) {
-              addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
-            }
-          }
-
-          my $v = summonVar($x, $vn);
-          my $vals = $v->{vals};
-          my $mod = $in->{modifier};
-
-          # lg(Dumper($in));
-
-          if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
-              say "pick $alias ¦".join('¦', @{$vals});
-              say '@YIELD';
-              hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
-
-              if($+{pin}) {
-                  say "pin $alias $+{val}";
-              }
-
-              # $v->{vals} = [$+{val}];
-              # $v->{source} = "picked";
-
-              $v = addVar($x, $alias, [$+{val}], "picked");
-          }
-
-          if($pins) {
-            popScope($x);
-            # my $curr = $x->{scopes}[-1];
-
-            # if(!exists($curr->{$alias})) {
-            #   $curr->{$alias} = {};
-            # }
-
-            # push(@{$curr->{$alias}{vals}}, @{$popped->{vn}{vals}});
-            # $curr->{$alias}{source} = $popped->{vn}{source};
-          }
-
-          push(@vs, @{$v->{vals}});
-        }
-
-        putVar($x, $alias, \@vs, $target);
-        push(@{($boundIns{$alias} //= {})->{vals}}, @vs);
-
-        # whatever we summon via v should be put into the exisiting scope under its alias
-        # todo !!!!!!!!!
+    foreach my $in (@{$block->{ins} or []}) {
+			my ($alias, $vs) = summon($x, $in, $target);
+			push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
     }
 
     say '@ASK runner';
@@ -169,20 +114,64 @@ sub evalBlock {
     }
 }
 
-sub summonVar {
-    my $x = shift;
-    my $vn = shift;
+sub summon {
+	my $x = shift;
+	my $in = shift;
+	my $target = shift;
 
-    getVar($x, $vn)
-        or tryPinned($x, $vn)
-        or do {
+	my $alias = $in->{alias};
+
+	my @vs;
+
+	foreach my $source (@{$in->{from}}) {
+		my $vn = $source->{name};
+		my $pins = $source->{pins};
+
+		if($pins) {
+			pushScope($x);
+			foreach my $pvn (keys %{$pins}) {
+				addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
+			}
+		}
+
+    my $v = getVar($x, $vn)
+        || tryPinned($x, $vn)
+        || do {
             foreach my $source (@{$x->{supplying}{$vn} or []}) {
                 evalBlock($x, $source);
                 #on overlap, don't overwrite but add
             }
-            getVar($x, $vn);
+            getVar($x, $vn)
+					}
+				|| askVar($x, $vn);
 
-        } or askVar($x, $vn);
+		my $vals = $v->{vals};
+		my $mod = $in->{modifier};
+
+		# lg(Dumper($in));
+
+		if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
+				say "pick $alias ¦".join('¦', @{$vals});
+				say '@YIELD';
+				hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
+
+				if($+{pin}) {
+						say "pin $alias $+{val}";
+				}
+
+				$v = addVar($x, $alias, [$+{val}], "picked");
+		}
+
+		if($pins) {
+			popScope($x);
+		}
+
+		push(@vs, @{$v->{vals}});
+	}
+
+	putVar($x, $alias, \@vs, $target);
+
+	($alias, \@vs)
 }
 
 sub tryPinned {

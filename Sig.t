@@ -117,7 +117,6 @@ is(
 	]
  );
 
-
 is(
 	Sig::parse("colette:dog{breed=Collie|Chihuahua}"),
 	[
@@ -280,5 +279,6 @@ is(
 	],
 	"parse multifarious names"
 );
+
 
 done_testing;
