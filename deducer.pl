@@ -59,8 +59,8 @@ sub evalBlock {
     my %boundIns;
 
     foreach my $in (@{$block->{ins} or []}) {
-			my ($alias, $vs) = summon($x, $in, $target);
-			push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
+      my ($alias, $vs) = summon($x, $in, $target);
+      push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
     }
 
     say '@ASK runner';
@@ -82,6 +82,8 @@ sub evalBlock {
     # we collect individual binds into sets via boundOuts
     # then communicate these steps up the stack
     # shouldn't this again be the responsibility of the runner?
+
+    say "running $target";
 
     my %boundOuts;
 
@@ -105,9 +107,6 @@ sub evalBlock {
         }
     }
 
-    # if addVar appended to disjunctions
-    # then we wouldn't need boundOuts
-
     foreach my $vn (keys %boundOuts) {
         my @vs = @{$boundOuts{$vn}};
         addVar($x, $vn, \@vs, $target);
@@ -115,63 +114,67 @@ sub evalBlock {
 }
 
 sub summon {
-	my $x = shift;
-	my $in = shift;
-	my $target = shift;
+  my $x = shift;
+  my $in = shift;
+  my $target = shift;
 
-	my $alias = $in->{alias};
+  my $alias = $in->{alias};
 
-	my @vs;
+  my @vs;
 
-	foreach my $source (@{$in->{from}}) {
-		my $vn = $source->{name};
-		my $pins = $source->{pins};
+  foreach my $source (@{$in->{from}}) {
+    my $vn = $source->{name};
+    my $pins = $source->{pins};
 
-		if($pins) {
-			pushScope($x);
-			foreach my $pvn (keys %{$pins}) {
-				addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
-			}
-		}
+    if($pins) {
+      pushScope($x);
+      foreach my $pvn (keys %{$pins}) {
+        addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
+      }
+    }
 
     my $v = getVar($x, $vn)
         || tryPinned($x, $vn)
         || do {
+          # backtracking walk would be round here
+          # tho - not backtracking if all paths are tried and combined
+          # each supplier would just be filtered nastily here
+          #
             foreach my $source (@{$x->{supplying}{$vn} or []}) {
-                evalBlock($x, $source);
-                #on overlap, don't overwrite but add
+              # filter on conditions here
+              evalBlock($x, $source);
             }
             getVar($x, $vn)
-					}
-				|| askVar($x, $vn);
+          }
+        || askVar($x, $vn);
 
-		my $vals = $v->{vals};
-		my $mod = $in->{modifier};
+    my $vals = $v->{vals};
+    my $mod = $in->{modifier};
 
-		# lg(Dumper($in));
+    # lg(Dumper($in));
 
-		if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
-				say "pick $alias ¦".join('¦', @{$vals});
-				say '@YIELD';
-				hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
+    if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
+        say "pick $alias ¦".join('¦', @{$vals});
+        say '@YIELD';
+        hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
 
-				if($+{pin}) {
-						say "pin $alias $+{val}";
-				}
+        if($+{pin}) {
+            say "pin $alias $+{val}";
+        }
 
-				$v = addVar($x, $alias, [$+{val}], "picked");
-		}
+        $v = addVar($x, $alias, [$+{val}], "picked");
+    }
 
-		if($pins) {
-			popScope($x);
-		}
+    if($pins) {
+      popScope($x);
+    }
 
-		push(@vs, @{$v->{vals}});
-	}
+    push(@vs, @{$v->{vals}});
+  }
 
-	putVar($x, $alias, \@vs, $target);
+  putVar($x, $alias, \@vs, $target);
 
-	($alias, \@vs)
+  ($alias, \@vs)
 }
 
 sub tryPinned {

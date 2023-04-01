@@ -23,6 +23,7 @@ colDimmest='\e[38;5;236m'
 
 cacheDir="$HOME/.vars/cache"
 contextFile="$HOME/.vars/context"
+outFile="$HOME/.vars/out"
 
 pts=$(tty)
 
@@ -87,7 +88,7 @@ dispatch() {
 }
 
 run() {
-  local fids outlines type line 
+  local fids outlines type line currentBlock
 
   say "@ASK files"
   say "find"
@@ -104,6 +105,8 @@ run() {
   say "${blocks[*]}"
   say "${flags[*]}"
   say "@YIELD"
+
+  rm -f "$outFile" || :
 
   while hear type line; do
     # echo "+++ $type $line" >&2
@@ -128,6 +131,12 @@ run() {
 
               echo -e "${colDim}Running ${src}${colNormal}" >&2
           done
+          ;;
+
+      running)
+          currentBlock="$line"
+          # todo switch mode when target block running
+          # or - each block should announce itself with number, which will then contextualise all future outs
           ;;
 
       bound)
@@ -155,6 +164,8 @@ run() {
           ;;
 
       out)
+          echo "$line" >> "$outFile"
+          
           if [[ $quietMode ]]; then
               echo -n "$line"
           else 
