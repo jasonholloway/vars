@@ -167,6 +167,7 @@
                     SET NOCOUNT ON;
                     ${query}"
         ' |
+    sed $'s/\r$//' |
     while read -r line; do
         case "$line" in
             "Sqlcmd:"*) {

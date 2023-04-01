@@ -100,7 +100,7 @@ run() {
 
   say "@ASK deducer"
   say "deduce"
-  say "$outlines ${extraOutlines[*]}"
+  say "$outlines${RS}${extraOutlines[*]}"
   say "${blocks[*]}"
   say "${flags[*]}"
   say "@YIELD"

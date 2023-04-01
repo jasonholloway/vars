@@ -318,7 +318,7 @@ sub readBlock {
         bid => $bid,
         names => [ split(',',$names // '') ],
         ins => Sig::parse($ins),
-        outs => [ map {readVar($_)} split(',',$outs // '') ],
+        outs => [ map {readVar($_)} split(' ',$outs // '') ],
         flags => [ split(',',$flags // '') ],
         outline => $outline
     };
