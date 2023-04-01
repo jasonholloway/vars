@@ -71,14 +71,14 @@ is(
  );
 
 is(
-	Sig::parse("boris:dog{breed=Alsation}"),
+	Sig::parse("boris:dog{breed=Alsatian}"),
 	[
 		{
 			alias => "boris",
 			from => [{
 				name => "dog",
 				pins => {
-					breed => ["Alsation"]
+					breed => ["Alsatian"]
 				}
 			}]
 		}
@@ -86,14 +86,14 @@ is(
  );
 
 is(
-	Sig::parse("boris!:dog{breed=Alsation}"),
+	Sig::parse("boris!:dog{breed=Alsatian}"),
 	[
 		{
 			alias => "boris",
 			from => [{
 				name => "dog",
 				pins => {
-					breed => ["Alsation"]
+					breed => ["Alsatian"]
 				}
 			}],
 			modifier => '!'
@@ -102,20 +102,21 @@ is(
  );
 
 is(
-	Sig::parse("boris:dog{breed=Alsation&temperament=loyal}"),
+	Sig::parse("boris:dog{breed=Alsatian&temperament=loyal}"),
 	[
 		{
 			alias => "boris",
 			from => [{
 				name => "dog",
 				pins => {
-					breed => ["Alsation"],
+					breed => ["Alsatian"],
 					temperament => ["loyal"]
 				}
 			}]
 		}
 	]
  );
+
 
 is(
 	Sig::parse("colette:dog{breed=Collie|Chihuahua}"),
