@@ -23,7 +23,6 @@ debug2 { print RED" "PROCINFO["pid"]" "head"["from" -> "to"] "$0" "NC >"/dev/std
 
 { swap=0; pop=0; printIt=1; talkTo="" }
 
-
 # Buffer incoming lines
 ! /^@PUMP/ {
     buff[++buff["write"]]=$0

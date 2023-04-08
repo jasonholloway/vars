@@ -133,9 +133,47 @@ sub summon {
       }
     }
 
+		# so instead of doing one, then the other
+		# evalling and dredging should be done in parallel
+		# the problem being that both use the bus...
+		# so then the bus needs to support multiplexing
+		#
+
     my $v = getVar($x, $vn)
         || tryPinned($x, $vn)
         || do {
+          # the problem here is that we only want to offer dredged
+          # when there is either multiple or a certain delay
+          # and the dredged val is never a proper val, more a passing suggestion
+          # which means this isn't a problem for the deducer
+          # but rather _vars_, while it waits for a successful conclusion to a run
+          # leaps into action, and offers its quick suggestion, which is a kind of opportunistic override
+
+          # then if further values arrive
+          # or if a run and binding succeeds happily
+          # the frontend steps back and lets things run on
+
+          # which means perl methinks as it's complicated this
+
+          # and so, we need some kind of interrupt from the frontend
+          # <- @UNCORK 3 <prefix>
+          # -> <prefix> line blah
+          # -> <prefix> line blah
+          # <- @CORK 3
+          # -> <prefix> fin
+
+          # so, when listening for run results
+          # 
+          #
+          #
+
+
+
+          # not sure how else to do it - in the middle of communication with the runner
+          # but we can't actively poll - we just register a drain
+          #
+            
+          
           # backtracking walk would be round here
           # tho - not backtracking if all paths are tried and combined
           # each supplier would just be filtered nastily here
