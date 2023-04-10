@@ -17,81 +17,76 @@ BEGIN {
         split(specs[i],p,":")
         procs[p[1]]=p[2]
     }
+
+    from="root"
+    to="root"
 }
 
 debug2 { print RED" "PROCINFO["pid"]" "head"["from" -> "to"] "$0" "NC >"/dev/stderr" }
 
-{ swap=0; pop=0; printIt=1; talkTo="" }
-
-# Buffer incoming lines
-! /^@PUMP/ {
+# if not pumping, then we're buffering
+$1 != "@PUMP" {
     buff[++buff["write"]]=$0
-    forward()
+    done()
 }
 
-# Pump to lower rules
-from {
-    if((procs[from] |& getline) <= 0) {
-        print ERRNO >"/dev/stderr"
-        exit
-    }
-}
-
-!from {
-    if(buff["read"] >= buff["write"]) next
-    else {
+$1 == "@PUMP" {
+    if(from == "root") {
+      if(buff["read"] < buff["write"]) {
         $0=buff[++buff["read"]]
+      }
+      else {
+          next
+      }
+    }
+    else {
+      if((procs[from] |& getline) <= 0) {
+          print ERRNO >"/dev/stderr"
+          exit
+      }
     }
 }
 
-# Non-roots can't pump (?)
-/^@PUMP/ { next }
+$1 == "@PUMP" { next }
 
 debug1 { print PROCINFO["pid"]" "head"["from" -> "to"] "$0 >"/dev/stderr" }
 
 
-/^@ERROR/ {
+
+$1 == "@ERROR" {
     gsub("^@ERROR\\s+", "")
 
     print "error"
     print $0
 }
 
-/^@ASK/ {
-    talkTo=$2
-    printIt=0
-}
-
-/^@YIELD/ || /^@Y$/ {
-    swap=1
-    printIt=0
-}
-
-/^@END$/ || /^@E$/ {
-    pop=1
-    printIt=0
-}
-
-printIt && to && procs[to] { print |& procs[to] }
-
-printIt && !to { print $0 }
-
-talkTo {
+$1 == "@ASK" {
     pushConv()
     to=$2
+    done()
 }
 
-swap {
+$1 == "@YIELD" {
     swapConv()
+    done()
 }
 
-pop {
+$1 == "@END" {
     if(head == 0) exit
     else popConv()
+    done()
 }
 
-{ forward() }
+{
+    if(to == "root") {
+        print $0
+    }
+    else if(procs[to]) {
+        print |& procs[to]
+    }
 
+    done()
+}
 
 function pushConv() {
     convs[head]["from"]=from
@@ -112,7 +107,7 @@ function swapConv(_tmp) {
     to=_tmp
 }
 
-function forward() {
+function done() {
     if(debug2) print RED"["from" -> "to"]"NC" ("PROCINFO["pid"]")" >"/dev/stderr"
     print "@PUMP"
     next

@@ -21,20 +21,71 @@ BusTest->run(
 		is($root->hear(), 'woof');
 
 		$root->say('@END');
+		$root->say('@PUMP');
 
+		$root->say('@ASK p2');
+		$root->say('meeow');
+		$root->say('@YIELD');
+		$root->say('@PUMP');
+		$root->say('@PUMP');
+		is($p2->hear(), 'meeow');
 
+		$p2->say('@ASK p1');
+		$p2->say('moo');
+		$p2->say('@YIELD');
+		$root->say('@PUMP');
+		$root->say('@PUMP');
+		$root->say('@PUMP');
+		$root->say('@PUMP');
+		$root->say('@PUMP');
+		is($p1->hear(), 'moo');
 
-		# my $answer1 = $root->hear();
-		# is($answer1, 'woofwoofwoof?');
+		$p1->say('woof');
+		$p1->say('@YIELD');
+		is($p2->hear(), 'woof');
 
-		# $root->say('yapyapyap');
-		# $root->say('@YIELD');
+		$p2->say('@END');
+		$p2->say('oink oink');
+		is($root->hear(), 'oink oink');
 
-		# my $answer2 = $root->hear();
-		# is($answer2, 'yapyapyap???');
-
-		# $root->say('@END');
+		$p2->say('@YIELD');
+		$root->say('baa');
+		$root->say('@END');
+		$root->say('@PUMP');
+		$root->say('@PUMP');
+		is($p2->hear(), 'baa');
 	});
+
+# BusTest->run(
+# 	['p1', 'p2', 'p3'],
+# 	sub {
+# 		my ($root, $p1, $p2, $p3) = @_;
+
+# 		$root->say('@ASK p1');
+# 		$root->say('hello');
+# 		$root->say('@YIELD');
+# 		$root->say('@PUMP');
+# 		$root->say('@PUMP');
+# 		is($p1->hear(), 'hello');
+
+# 		$p1->say('@TAP');
+# 		$p1->say('@ASK p2');
+# 		$root->say('@PUMP');
+# 		$root->say('@PUMP');
+
+# 		$p1->say('squeak');
+# 		$root->say('@PUMP');
+# 		$root->say('@PUMP');
+# 		is($p2->hear(), 'squeak');
+
+# 		$root->say('hoot');
+# 		$root->say('@PUMP');
+# 		$root->say('@PUMP');
+# 		is($p1->hear(), '@TAPPED hoot');
+		
+# 		# and p2 to say something now
+
+# 	}, 1);
 
 done_testing;
 
@@ -48,8 +99,9 @@ sub run {
 	shift;
 	my $spec = shift;
 	my $sub = shift;
+	my $debug = shift;
 
-	$_ = Fixture->new($spec);
+	$_ = Fixture->new($spec, $debug);
 
 	$sub->(@{$_->{peers}});
 
@@ -72,6 +124,7 @@ use warnings;
 sub new {
 	my $class = shift;
 	my $peers = shift;
+	my $debug = shift;
 
 	my $me = {};
 	bless $me, $class;
@@ -106,7 +159,7 @@ END_SCRIPT
 		push(@procs, "$pn:$scriptPath");
 	}
 
-	$ENV{VARS_DEBUG}='1';
+	$ENV{VARS_DEBUG}=$debug;
 
 	$me->{bus} = {
 		pid => open3(my $rootSend,
