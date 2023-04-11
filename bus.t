@@ -1,5 +1,7 @@
 use strict;
 use warnings;
+use 5.034;
+no warnings 'experimental';
 
 use lib '.';
 use Test2::V0;
@@ -54,7 +56,7 @@ BusTest->run(
 		$root->say('@PUMP');
 		$root->say('@PUMP');
 		is($p2->hear(), 'baa');
-	});
+	}, { debug=>1, v=>2 });
 
 # BusTest->run(
 # 	['p1', 'p2', 'p3'],
@@ -99,9 +101,9 @@ sub run {
 	shift;
 	my $spec = shift;
 	my $sub = shift;
-	my $debug = shift;
+	my $flags = shift;
 
-	$_ = Fixture->new($spec, $debug);
+	$_ = Fixture->new($spec, $flags);
 
 	$sub->(@{$_->{peers}});
 
@@ -124,7 +126,7 @@ use warnings;
 sub new {
 	my $class = shift;
 	my $peers = shift;
-	my $debug = shift;
+	my $flags = shift || {};
 
 	my $me = {};
 	bless $me, $class;
@@ -159,14 +161,15 @@ END_SCRIPT
 		push(@procs, "$pn:$scriptPath");
 	}
 
-	$ENV{VARS_DEBUG}=$debug;
+	$ENV{VARS_DEBUG}=$flags->{debug};
+
+	my $cmd = do {
+		if($flags->{v} == 2) { "stdbuf -oL " . $ENV{VARS_PATH} . "/bus.pl '" . join(';', @procs) . "'" }
+		else { "stdbuf -oL " . $ENV{VARS_PATH} . "/bus.awk -v PROCS='" . join(';', @procs) . "'" }
+	};
 
 	$me->{bus} = {
-		pid => open3(my $rootSend,
-								 my $rootReturn,
-								 '>&STDERR',
-								 "stdbuf -oL " . $ENV{VARS_PATH} . "/bus.awk -v PROCS='" . join(';', @procs) . "'"
-								)
+		pid => open3(my $rootSend, my $rootReturn, '>&STDERR', $cmd)
 	};
 
 	unshift(@{$me->{peers}}, Peer->new('root', $rootSend, $rootReturn));
