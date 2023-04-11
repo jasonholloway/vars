@@ -30,7 +30,6 @@ foreach my $peer (@peers) {
   $peersByHandle{$peer->{return}} = $peer;
 }
 
-print STDERR "\n";
 
 sub main {
   my $select = new IO::Select(map { $_->{return} } @peers);
@@ -42,7 +41,6 @@ sub main {
         my $from = $convs[0]{from};
         my $to = $convs[0]{to};
 
-        # we only start relaying if we care about the handle currently
         if($p == $from) {
           while(my ($cmd,$arg) = relay($from, $to, 1)) {
             given($cmd) {
@@ -73,13 +71,20 @@ sub main {
   print STDERR "Stopped looping, with status $!\n";
 }
 
+my %knownCmds = (
+  ASK => 1,
+  YIELD => 1,
+  END => 1,
+  PUMP => 1
+);
+
 sub relay {
   my $from = shift;
   my $to = shift;
   my $allowCmds = shift;
 
-  while(my $line = shift(@{$from->{lines}})) {
-    if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/) {
+  while(defined(my $line = shift(@{$from->{lines}}))) {
+    if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/ && defined($knownCmds{$+{cmd}})) {
       print STDERR "[$from->{alias} -> $to->{alias}] $line\n" if $debug;
       die "Can't send a command unless conversation leader!" unless $allowCmds;
       return ($+{cmd}, $+{rest});
@@ -126,6 +131,7 @@ sub fromSpec {
   my ($alias, $cmd) = split(':', $raw);
 
 	open3(my $send, my $return, '>&STDERR', $cmd) or die "Couldn't run $cmd";
+  #todo capture pid
 
   new Peer($alias, $send, $return);
 }
@@ -133,7 +139,7 @@ sub fromSpec {
 sub pump {
   my $me = shift;
   
-  my $br = sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer})) or die "Problem reading $me->{alias}: $!";
+  defined(sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer}))) or die "Problem reading $me->{alias}: $!";
 
   while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
     push(@{$me->{lines}}, $+{line});
@@ -142,6 +148,5 @@ sub pump {
 
   scalar @{$me->{lines}};
 }
-
 
 
