@@ -49,12 +49,7 @@ main() {
   if [[ ${#cmds[@]} -gt 0 ]]; then
     {
       coproc {
-          if [[ -z $VARS_BUS_AWK ]]; then
-            $VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
-          else
-            echo "USING BUS.AWK" >&2
-            stdbuf -oL $VARS_PATH/bus.awk -v PROCS="files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
-          fi
+        $VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
       }
       exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
@@ -186,9 +181,9 @@ run() {
 
               local val=$(fzy --prompt "pick ${name}> " <<< "$rawVals")
 
-              echo "$val"
-              echo "@YIELD"
-          } >&6;;
+              say "$val"
+              say "@YIELD"
+          };;
 
       ask) {
               read -r vn <<< "$line"
@@ -205,9 +200,9 @@ run() {
                   fzy --prompt "dredge ${vn}> "
               )
 
-              echo "$val"
-              echo "@YIELD"
-          } >&6;;
+              say "$val"
+              say "@YIELD"
+          };;
 
       dredge) {
               read -r vn <<< "$line"
@@ -219,9 +214,9 @@ run() {
                   sort |
                   while read _ v; do echo -n ¦$v; done
               fi
-              echo
-              echo "@YIELD"
-          } >&6;;
+              say
+              say "@YIELD"
+          };;
 
       pin) {
               read -r key val <<< "$line"

@@ -8,7 +8,13 @@ setupBus() {
 }
 
 say() {
-  echo "$@" >&6
+  {
+    if [[ $1 =~ ^@[A-Z] ]]; then
+        echo "$@"
+    else
+        echo "+""$@"
+    fi
+  } >&6
 }
 
 error() {
@@ -21,11 +27,12 @@ hear() {
 
   while read -ru 5 _l; do
     case "$_l" in
-      '@PUMP')
-          say "@PUMP";;
-      *)
-          read -r "$@" <<<"$_l"
+      \#*) ;;
+      +*)
+          read -r "$@" <<<"${_l:1}"
           return 0;;
+      *)
+          error "Bad line read: ${_l}";;
     esac
   done
 

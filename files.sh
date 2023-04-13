@@ -199,7 +199,7 @@ getRawFile() {
       )
   fi
 
-  echo "${rawFiles[$fid]}"
+  say "${rawFiles[$fid]}"
 }
 
 findFiles() {
@@ -207,6 +207,8 @@ findFiles() {
   local peekDepth=2
   local globalDir="$HOME/.vars/global"
   local globalPeekDepth=3
+
+  echo -n "+"
 
   {
     find -L ~+ -maxdepth "$peekDepth" ! -readable -prune -o -name "$pattern" -printf "0,%p,%T@\n"

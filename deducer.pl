@@ -9,8 +9,6 @@ no warnings 'experimental';
 use lib $ENV{VARS_PATH};
 use Sig;
 
-$|++;
-
 sub main {
     while (my $line = hear()) {
         given($line) {
@@ -23,10 +21,10 @@ sub main {
                     evalBlock(\%x, $target);
                 }
 
-                say 'fin';
+                speak('fin');
             }
         }
-        say '@YIELD';
+        speak('@YIELD');
     }
 }
 
@@ -36,9 +34,9 @@ sub evalBlock {
     my $block = $x->{blocks}{$target};
 
     if(grep(/P/, @{$block->{flags}})) {
-        say '@ASK files';
-        say "pins $target";
-        say '@YIELD';
+        speak('@ASK files');
+        speak("pins $target");
+        speak('@YIELD');
 
         my @blockPins;
 
@@ -49,7 +47,7 @@ sub evalBlock {
             push(@blockPins, [ $vn, $val ]);
         }
 
-        say '@END';
+        speak('@END');
 
         foreach my $tup (@blockPins) {
             addVar($x, $tup->[0], [$tup->[1]], "pinned");
@@ -63,27 +61,27 @@ sub evalBlock {
       push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
     }
 
-    say '@ASK runner';
-    say "run $block->{outline}";
-    say "flags @{$block->{flags}}";
+    speak('@ASK runner');
+    speak("run $block->{outline}");
+    speak("flags @{$block->{flags}}");
 
     foreach my $vn (keys %boundIns) {
         my $v = $boundIns{$vn};
 
         foreach my $val (@{$v->{vals}}) {
-            say "val $vn $val"
+            speak("val $vn $val")
         }
     }
 
-    say 'go';
-    say '@YIELD';
-    say '@END';
+    speak('go');
+    speak('@YIELD');
+    speak('@END');
 
     # we collect individual binds into sets via boundOuts
     # then communicate these steps up the stack
     # shouldn't this again be the responsibility of the runner?
 
-    say "running $target";
+    speak("running $target");
 
     my %boundOuts;
 
@@ -103,7 +101,7 @@ sub evalBlock {
                 #...
             }
             when('fin') { last }
-            default { say $line }
+            default { speak($line) }
         }
     }
 
@@ -192,12 +190,12 @@ sub summon {
     # lg(Dumper($in));
 
     if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
-        say "pick $alias ¦".join('¦', @{$vals});
-        say '@YIELD';
+        speak("pick $alias ¦".join('¦', @{$vals}));
+        speak('@YIELD');
         hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
 
         if($+{pin}) {
-            say "pin $alias $+{val}";
+            speak("pin $alias $+{val}");
         }
 
         $v = addVar($x, $alias, [$+{val}], "picked");
@@ -255,7 +253,7 @@ sub addVar {
     $v->{vals} = $vals;
     $v->{source} = $source; # todo should be source per val
 
-    say "bound $source $vn " . join('¦', @{$vals});
+    speak("bound $source $vn " . join('¦', @{$vals}));
 
     $v;
 }
@@ -273,7 +271,7 @@ sub putVar {
     $v->{vals} = $vals;
     $v->{source} = $source; # todo should be source per val
 
-    say "bound $source $vn " . join('¦', @{$vals});
+    speak("bound $source $vn " . join('¦', @{$vals}));
 
     $v;
 }
@@ -293,8 +291,8 @@ sub askVar {
     my $x = shift;
     my $vn = shift;
 
-    say "ask $vn";
-    say '@YIELD';
+    speak("ask $vn");
+    speak('@YIELD');
     my $v = hear();
 
     $v =~ /(?<val>.+?)(?<pin>\!?)$/;
@@ -408,17 +406,24 @@ sub hearWords {
 }
 
 sub hear {
-  start:
-    chomp(my $line = <STDIN> || '');
-    given($line) {
-        when('@PUMP') {
-            say '@PUMP';
-            goto start;
-        }
-        default {
-            return $line;
-        }
+  while(chomp(my $line = <STDIN> || '')) {
+    if($line =~ /^\+(?<rest>.*)/) {
+      return $+{rest};
     }
+  }
+}
+
+sub speak {
+  my $line = shift;
+
+  if($line =~ /^\@[A-Z]/) {
+    say "$line";
+    STDOUT->flush();
+  }
+  else {
+    say "+$line";
+    STDOUT->flush();
+  }
 }
 
 sub lg {

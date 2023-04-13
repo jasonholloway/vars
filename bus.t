@@ -14,8 +14,6 @@ BusTest->run(
 		$root->say('@ASK p1');
 		$root->say('hello');
 		$root->say('@YIELD');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
 		is($p1->hear(), 'hello');
 
 		$p1->say('woof');
@@ -23,23 +21,15 @@ BusTest->run(
 		is($root->hear(), 'woof');
 
 		$root->say('@END');
-		$root->say('@PUMP');
 
 		$root->say('@ASK p2');
 		$root->say('meeow');
 		$root->say('@YIELD');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
 		is($p2->hear(), 'meeow');
 
 		$p2->say('@ASK p1');
 		$p2->say('moo');
 		$p2->say('@YIELD');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
 		is($p1->hear(), 'moo');
 
 		$p1->say('woof');
@@ -53,10 +43,8 @@ BusTest->run(
 		$p2->say('@YIELD');
 		$root->say('baa');
 		$root->say('@END');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
 		is($p2->hear(), 'baa');
-	}, { debug=>1, v=>2 });
+	}, { debug=>1 });
 
 # BusTest->run(
 # 	['p1', 'p2', 'p3'],
@@ -66,23 +54,15 @@ BusTest->run(
 # 		$root->say('@ASK p1');
 # 		$root->say('hello');
 # 		$root->say('@YIELD');
-# 		$root->say('@PUMP');
-# 		$root->say('@PUMP');
 # 		is($p1->hear(), 'hello');
 
 # 		$p1->say('@TAP');
 # 		$p1->say('@ASK p2');
-# 		$root->say('@PUMP');
-# 		$root->say('@PUMP');
 
 # 		$p1->say('squeak');
-# 		$root->say('@PUMP');
-# 		$root->say('@PUMP');
 # 		is($p2->hear(), 'squeak');
 
 # 		$root->say('hoot');
-# 		$root->say('@PUMP');
-# 		$root->say('@PUMP');
 # 		is($p1->hear(), '@TAPPED hoot');
 		
 # 		# and p2 to say something now
@@ -163,10 +143,7 @@ END_SCRIPT
 
 	$ENV{VARS_DEBUG}=$flags->{debug};
 
-	my $cmd = do {
-		if($flags->{v} == 2) { "stdbuf -oL " . $ENV{VARS_PATH} . "/bus.pl '" . join(';', @procs) . "'" }
-		else { "stdbuf -oL " . $ENV{VARS_PATH} . "/bus.awk -v PROCS='" . join(';', @procs) . "'" }
-	};
+	my $cmd = $ENV{VARS_PATH} . "/bus.pl '" . join(';', @procs) . "'";
 
 	$me->{bus} = {
 		pid => open3(my $rootSend, my $rootReturn, '>&STDERR', $cmd)
@@ -214,7 +191,14 @@ sub say {
 	my $line = shift;
 
 	my $h = $me->{send};
-	print $h $line . "\n";
+
+	if($line =~ /^@/) {
+		print $h $line . "\n";
+	}
+	else {
+		print $h "+" . $line . "\n";
+	}
+
 	$h->flush();
 }
 
@@ -226,11 +210,8 @@ sub hear {
 		if(defined(my $line = <$h>)) {
 		  chomp($line);
 
-			if($line eq '@PUMP') {
-				$me->say('@PUMP');
-			}
-			else {
-				return $line;
+			if($line =~ /^\+(?<rest>.*)$/) {
+				return $+{rest};
 			}
 		}
 		else {
