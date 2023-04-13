@@ -14,8 +14,6 @@ BusTest->run(
 		$root->say('@ASK p1');
 		$root->say('hello');
 		$root->say('@YIELD');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
 		is($p1->hear(), 'hello');
 
 		$p1->say('woof');
@@ -23,23 +21,15 @@ BusTest->run(
 		is($root->hear(), 'woof');
 
 		$root->say('@END');
-		$root->say('@PUMP');
 
 		$root->say('@ASK p2');
 		$root->say('meeow');
 		$root->say('@YIELD');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
 		is($p2->hear(), 'meeow');
 
 		$p2->say('@ASK p1');
 		$p2->say('moo');
 		$p2->say('@YIELD');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
 		is($p1->hear(), 'moo');
 
 		$p1->say('woof');
@@ -53,10 +43,31 @@ BusTest->run(
 		$p2->say('@YIELD');
 		$root->say('baa');
 		$root->say('@END');
-		$root->say('@PUMP');
-		$root->say('@PUMP');
 		is($p2->hear(), 'baa');
-	}, { debug=>1, v=>2 });
+	});
+
+# BusTest->run(
+# 	[],
+# 	sub {
+# 		my ($root) = @_;
+
+# 		$root->say('@PAD 8');
+# 		$root->say('yo');
+# 		is($root->hear(), 'yo');
+# 		is($root->hearRaw(), '###');
+
+# 		$root->say('@PAD 12');
+# 		$root->say('boo');
+# 		is($root->hear(), 'boo');
+# 		is($root->hearRaw(), '######');
+
+# 		$root->say('@PAD 0');
+# 		$root->say('woo');
+# 		$root->say('moo');
+# 		is($root->hear(), 'woo');
+# 		is($root->hear(), 'moo');
+
+# 	}, { debug=>1 });
 
 # BusTest->run(
 # 	['p1', 'p2', 'p3'],
@@ -66,23 +77,15 @@ BusTest->run(
 # 		$root->say('@ASK p1');
 # 		$root->say('hello');
 # 		$root->say('@YIELD');
-# 		$root->say('@PUMP');
-# 		$root->say('@PUMP');
 # 		is($p1->hear(), 'hello');
 
 # 		$p1->say('@TAP');
 # 		$p1->say('@ASK p2');
-# 		$root->say('@PUMP');
-# 		$root->say('@PUMP');
 
 # 		$p1->say('squeak');
-# 		$root->say('@PUMP');
-# 		$root->say('@PUMP');
 # 		is($p2->hear(), 'squeak');
 
 # 		$root->say('hoot');
-# 		$root->say('@PUMP');
-# 		$root->say('@PUMP');
 # 		is($p1->hear(), '@TAPPED hoot');
 		
 # 		# and p2 to say something now
