@@ -37,7 +37,19 @@ sub main {
   while(my @handles = $select->can_read()) {
     foreach my $h (@handles) {
       my $p = $peersByHandle{$h};
-      if($p->pump() > 0) {
+      my ($bytes, $lines) = $p->pump();
+
+      if($bytes == 0) {
+        $select->remove($h);
+
+        if($h == *STDIN) {
+          exit();
+        }
+
+        next;
+      }
+
+      if($lines > 0) {
         my $from = $convs[0]{from};
         my $to = $convs[0]{to};
 
@@ -139,14 +151,14 @@ sub fromSpec {
 sub pump {
   my $me = shift;
   
-  defined(sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer}))) or die "Problem reading $me->{alias}: $!";
+  defined(my $c = sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer}))) or die "Problem reading $me->{alias}: $!";
 
   while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
     push(@{$me->{lines}}, $+{line});
     $me->{buffer} = $+{rest};
   }
 
-  scalar @{$me->{lines}};
+  ($c, scalar @{$me->{lines}})
 }
 
 
