@@ -166,10 +166,7 @@ END_SCRIPT
 
 	$ENV{VARS_DEBUG}=$flags->{debug};
 
-	my $cmd = do {
-		if($flags->{v} == 2) { "stdbuf -oL " . $ENV{VARS_PATH} . "/bus.pl '" . join(';', @procs) . "'" }
-		else { "stdbuf -oL " . $ENV{VARS_PATH} . "/bus.awk -v PROCS='" . join(';', @procs) . "'" }
-	};
+	my $cmd = $ENV{VARS_PATH} . "/bus.pl '" . join(';', @procs) . "'";
 
 	$me->{bus} = {
 		pid => open3(my $rootSend, my $rootReturn, '>&STDERR', $cmd)
