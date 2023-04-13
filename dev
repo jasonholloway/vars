@@ -12,11 +12,15 @@ exec 5<&0 6>&1
 
 {
 		(eval "$cmd" <&5 >&6) &
+		pid=$!
 
 		while read -r _; do
-				kill %eval
+				pkill -INT -e -P $pid >&2
+				wait
+				sleep 0.1
 				clear
 				(eval "$cmd" <&5 >&6 ) &
+				pid=$!
 
 		done < <(inotifywait -me CLOSE_WRITE -r $watch)
 }
