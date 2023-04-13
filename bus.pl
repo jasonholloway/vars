@@ -65,6 +65,9 @@ sub main {
                 $from = $convs[0]{from};
                 $to = $convs[0]{to};
               }
+              when('PAD') {
+                $p->setPad($arg);
+              }
               when('ERROR') {
                 die "Error bubbled: $arg";
               }
@@ -83,13 +86,16 @@ my %knownCmds = (
   ASK => 1,
   YIELD => 1,
   END => 1,
-  ERROR => 1
+  ERROR => 1,
+  PAD => 1
 );
 
 sub relay {
   my $from = shift;
   my $to = shift;
   my $allowCmds = shift;
+
+  $_ = { from => $from, to => $to };
 
   while(defined(my $line = shift(@{$from->{lines}}))) {
     if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/ && defined($knownCmds{$+{cmd}})) {
@@ -98,10 +104,7 @@ sub relay {
       return ($+{cmd}, $+{rest});
     }
     else {
-      my $h = $to->{send};
-      print $h $line . "\n";
-      $h->flush();
-      print STDERR "[$from->{alias} -> $to->{alias}] $line\n" if $debug;
+      $to->say($line);
     }
   }
 
@@ -127,7 +130,8 @@ sub new {
     send => $send,
     return => $return,
     buffer => '',
-    lines => []
+    lines => [],
+    pad => 0
   };
 
   bless $me, $class;
@@ -145,6 +149,11 @@ sub fromSpec {
   new Peer($alias, $send, $return);
 }
 
+sub setPad {
+  my $me = shift;
+  $me->{pad} = int(shift);
+}
+
 sub pump {
   my $me = shift;
   
@@ -158,4 +167,29 @@ sub pump {
   ($c, scalar @{$me->{lines}})
 }
 
+sub sayRaw {
+  my $me = shift;
+  my $line = shift;
+
+  my $h = $me->{send};
+
+  print $h $line . "\n";
+  $h->flush();
+  print STDERR "[$_->{from}{alias} -> $me->{alias}] $line\n" if $debug;
+}
+
+sub say {
+  my $me = shift;
+  my $line = shift;
+  my $pad = $me->{pad};
+
+  sayRaw($me, $line);
+
+  if($pad > 0) {
+    my $remaining = $pad - (length($line) + 1);
+    if($remaining > 0) {
+      $me->sayRaw("#" x ($remaining - 1));
+    }
+  }
+}
 

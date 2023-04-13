@@ -44,6 +44,29 @@ BusTest->run(
 		$root->say('baa');
 		$root->say('@END');
 		is($p2->hear(), 'baa');
+	});
+
+BusTest->run(
+	[],
+	sub {
+		my ($root) = @_;
+
+		$root->say('@PAD 8');
+		$root->say('yo');
+		is($root->hear(), 'yo');
+		is($root->hearRaw(), '###');
+
+		$root->say('@PAD 12');
+		$root->say('boo');
+		is($root->hear(), 'boo');
+		is($root->hearRaw(), '######');
+
+		$root->say('@PAD 0');
+		$root->say('woo');
+		$root->say('moo');
+		is($root->hear(), 'woo');
+		is($root->hear(), 'moo');
+
 	}, { debug=>1 });
 
 # BusTest->run(
@@ -202,20 +225,23 @@ sub say {
 	$h->flush();
 }
 
-sub hear {
+sub hearRaw {
   my $me = shift;
 	my $h = $me->{return};
 
-	while(1) {
-		if(defined(my $line = <$h>)) {
-		  chomp($line);
+	if(defined(my $line = <$h>)) {
+		chomp($line);
+		return $line;
+	}
+	else {
+		die "nothing to read";
+	}
+}
 
-			if($line =~ /^\+(?<rest>.*)$/) {
-				return $+{rest};
-			}
-		}
-		else {
-			die "nothing to read";
+sub hear {
+	if(defined(my $line = hearRaw(@_))) {
+		if($line =~ /^\+(?<rest>.*)$/) {
+			return $+{rest};
 		}
 	}
 }
