@@ -8,8 +8,6 @@ use lib $ENV{VARS_PATH};
 use Data::Dumper;
 use IO::Select;
 
-$|++;
-
 my $debug = $ENV{VARS_DEBUG};
 
 my $root = new Peer('root', *STDOUT, *STDIN);
@@ -34,19 +32,16 @@ foreach my $peer (@peers) {
 sub main {
   my $select = new IO::Select(map { $_->{return} } @peers);
 
-  while(my @handles = $select->can_read()) {
-    foreach my $h (@handles) {
+  readLoop: while(my @handles = $select->can_read()) {
+    handleLoop: foreach my $h (@handles) {
       my $p = $peersByHandle{$h};
       my ($bytes, $lines) = $p->pump();
 
       if($bytes == 0) {
         $select->remove($h);
 
-        if($h == *STDIN) {
-          exit();
-        }
-
-        next;
+        if($h eq *STDIN) { last readLoop; }
+        else { next handleLoop; }
       }
 
       if($lines > 0) {
@@ -80,7 +75,6 @@ sub main {
       }
     }
   }
-  print STDERR "Stopped looping, with status $!\n";
 }
 
 my %knownCmds = (
@@ -104,6 +98,7 @@ sub relay {
     else {
       my $h = $to->{send};
       print $h $line . "\n";
+      $h->flush();
       print STDERR "[$from->{alias} -> $to->{alias}] $line\n" if $debug;
     }
   }
