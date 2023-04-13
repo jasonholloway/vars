@@ -52,6 +52,7 @@ main() {
         $VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
       }
       exec 5<&${COPROC[0]} 6>&${COPROC[1]}
+      # setPad 1024
 
       dispatch ${cmds[@]}
 

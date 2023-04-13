@@ -7,6 +7,13 @@ setupBus() {
   exec 5<&0 6>&1
 }
 
+declare _pad=0;
+
+setPad() {
+  _pad=$1
+  say "@PAD $_pad"
+}
+
 say() {
   {
     if [[ $1 =~ ^@[A-Z] ]]; then
@@ -22,19 +29,35 @@ error() {
   exit 1
 }
 
-hear() {
-  local _l
+declare _buff=""
 
-  while read -ru 5 _l; do
-    case "$_l" in
-      \#*) ;;
-      +*)
-          read -r "$@" <<<"${_l:1}"
-          return 0;;
-      *)
-          error "Bad line read: ${_l}";;
-    esac
+hear() {
+  local _l _line
+
+  while [[ ! $_buff =~ ([^$'\n']*)$'\n'(.*)$ ]]
+  do
+    if [[ $_pad > 0 ]]
+    then read -ru 5 -N $_pad _l
+    else read -ru 5 _l; _l+=$'\n'
+    fi
+
+    _buff+=$_l
+    # echo "BUFF: $_buff" >&2
   done
+
+  _line=${BASH_REMATCH[1]}
+  # echo "LINE: $_line" >&2
+  _buff=${BASH_REMATCH[2]}
+  # echo "BUFF: $_buff" >&2
+
+  case "$_line" in
+    \#*) ;;
+    +*)
+      read -r "$@" <<<"${_line:1}"
+      return 0;;
+    *)
+      error "Bad line read: ${_line}";;
+  esac
 
   return 1
 }

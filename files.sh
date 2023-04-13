@@ -49,6 +49,8 @@ getOutlines() {
   done
 
   allOutlines=$(IFS=$RS; echo "${outlines[*]}")
+  # encode allOutlines allOutlines
+
   echo "$allOutlines" >"$cacheFile"
 
   say "$allOutlines"

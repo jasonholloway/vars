@@ -99,7 +99,7 @@ sub relay {
 
   while(defined(my $line = shift(@{$from->{lines}}))) {
     if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/ && defined($knownCmds{$+{cmd}})) {
-      print STDERR "[$from->{alias} -> $to->{alias}] $line\n" if $debug;
+      print STDERR "[$from->{alias}] $line\n" if $debug;
       die "Can't send a command unless conversation leader!" unless $allowCmds;
       return ($+{cmd}, $+{rest});
     }
@@ -175,7 +175,7 @@ sub sayRaw {
 
   print $h $line . "\n";
   $h->flush();
-  print STDERR "[$_->{from}{alias} -> $me->{alias}] $line\n" if $debug;
+  print STDERR "[$_->{from}{alias} -> $me->{alias}($me->{pad})] $line\n" if $debug;
 }
 
 sub say {
@@ -186,7 +186,8 @@ sub say {
   sayRaw($me, $line);
 
   if($pad > 0) {
-    my $remaining = $pad - (length($line) + 1);
+    my $len = length($line) + 1;
+    my $remaining = $pad - ($len % $pad);
     if($remaining > 0) {
       $me->sayRaw("#" x ($remaining - 1));
     }
