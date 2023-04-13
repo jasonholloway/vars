@@ -91,17 +91,16 @@ sub relay {
   my $to = shift;
   my $allowCmds = shift;
 
+  $_ = { from => $from, to => $to };
+
   while(defined(my $line = shift(@{$from->{lines}}))) {
     if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/ && defined($knownCmds{$+{cmd}})) {
-      print STDERR "[$from->{alias} -> $to->{alias}] $line\n" if $debug;
+      print STDERR "[$from->{alias}] $line\n" if $debug;
       die "Can't send a command unless conversation leader!" unless $allowCmds;
       return ($+{cmd}, $+{rest});
     }
     else {
-      my $h = $to->{send};
-      print $h $line . "\n";
-      $h->flush();
-      print STDERR "[$from->{alias} -> $to->{alias}] $line\n" if $debug;
+      $to->say($line);
     }
   }
 
@@ -158,4 +157,14 @@ sub pump {
   ($c, scalar @{$me->{lines}})
 }
 
+sub say {
+  my $me = shift;
+  my $line = shift;
+
+  my $h = $me->{send};
+
+  print $h $line . "\n";
+  $h->flush();
+  print STDERR "[$_->{from}{alias} -> $me->{alias}] $line\n" if $debug;
+}
 
