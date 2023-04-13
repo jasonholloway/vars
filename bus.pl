@@ -65,7 +65,9 @@ sub main {
                 $from = $convs[0]{from};
                 $to = $convs[0]{to};
               }
-              when('PUMP') {} # obsolete
+              when('ERROR') {
+                die "Error bubbled: $arg";
+              }
               default {
                 die "unknown cmd $cmd";
               }
@@ -81,7 +83,7 @@ my %knownCmds = (
   ASK => 1,
   YIELD => 1,
   END => 1,
-  PUMP => 1
+  ERROR => 1
 );
 
 sub relay {
