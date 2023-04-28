@@ -36,17 +36,25 @@ $SIG{'TERM'} = sub {
   exit;
 };
 
+my $FIN = 0;
+my $REPUMP = 1;
+my $CONT = 2;
+
+sub lg {
+  my $str = shift;
+  print STDERR "$str\n";
+}
+
 sub pump {
   my $p = shift;
 
+  lg("[$p->{alias}] ...");
   my ($bytes, $lines) = $p->pump();
+  if($bytes == 0) { return ($FIN, $p); }
+  # lg("Pumped $lines from $p->{alias}");
 
-  if($bytes == 0) {
-    $select->remove($h);
-
-    if($h eq *STDIN) { last readLoop; }
-    else { next handleLoop; }
-  }
+  # we're getting stuck pumping from root
+  # presumably because END isn't getting properly treated
 
   if($lines > 0) {
     my $from = $convs[0]{from};
@@ -63,23 +71,26 @@ sub pump {
             my $tmp = $from;
             $convs[0]{from} = $from = $to;
             $convs[0]{to} = $to = $tmp;
-            # todo
-            # ensure we existing lines here
+            return ($REPUMP, $from);
           }
           when('CLAMP') {
             $clamp{from} = $to;
             $clamp{to} = $from;
             $clamp{tag} = $arg;
-            # todo
-            # ensure we read existing lines here
+            return ($REPUMP, $to);
           }
           when('UNCLAMP') {
             %clamp = ();
           }
           when('END') {
-            shift(@convs);
-            $from = $convs[0]{from};
-            $to = $convs[0]{to};
+            if(defined(shift(@convs))) {
+              $from = $convs[0]{from};
+              $to = $convs[0]{to};
+            }
+            else {
+              lg("END");
+              return ($FIN, $p);
+            }
           }
           when('ERROR') {
             die "Error bubbled: $arg";
@@ -90,72 +101,38 @@ sub pump {
         }
       }
     }
-    elsif($p == $clamp{from}) {
+    elsif($clamp{from} && $p == $clamp{from}) {
       relay($p, $clamp{to}, 0);
     }
+
+    return ();
   }
 }
-
 
 sub main {
   my $select = new IO::Select(map { $_->{return} } @peers);
 
-  readLoop: while(my @handles = $select->can_read()) {
-    handleLoop: foreach my $h (@handles) {
+  while(my @handles = $select->can_read()) {
+    my ($cmd, $arg);
+
+    foreach my $h (@handles) {
       my $p = $peersByHandle{$h};
-      my ($bytes, $lines) = $p->pump();
+      ($cmd, $arg) = pump($p);
 
-      if($bytes == 0) {
-        $select->remove($h);
+    start:
+      given($cmd) {
+        when($FIN) {
+          $select->remove($arg);
 
-        if($h eq *STDIN) { last readLoop; }
-        else { next handleLoop; }
-      }
-
-      if($lines > 0) {
-        my $from = $convs[0]{from};
-        my $to = $convs[0]{to};
-
-        if($p == $from) {
-          while(my ($cmd,$arg) = relay($from, $to, 1)) {
-            given($cmd) {
-              when('ASK') {
-                $to = $peersByAlias{$arg} or die "Referred to unknown peer $arg";
-                unshift(@convs, { from => $from, to => $to });
-              }
-              when('YIELD') {
-                my $tmp = $from;
-                $convs[0]{from} = $from = $to;
-                $convs[0]{to} = $to = $tmp;
-                # todo
-                # ensure we existing lines here
-              }
-              when('CLAMP') {
-                $clamp{from} = $to;
-                $clamp{to} = $from;
-                $clamp{tag} = $arg;
-                # todo
-                # ensure we read existing lines here
-              }
-              when('UNCLAMP') {
-                %clamp = ();
-              }
-              when('END') {
-                shift(@convs);
-                $from = $convs[0]{from};
-                $to = $convs[0]{to};
-              }
-              when('ERROR') {
-                die "Error bubbled: $arg";
-              }
-              default {
-                die "unknown cmd $cmd";
-              }
-            }
-          }
+          if($arg eq *STDIN) { return; }
+          else { next; }
         }
-        elsif($p == $clamp{from}) {
-          relay($p, $clamp{to}, 0);
+        when($REPUMP) {
+          ($cmd, $arg) = pump($arg);
+          goto start;
+        }
+        default {
+
         }
       }
     }
