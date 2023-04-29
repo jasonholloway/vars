@@ -46,39 +46,37 @@ BusTest->run(
 		is($root->hear(), 'oink oink');
 
 		$p2->say('@YIELD');
+
 		$root->say('baa');
 		$root->say('@END');
 
-		lg('HELLO!!!');
-		# looks like we're not pumping the last bits to p2
-		#
-		
 		is($p2->hear(), 'baa');
-	}, { debug => 1 });
+	});
 
-# BusTest->run(
-# 	['p1', 'p2'],
-# 	sub {
-# 		my ($root, $p1, $p2) = @_;
 
-# 		# todo cover nothing being said before yield
-# 		$root->say('@ASK p1');
-# 		$root->say('from root');
-# 		$root->say('@YIELD');
+BusTest->run(
+	['p1', 'p2'],
+	sub {
+		my ($root, $p1, $p2) = @_;
 
-# 		$p1->say('@CLAMP X');
-# 		# $p1->say('@ASK p2');
-# 		# $p1->say('hello, p2');
-# 		# $p1->say('@YIELD');
+		# todo cover nothing being said before yield
+		$root->say('@ASK p1');
+		$root->say('from root');
+		$root->say('@YIELD');
 
-# 		# $p2->say('from p2');
-# 		$root->say('from root via clamp');
-# 		$p1->say('@UNCLAMP');
+		$p1->say('@CLAMP X');
+		# $p1->say('@ASK p2');
+		# $p1->say('hello, p2');
+		# $p1->say('@YIELD');
+
+		# $p2->say('from p2');
+		$root->say('from root via clamp');
+		$p1->say('@UNCLAMP');
 		
-# 		is($p1->hear(), 'from root');
-# 		is($p1->hear(), 'from p2');
-# 		is($p1->hear(), 'X from root via clamp');
-# 	}, { debug=>1 });
+		is($p1->hear(), 'from root');
+		is($p1->hear(), 'from p2');
+		is($p1->hear(), 'X from root via clamp');
+	}, { debug=>1 });
 
 # BusTest->run(
 # 	[],

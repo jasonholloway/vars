@@ -30,112 +30,106 @@ foreach my $peer (@peers) {
 }
 
 $SIG{'TERM'} = sub {
+  lg('TERM!!!');
   foreach my $p (@peers) {
     $p->close();
   }
   exit;
 };
 
-my $FIN = 0;
-my $REPUMP = 1;
-my $CONT = 2;
+my $PUMP = 1;
+my $RELAY = 2;
 
 sub lg {
   my $str = shift;
-  print STDERR "$str\n";
+  print STDERR "$str\n" if $debug;
 }
 
-sub pump {
-  my $p = shift;
-
-  lg("[$p->{alias}] ...");
-  my ($bytes, $lines) = $p->pump();
-  if($bytes == 0) { return ($FIN, $p); }
-  # lg("Pumped $lines from $p->{alias}");
-
-  # we're getting stuck pumping from root
-  # presumably because END isn't getting properly treated
-
-  if($lines > 0) {
-    my $from = $convs[0]{from};
-    my $to = $convs[0]{to};
-
-    if($p == $from) {
-      while(my ($cmd,$arg) = relay($from, $to, 1)) {
-        given($cmd) {
-          when('ASK') {
-            $to = $peersByAlias{$arg} or die "Referred to unknown peer $arg";
-            unshift(@convs, { from => $from, to => $to });
-          }
-          when('YIELD') {
-            my $tmp = $from;
-            $convs[0]{from} = $from = $to;
-            $convs[0]{to} = $to = $tmp;
-            return ($REPUMP, $from);
-          }
-          when('CLAMP') {
-            $clamp{from} = $to;
-            $clamp{to} = $from;
-            $clamp{tag} = $arg;
-            return ($REPUMP, $to);
-          }
-          when('UNCLAMP') {
-            %clamp = ();
-          }
-          when('END') {
-            if(defined(shift(@convs))) {
-              $from = $convs[0]{from};
-              $to = $convs[0]{to};
-            }
-            else {
-              lg("END");
-              return ($FIN, $p);
-            }
-          }
-          when('ERROR') {
-            die "Error bubbled: $arg";
-          }
-          default {
-            die "unknown cmd $cmd";
-          }
-        }
-      }
-    }
-    elsif($clamp{from} && $p == $clamp{from}) {
-      relay($p, $clamp{to}, 0);
-    }
-
-    return ();
-  }
-}
+my @tasks;
 
 sub main {
   my $select = new IO::Select(map { $_->{return} } @peers);
 
   while(my @handles = $select->can_read()) {
-    my ($cmd, $arg);
-
     foreach my $h (@handles) {
       my $p = $peersByHandle{$h};
-      ($cmd, $arg) = pump($p);
+      lg("[$p->{alias}] ...");
+      my ($bc, $lc) = $p->read();
 
-    start:
+      if($lc > 0) {
+        push(@tasks, [$PUMP, $p]);
+      }
+
+      if($bc == 0) {
+        $select->remove(($h));
+        if($h eq *STDIN) { return; }
+        else { next; }
+      }
+    }
+
+    while(defined(my $task = shift(@tasks))) {
+      my ($cmd, $arg) = @{$task};
       given($cmd) {
-        when($FIN) {
-          $select->remove($arg);
-
-          if($arg eq *STDIN) { return; }
-          else { next; }
+        when($PUMP) {
+          pump($arg);
         }
-        when($REPUMP) {
-          ($cmd, $arg) = pump($arg);
-          goto start;
-        }
-        default {
-
+        when($RELAY) {
+          my ($from, $to) = $arg;
+          relay($from, $to);
         }
       }
     }
+  }
+}
+
+sub pump {
+  my $p = shift;
+
+  my $from = $convs[0]{from};
+  my $to = $convs[0]{to};
+
+  if($p == $from) {
+    while(my ($cmd,$arg) = relay($from, $to, 1)) {
+      given($cmd) {
+        when('ASK') {
+          $to = $peersByAlias{$arg} or die "Referred to unknown peer $arg";
+          unshift(@convs, { from => $from, to => $to });
+        }
+        when('YIELD') {
+          my $tmp = $from;
+          $convs[0]{from} = $from = $to;
+          $convs[0]{to} = $to = $tmp;
+          push(@tasks, [$PUMP, $from]);
+        }
+        when('CLAMP') {
+          $clamp{from} = $to;
+          $clamp{to} = $from;
+          $clamp{tag} = $arg;
+          push(@tasks, [$RELAY, [$to, $from]]);
+          push(@tasks, [$PUMP, $p]);
+          return;
+        }
+        when('UNCLAMP') {
+          %clamp = ();
+        }
+        when('END') {
+          if(defined(shift(@convs))) {
+            $from = $convs[0]{from};
+            $to = $convs[0]{to};
+          }
+          else { exit; }
+        }
+        when('ERROR') {
+          die "Error bubbled: $arg";
+        }
+        default {
+          die "unknown cmd $cmd";
+        }
+      }
+    }
+  }
+  elsif($clamp{from} && $p == $clamp{from}) {
+    relay($p, $clamp{to}, 0);
   }
 }
 
@@ -156,7 +150,7 @@ sub relay {
 
   while(defined(my $line = shift(@{$from->{lines}}))) {
     if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/ && defined($knownCmds{$+{cmd}})) {
-      print STDERR "[$from->{alias}] $line\n" if $debug;
+      # print STDERR "[$from->{alias}] $line\n" if $debug;
       die "Can't send a command unless conversation leader!" unless $allowCmds;
       return ($+{cmd}, $+{rest});
     }
@@ -197,19 +191,26 @@ sub new {
   $me
 }
 
+sub lg {
+  my $s = shift;
+  print STDERR "$s\n";
+}
+
 sub fromSpec {
   my $raw = shift;
   my ($alias, $cmd) = split(':', $raw);
 
-	my $pid = open3(my $send, my $return, '>&STDERR', $cmd) or die "Couldn't run $cmd";
+  my $pid = open3(my $send, my $return, '>&STDERR', $cmd) or die "Couldn't run $cmd";
 
   new Peer($alias, $send, $return, $pid);
 }
 
-sub pump {
+sub read {
   my $me = shift;
   
   defined(my $c = sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer}))) or die "Problem reading $me->{alias}: $!";
+
+  # lg("read <$me->{buffer}> from $me->{alias}");
 
   while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
     push(@{$me->{lines}}, $+{line});
@@ -227,7 +228,7 @@ sub close {
 
   my $pid = $me->{pid};
   if(defined($pid)) {
-    print STDERR "KILL $pid! \n";
+    # print STDERR "KILL $pid! \n";
     kill 'TERM', $pid or die "Can't kill $pid...";
   }
 }
