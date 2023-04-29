@@ -61,68 +61,34 @@ BusTest->run(
 
 		# todo cover nothing being said before yield
 		$root->say('@ASK p1');
-		$root->say('from root');
+		$root->say('hi from root');
 		$root->say('@YIELD');
 
 		$p1->say('@CLAMP X');
-		# $p1->say('@ASK p2');
-		# $p1->say('hello, p2');
-		# $p1->say('@YIELD');
+		$p1->say('@ASK p2');
+		$p1->say('hello, p2');
+		$p1->say('@YIELD');
 
-		# $p2->say('from p2');
-		$root->say('from root via clamp');
-		$p1->say('@UNCLAMP');
-		
-		is($p1->hear(), 'from root');
+		$root->say('hi from root via clamp 1');
+		$p2->say('from p2');
+		$root->say('hi from root via clamp 2');
+		$p2->say('@YIELD');
+
+		is($p1->hear(), 'hi from root');
+		is($p1->hear(), '+X hi from root via clamp 1');
+		is($p1->hear(), '+X hi from root via clamp 2');
 		is($p1->hear(), 'from p2');
-		is($p1->hear(), 'X from root via clamp');
-	}, { debug=>1 });
 
-# BusTest->run(
-# 	[],
-# 	sub {
-# 		my ($root) = @_;
+		$p1->say('@UNCLAMP X');
+		is($p1->hear(), '-X');
 
-# 		$root->say('@PAD 8');
-# 		$root->say('yo');
-# 		is($root->hear(), 'yo');
-# 		is($root->hearRaw(), '###');
-
-# 		$root->say('@PAD 12');
-# 		$root->say('boo');
-# 		is($root->hear(), 'boo');
-# 		is($root->hearRaw(), '######');
-
-# 		$root->say('@PAD 0');
-# 		$root->say('woo');
-# 		$root->say('moo');
-# 		is($root->hear(), 'woo');
-# 		is($root->hear(), 'moo');
-
-# 	}, { debug=>1 });
-
-# BusTest->run(
-# 	['p1', 'p2', 'p3'],
-# 	sub {
-# 		my ($root, $p1, $p2, $p3) = @_;
-
-# 		$root->say('@ASK p1');
-# 		$root->say('hello');
-# 		$root->say('@YIELD');
-# 		is($p1->hear(), 'hello');
-
-# 		$p1->say('@TAP');
-# 		$p1->say('@ASK p2');
-
-# 		$p1->say('squeak');
-# 		is($p2->hear(), 'squeak');
-
-# 		$root->say('hoot');
-# 		is($p1->hear(), '@TAPPED hoot');
-		
-# 		# and p2 to say something now
-
-# 	}, 1);
+		$root->say('you can\'t hear me! ...can you?');
+		$p1->say('@ASK p2');
+		$p1->say('@YIELD');
+		$p2->say('blah');
+		$p2->say('@YIELD');
+		is($p1->hear(), 'blah');
+	});
 
 done_testing;
 

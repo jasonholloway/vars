@@ -13,6 +13,7 @@ my $debug = $ENV{VARS_DEBUG};
 my $root = new Peer('root', *STDOUT, *STDIN);
 my @convs = ({ from => $root, to => $root });
 my %clamp;
+my @tasks;
 
 my @peers = (
   $root,
@@ -39,33 +40,13 @@ $SIG{'TERM'} = sub {
 
 my $PUMP = 1;
 my $RELAY = 2;
-
-sub lg {
-  my $str = shift;
-  print STDERR "$str\n" if $debug;
-}
-
-my @tasks;
+my $FIN = 3;
 
 sub main {
   my $select = new IO::Select(map { $_->{return} } @peers);
 
   while(my @handles = $select->can_read()) {
-    foreach my $h (@handles) {
-      my $p = $peersByHandle{$h};
-      lg("[$p->{alias}] ...");
-      my ($bc, $lc) = $p->read();
-
-      if($lc > 0) {
-        push(@tasks, [$PUMP, $p]);
-      }
-
-      if($bc == 0) {
-        $select->remove(($h));
-        if($h eq *STDIN) { return; }
-        else { next; }
-      }
-    }
+	readFromAll(\@handles);
 
     while(defined(my $task = shift(@tasks))) {
       my ($cmd, $arg) = @{$task};
@@ -74,12 +55,39 @@ sub main {
           pump($arg);
         }
         when($RELAY) {
-          my ($from, $to) = $arg;
-          relay($from, $to);
+          my ($from, $to, $tag) = @{$arg};
+          relay($from, $to, 0, $tag);
         }
+		when($FIN) {
+		  my $h = $arg->{return};
+		  $select->remove(($h));
+		  if($arg->{alias} eq 'root') {
+			return;
+		  }
+		}
       }
     }
   }
+}
+
+sub readFromAll {
+  my $handles = shift;
+
+  foreach my $h (@{$handles}) {
+	my $p = $peersByHandle{$h};
+	lg("[$p->{alias}] ...");
+	my ($bc, $lc) = $p->read();
+
+	if($lc > 0) {
+	  push(@tasks, [$PUMP, $p]);
+	}
+
+	if($bc == 0) {
+	  push(@tasks, [$FIN, $p]);
+	}
+  }
+
+
 }
 
 sub pump {
@@ -105,12 +113,14 @@ sub pump {
           $clamp{from} = $to;
           $clamp{to} = $from;
           $clamp{tag} = $arg;
-          push(@tasks, [$RELAY, [$to, $from]]);
+          push(@tasks, [$RELAY, [$to, $from, $arg]]);
           push(@tasks, [$PUMP, $p]);
           return;
         }
         when('UNCLAMP') {
+		  my $tag = $clamp{tag};
           %clamp = ();
+		  $from->say(".", "-$tag");
         }
         when('END') {
           if(defined(shift(@convs))) {
@@ -129,7 +139,7 @@ sub pump {
     }
   }
   elsif($clamp{from} && $p == $clamp{from}) {
-    relay($p, $clamp{to}, 0);
+    relay($p, $clamp{to}, 0, $clamp{tag});
   }
 }
 
@@ -138,13 +148,15 @@ my %knownCmds = (
   YIELD => 1,
   END => 1,
   ERROR => 1,
-  CLAMP => 1
+  CLAMP => 1,
+  UNCLAMP => 1
 );
 
 sub relay {
   my $from = shift;
   my $to = shift;
   my $allowCmds = shift;
+  my $tag = shift;
 
   $_ = { from => $from, to => $to };
 
@@ -154,13 +166,22 @@ sub relay {
       die "Can't send a command unless conversation leader!" unless $allowCmds;
       return ($+{cmd}, $+{rest});
     }
+	elsif(defined($tag)) {
+	  $to->say($from->{alias}, "+$tag " . $line);
+	}
     else {
-      $to->say($line);
+      $to->say($from->{alias}, $line);
     }
   }
 
   ();
 }
+
+sub lg {
+  my $str = shift;
+  print STDERR "$str\n" if $debug;
+}
+
 
 main();
 
@@ -210,10 +231,9 @@ sub read {
   
   defined(my $c = sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer}))) or die "Problem reading $me->{alias}: $!";
 
-  # lg("read <$me->{buffer}> from $me->{alias}");
-
   while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
     push(@{$me->{lines}}, $+{line});
+    # lg("[$me->{alias}...] $+{line}");
     $me->{buffer} = $+{rest};
   }
 
@@ -235,12 +255,13 @@ sub close {
 
 sub say {
   my $me = shift;
+  my $src = shift;
   my $line = shift;
 
   my $h = $me->{send};
 
   print $h $line . "\n";
   $h->flush();
-  print STDERR "[$_->{from}{alias} -> $me->{alias}] $line\n" if $debug;
+  print STDERR "[$src -> $me->{alias}] $line\n" if $debug;
 }
 
