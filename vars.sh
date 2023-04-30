@@ -136,6 +136,12 @@ run() {
           # or - each block should announce itself with number, which will then contextualise all future outs
           ;;
 
+      summoning)
+          # say "WOOF"
+          # can't rely on the +X prefix, so can prefix ourselves?
+          # suggest <VN> <V>
+          ;;
+
       bound)
           read -r src key val <<< "$line"
 
@@ -181,7 +187,7 @@ run() {
 
               local val=$(fzy --prompt "pick ${name}> " <<< "$rawVals")
 
-              echo "$val"
+              echo "suggest $name $val"
               echo "@YIELD"
           } >&6;;
 
@@ -200,7 +206,7 @@ run() {
                   fzy --prompt "dredge ${vn}> "
               )
 
-              echo "$val"
+              echo "suggest $vn $val"
               echo "@YIELD"
           } >&6;;
 

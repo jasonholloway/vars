@@ -26,6 +26,8 @@ sub main {
                 say 'fin';
             }
         }
+
+        say '@CLAMP ROOT';
         say '@YIELD';
     }
 }
@@ -180,6 +182,8 @@ sub summon {
           #
             foreach my $source (@{$x->{supplying}{$vn} or []}) {
               # filter on conditions here
+
+              say "summoning $alias"; # at last possible moment: really we want to establish a distinct channel to avoid chanciness of clamped communication
               evalBlock($x, $source);
             }
             getVar($x, $vn)
@@ -194,13 +198,17 @@ sub summon {
     if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
         say "pick $alias ¦".join('¦', @{$vals});
         say '@YIELD';
-        hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
 
-        if($+{pin}) {
-            say "pin $alias $+{val}";
+        if(hear() =~ /^suggest $alias (?<val>.*?)(?<pin>\!?)$/) {
+          if($+{pin}) {
+              say "pin $alias $+{val}";
+          }
+
+          $v = addVar($x, $alias, [$+{val}], "picked");
         }
-
-        $v = addVar($x, $alias, [$+{val}], "picked");
+        else {
+          die "weird answer received";
+        }
     }
 
     if($pins) {
@@ -297,13 +305,16 @@ sub askVar {
     say '@YIELD';
     my $v = hear();
 
-    $v =~ /(?<val>.+?)(?<pin>\!?)$/;
+    if($v =~ /suggest $vn (?<val>.+?)(?<pin>\!?)$/) {
+      if($+{pin}) {
+        # add to pin file... todo
+      }
 
-    if($+{pin}) {
-      # add to pin file... todo
+      addVar($x, $vn, [ $+{val} ], 'asked');
     }
-
-    addVar($x, $vn, [ $+{val} ], 'asked');
+    else {
+      die "strange answer received";
+    }
 }
 
 sub readInputs {
