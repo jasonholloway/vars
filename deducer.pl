@@ -199,16 +199,15 @@ sub summon {
         say "pick $alias ¦".join('¦', @{$vals});
         say '@YIELD';
 
-        if(hear() =~ /^suggest $alias (?<val>.*?)(?<pin>\!?)$/) {
-          if($+{pin}) {
-              say "pin $alias $+{val}";
-          }
+        until(
+		  hear() =~ /^suggest $alias (?<val>.*?)(?<pin>\!?)$/
+			and do {
+			  if($+{pin}) {
+				  say "pin $alias $+{val}";
+			  }
 
-          $v = addVar($x, $alias, [$+{val}], "picked");
-        }
-        else {
-          die "weird answer received";
-        }
+			  $v = addVar($x, $alias, [$+{val}], "picked");
+			}) {}
     }
 
     if($pins) {
@@ -305,16 +304,14 @@ sub askVar {
     say '@YIELD';
     my $v = hear();
 
-    if($v =~ /suggest $vn (?<val>.+?)(?<pin>\!?)$/) {
-      if($+{pin}) {
-        # add to pin file... todo
-      }
+    until($v =~ /suggest $vn (?<val>.+?)(?<pin>\!?)$/
+		  and do {
+			if($+{pin}) {
+			  # add to pin file... todo
+			}
 
-      addVar($x, $vn, [ $+{val} ], 'asked');
-    }
-    else {
-      die "strange answer received";
-    }
+			addVar($x, $vn, [ $+{val} ], 'asked');
+		  }) {}
 }
 
 sub readInputs {

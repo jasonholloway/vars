@@ -137,6 +137,7 @@ run() {
           ;;
 
       summoning)
+          say "WOOOF"
           # say "WOOF"
           # can't rely on the +X prefix, so can prefix ourselves?
           # suggest <VN> <V>

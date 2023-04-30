@@ -56,7 +56,7 @@ sub main {
         }
         when($RELAY) {
           my ($from, $to, $tag) = @{$arg};
-          relay($from, $to, 0, $tag);
+          relay($from, $to, 0); #, $tag);
         }
 		when($FIN) {
 		  my $h = $arg->{return};

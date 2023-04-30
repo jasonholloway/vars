@@ -75,8 +75,8 @@ BusTest->run(
 		$p2->say('@YIELD');
 
 		is($p1->hear(), 'hi from root');
-		is($p1->hear(), '+X hi from root via clamp 1');
-		is($p1->hear(), '+X hi from root via clamp 2');
+		is($p1->hear(), 'hi from root via clamp 1');
+		is($p1->hear(), 'hi from root via clamp 2');
 		is($p1->hear(), 'from p2');
 
 		$p1->say('@UNCLAMP X');
