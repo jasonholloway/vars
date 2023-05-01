@@ -1,4 +1,5 @@
 # out: firstName age
+sleep 3
 echo firstName=bob$(date +%s)
 echo age=70
 

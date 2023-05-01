@@ -137,13 +137,20 @@ run() {
           ;;
 
       summoning)
-          say "WOOOF"
-          # say "WOOF"
-          # can't rely on the +X prefix, so can prefix ourselves?
-          # suggest <VN> <V>
+          vn=$line
+          (
+              sleep 0.5
+              v=$(fzy --prompt "pick ${vn}> " <<< "plops")
+              say "suggest $vn $v"
+          ) &
+          dredgingPid=$!
+
+          # getting a bound should kill the above in its tracks
           ;;
 
       bound)
+          { [[ $dredgingPid ]] && kill $dredgingPid && wait $dredgingPid; } 2>/dev/null
+          
           read -r src key val <<< "$line"
 
           if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then

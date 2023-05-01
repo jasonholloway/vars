@@ -48,11 +48,9 @@ BusTest->run(
 		$p2->say('@YIELD');
 
 		$root->say('baa');
-		$root->say('@END');
 
 		is($p2->hear(), 'baa');
 	});
-
 
 BusTest->run(
 	['p1', 'p2'],
@@ -89,6 +87,54 @@ BusTest->run(
 		$p2->say('@YIELD');
 		is($p1->hear(), 'blah');
 	});
+
+BusTest->run(
+	['p1'],
+	sub {
+		my ($root, $p1) = @_;
+
+		$root->say('@ASK p1');
+		$root->say('hello');
+		sleep(1);
+		is($p1->canHear(), 1);
+		is($root->canHear(), 0);
+
+		$p1->say('yo');
+		sleep(1);
+		is($root->canHear(), 1);
+
+		is($p1->hear(), 'hello');
+		is($p1->canHear(), 0);
+	});
+
+
+# only relay freely up to first command
+BusTest->run(
+	['p1', 'p2'],
+	sub {
+		my ($root, $p1, $p2) = @_;
+
+		$root->say('@ASK p1');
+		$root->say('hello');
+		is($p1->hear(), 'hello');
+
+		$p1->say('woof');
+		is($root->hear(), 'woof');
+
+		$p1->say('@ASK p2');
+		$p1->say('oink');
+		sleep(1);
+		is($root->canHear(), 0);
+		is($p2->canHear(), 0);
+
+		$root->say('@YIELD');
+		sleep(1);
+		is($root->canHear(), 0);
+		is($p2->canHear(), 1);
+
+		is($p2->hear(), 'oink');
+	}, { debug => 1 });
+
 
 done_testing;
 
@@ -190,6 +236,7 @@ sub cleanup {
 package Peer;
 
 use IO::Handle;
+use IO::Poll qw(POLLIN);
 
 sub new {
 	my $class = shift;
@@ -202,6 +249,10 @@ sub new {
 
 	$me->{send} = $send;
 	$me->{return} = $return;
+
+	my $poll = IO::Poll->new();
+	$poll->mask($return, POLLIN);
+	$me->{poll} = $poll;
 
 	$me
 }
@@ -234,4 +285,10 @@ sub hear {
 			die "nothing to read";
 		}
 	}
+}
+
+sub canHear {
+	my $me = shift;
+	my $poll = $me->{poll};
+	$poll->poll(0);
 }

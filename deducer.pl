@@ -19,6 +19,8 @@ sub main {
                 $x{scopes} = [ {} ];
                 $x{pins} = readUserPins();
 
+				say '@CLAMP ROOT';
+
                 foreach my $target (keys %{$x{targets}}) {
                     evalBlock(\%x, $target);
                 }
@@ -27,7 +29,6 @@ sub main {
             }
         }
 
-        say '@CLAMP ROOT';
         say '@YIELD';
     }
 }
@@ -85,15 +86,42 @@ sub evalBlock {
     # then communicate these steps up the stack
     # shouldn't this again be the responsibility of the runner?
 
+
+	# TODO
+	# none of these messages are getting delivered in timely manner
+	# we say 'go' to the runner, but as soon as we YIELD, we have to wait for
+	# focus to return to us
+	#
+	# this is fundamentally two-way traffic, which we don't currently support:
+	# there's only one active party being pumped (or the clamped extra)
+	# idea: a very horrible two-way cooperative yielding
+	#
+	# every time a line gets dequeued
+	# that should determine the context for every other communication
+	#
+	# or I can support 'crap' duplex by actively relaying, even if not 'from'
+	# this would mean
+	#
+	#
+
     say "running $target";
 
     my %boundOuts;
 
     while(my $line = hear()) {
         given($line) {
-            when(/^bind (?<vn>[^ ]+) (?<val>.+)/) {
+            when(/^(bind|suggest) (?<vn>[^ ]+) (?<val>.+)/) {
                 my $v = decode($+{val});
                 my @vs = split(/¦/, $v);
+
+				# BUT given a duplicate suggestion
+				# we should _always_ prefer the first
+				# TODO only bind if we no other for that name, below
+
+				# given all needed vars suggested, we can cancel a current run
+				# say '@ASK runner';
+				# say 'cancel';
+				# say '@END';
 
                 #todo surely vars sent to runner need to be encoded?
                 #tho this should be done by runner

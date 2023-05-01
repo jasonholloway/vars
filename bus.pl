@@ -96,6 +96,8 @@ sub pump {
   my $from = $convs[0]{from};
   my $to = $convs[0]{to};
 
+  lg('PUMP ' . $p->{alias});
+
   if($p == $from) {
     while(my ($cmd,$arg) = relay($from, $to, 1)) {
       given($cmd) {
@@ -138,8 +140,21 @@ sub pump {
       }
     }
   }
-  elsif($clamp{from} && $p == $clamp{from}) {
-    relay($p, $clamp{to}, 0, $clamp{tag});
+  elsif($p == $to) {
+    # lg("reverse relay $p->{alias}->$from->{alias}");
+
+    # we can only relay up till the first encountered command
+    # at which point, we have to pretend there's nothing to read
+    # but at this point we can't rely on the select to kick us back into action
+    # we need to be passed the baton explicitly to continue
+    #
+
+    
+    relay($p, $from, 0);
+  }
+  # elsif(defined($clamp{from}) and $p eq $clamp{from}) {
+  elsif(defined($clamp{from})) {
+    relay($clamp{from}, $clamp{to}, 0, $clamp{tag});
   }
 }
 
@@ -163,12 +178,12 @@ sub relay {
   while(defined(my $line = shift(@{$from->{lines}}))) {
     if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/ && defined($knownCmds{$+{cmd}})) {
       # print STDERR "[$from->{alias}] $line\n" if $debug;
-      die "Can't send a command unless conversation leader!" unless $allowCmds;
+      die "Can't send a command unless conversation leader! Line <$line> received from $from->{alias}" unless $allowCmds;
       return ($+{cmd}, $+{rest});
     }
-	elsif(defined($tag)) {
-	  $to->say($from->{alias}, "+$tag " . $line);
-	}
+	# elsif(defined($tag)) {
+	#   $to->say($from->{alias}, "+$tag " . $line);
+	# }
     else {
       $to->say($from->{alias}, $line);
     }
@@ -179,7 +194,9 @@ sub relay {
 
 sub lg {
   my $str = shift;
-  print STDERR "$str\n" if $debug;
+  if(defined($str)) {
+	print STDERR "$str\n" if $debug;
+  }
 }
 
 
@@ -233,7 +250,7 @@ sub read {
 
   while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
     push(@{$me->{lines}}, $+{line});
-    # lg("[$me->{alias}...] $+{line}");
+    # lg("READ [$me->{alias}...] $+{line}");
     $me->{buffer} = $+{rest};
   }
 
