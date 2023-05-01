@@ -10,8 +10,9 @@ export VARS_PATH=${CURDIR}
 
 endef
 
+canRead: canRead.c
 
-install: 
+install: canRead
 	@$(file >${shimPath},$(shim))
 	@chmod +x ${shimPath}
 	$(info installed shim to ${shimPath})

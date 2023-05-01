@@ -32,6 +32,10 @@ hear() {
   return 1
 }
 
+canHear() {
+  $VARS_PATH/canRead <&5
+}
+
 split() {
   local -n _dest=$3
   local v
