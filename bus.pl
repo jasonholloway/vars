@@ -173,18 +173,21 @@ sub relay {
   my $allowCmds = shift;
   my $tag = shift;
 
+  my $lines = $from->{lines};
   $_ = { from => $from, to => $to };
 
-  while(defined(my $line = shift(@{$from->{lines}}))) {
+  while(1) {
+    my $line = $lines->[0];
+    last if !defined($line);
+
     if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/ && defined($knownCmds{$+{cmd}})) {
-      # print STDERR "[$from->{alias}] $line\n" if $debug;
-      die "Can't send a command unless conversation leader! Line <$line> received from $from->{alias}" unless $allowCmds;
+      return () if !$allowCmds;
+
+      shift(@{$lines});
       return ($+{cmd}, $+{rest});
     }
-	# elsif(defined($tag)) {
-	#   $to->say($from->{alias}, "+$tag " . $line);
-	# }
     else {
+      shift(@{$lines});
       $to->say($from->{alias}, $line);
     }
   }
