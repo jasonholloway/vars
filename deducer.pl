@@ -19,8 +19,6 @@ sub main {
                 $x{scopes} = [ {} ];
                 $x{pins} = readUserPins();
 
-				say '@CLAMP ROOT';
-
                 foreach my $target (keys %{$x{targets}}) {
                     evalBlock(\%x, $target);
                 }
@@ -29,7 +27,7 @@ sub main {
             }
         }
 
-        say '@YIELD';
+        say '@END';
     }
 }
 
@@ -41,7 +39,6 @@ sub evalBlock {
     if(grep(/P/, @{$block->{flags}})) {
         say '@ASK files';
         say "pins $target";
-        say '@YIELD';
 
         my @blockPins;
 
@@ -79,7 +76,6 @@ sub evalBlock {
     }
 
     say 'go';
-    say '@YIELD';
     say '@END';
 
     # we collect individual binds into sets via boundOuts
@@ -125,14 +121,6 @@ sub evalBlock {
                 # BUT given a duplicate suggestion
                 # we should _always_ prefer the first
                 # TODO only bind if we no other for that name, below
-
-                # so the problem here is that we're not in charge
-                #
-                #
-                #
-                #
-
-                lg('CANCEL!');
 
                 # given all needed vars suggested, we can cancel a current run
                 say '@ASK runner';
@@ -241,7 +229,6 @@ sub summon {
 
     if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
         say "pick $alias ¦".join('¦', @{$vals});
-        say '@YIELD';
 
         until(
 		  hear() =~ /^suggest $alias (?<val>.*?)(?<pin>\!?)$/
@@ -345,7 +332,6 @@ sub askVar {
     my $vn = shift;
 
     say "ask $vn";
-    say '@YIELD';
     my $v = hear();
 
     until($v =~ /suggest $vn (?<val>.+?)(?<pin>\!?)$/

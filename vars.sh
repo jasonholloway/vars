@@ -89,10 +89,11 @@ run() {
 
   say "@ASK files"
   say "find"
-  say "@YIELD"
   hear fids
+  say "@END"
+
+  say "@ASK files"
   say "outline $fids"
-  say "@YIELD"
   hear outlines
   say "@END"
 
@@ -101,7 +102,6 @@ run() {
   say "$outlines${RS}${extraOutlines[*]}"
   say "${blocks[*]}"
   say "${flags[*]}"
-  say "@YIELD"
 
   rm -f "$outFile" || :
 
@@ -196,7 +196,6 @@ run() {
               local val=$(fzy --prompt "pick ${name}> " <<< "$rawVals")
 
               echo "suggest $name $val"
-              echo "@YIELD"
           } >&6;;
 
       ask) {
@@ -215,7 +214,6 @@ run() {
               )
 
               echo "suggest $vn $val"
-              echo "@YIELD"
           } >&6;;
 
       dredge) {
@@ -229,7 +227,6 @@ run() {
                   while read _ v; do echo -n ¦$v; done
               fi
               echo
-              echo "@YIELD"
           } >&6;;
 
       pin) {
@@ -275,10 +272,11 @@ findOutlines() {
 
   say "@ASK files"
   say "find"
-  say "@YIELD"
   hear fids
+  say "@END"
+
+  say "@ASK files"
   say "outline $fids"
-  say "@YIELD"
   hear _outlines
   say "@END"
 

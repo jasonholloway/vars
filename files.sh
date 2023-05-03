@@ -20,7 +20,7 @@ main() {
       pins) getPins "$rest";;
     esac
 
-    say "@YIELD"
+    say "@END"
   done
 }
 
@@ -35,7 +35,7 @@ getOutlines() {
   if [[ -e $cacheFile && ! $DISABLE_VARS_CACHE ]]; then
     {
       read -r allOutlines
-      say "$allOutlines"
+      say "${allOutlines}"
       return
     } <"$cacheFile"
   fi
@@ -140,7 +140,7 @@ loadFile() {
           say "@ASK blocks"
           say "readBlock"
           say "$block"
-          say "@YIELD"
+          say "@END"
 
           local names ins outs flags
           hear names

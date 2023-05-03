@@ -140,11 +140,13 @@ sub pushTarget {
   my $me = shift;
   my $target = shift;
   unshift(@{$me->{targets}}, $target);
+  # lg("[$me->{alias}] push $target->{alias}");
 }
 
 sub popTarget {
   my $me = shift;
-  shift(@{$me->{targets}});
+  my $old = shift(@{$me->{targets}});
+  # lg("[$me->{alias}] popped $old->{alias}");
 }
 
 
@@ -156,7 +158,6 @@ sub read {
   if(defined(my $c = sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer})))) {
     while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
       push(@{$me->{lines}}, $+{line});
-      # lg("READ [$me->{alias}...] $+{line}");
       $me->{buffer} = $+{rest};
     }
 
@@ -172,10 +173,13 @@ sub handle {
   my $lines = $me->{lines};
 
   while(defined(my $line = shift(@$lines))) {
-    if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/) {
+    # lg("HANDLE [$me->{alias}...] $line");
+    if($line =~ /^@(?<cmd>[A-Z]+) ?(?<rest>.*)/) {
+      # lg('cmd $' . $+{cmd});
       return ($+{cmd}, $+{rest});
     }
     elsif(defined(my $target = $me->{targets}[0])) {
+      # lg('relay');
       $target->say($me->{alias}, $line);
     }
   }

@@ -16,7 +16,7 @@ main() {
       dredgeLatest) dredgeLatest $rest;;
     esac
 
-    say "@YIELD"
+    say "@END"
   done
 }
 

@@ -20,7 +20,7 @@ main() {
             ;;
     esac
 
-    say "@YIELD"
+    say "@END"
   done
 }
 
@@ -77,7 +77,6 @@ run() {
 				*)
 					say "@ASK files"
 					say "body $bid"
-					say "@YIELD"
 					hear hint
 					hear body
 					say "@END"
@@ -148,7 +147,7 @@ run() {
 			}
 		fi
 	} \
-	| tee /dev/stderr | {
+	| {
 		local fromCache=
 		local -a pids=()
 		
