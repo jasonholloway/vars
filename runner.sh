@@ -197,8 +197,10 @@ run() {
 			esac
 		done
 
-		for pid in ${pids[@]}; do kill $pid 2>/dev/null; done
-	} \
+		for pid in ${pids[@]}; do pkill -P $pid 2>/dev/null; done
+
+		say fin
+	}
 	# | {
 	#     >"$outFile"
 	
@@ -211,7 +213,7 @@ run() {
 	# 	}
 
 
-	say fin
+	# say fin
 }
 
 main "$@"
