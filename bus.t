@@ -12,44 +12,38 @@ sub lg {
 }
 
 BusTest->run(
-	['p1', 'p2'],
+	['a', 'b'],
 	sub {
-		my ($root, $p1, $p2) = @_;
+		my ($root, $a, $b) = @_;
 
-		$root->say('@ASK p1');
+		$root->say('@ASK a');
 		$root->say('hello');
-		$root->say('@YIELD');
-		is($p1->hear(), 'hello');
+		is($a->hear(), 'hello');
 
-		$p1->say('woof');
-		$p1->say('@YIELD');
+		$a->say('woof');
 		is($root->hear(), 'woof');
 
+		$a->say('@END');
 		$root->say('@END');
 
-		$root->say('@ASK p2');
+		$root->say('@ASK b');
 		$root->say('meeow');
-		$root->say('@YIELD');
-		is($p2->hear(), 'meeow');
+		is($b->hear(), 'meeow');
 
-		$p2->say('@ASK p1');
-		$p2->say('moo');
-		$p2->say('@YIELD');
-		is($p1->hear(), 'moo');
+		$b->say('@ASK a');
+		$b->say('moo');
+		is($a->hear(), 'moo');
 
-		$p1->say('woof');
-		$p1->say('@YIELD');
-		is($p2->hear(), 'woof');
+		$a->say('woof');
+		is($b->hear(), 'woof');
 
-		$p2->say('@END');
-		$p2->say('oink oink');
+		$b->say('@END');
+		$b->say('oink oink');
 		is($root->hear(), 'oink oink');
-
-		$p2->say('@YIELD');
 
 		$root->say('baa');
 
-		is($p2->hear(), 'baa');
+		is($b->hear(), 'baa');
 	});
 
 BusTest->run(
@@ -59,32 +53,22 @@ BusTest->run(
 
 		# todo cover nothing being said before yield
 		$root->say('@ASK p1');
-		$root->say('hi from root');
-		$root->say('@YIELD');
+		$root->say('hi from root 0');
 
-		$p1->say('@CLAMP X');
 		$p1->say('@ASK p2');
 		$p1->say('hello, p2');
-		$p1->say('@YIELD');
 
-		$root->say('hi from root via clamp 1');
+		$root->say('hi from root 1');
 		$p2->say('from p2');
-		$root->say('hi from root via clamp 2');
-		$p2->say('@YIELD');
+		$root->say('hi from root 2');
 
-		is($p1->hear(), 'hi from root');
-		is($p1->hear(), 'hi from root via clamp 1');
-		is($p1->hear(), 'hi from root via clamp 2');
+		is($p1->hear(), 'hi from root 0');
+		is($p1->hear(), 'hi from root 1');
+		is($p1->hear(), 'hi from root 2');
 		is($p1->hear(), 'from p2');
 
-		$p1->say('@UNCLAMP X');
-		is($p1->hear(), '-X');
-
-		$root->say('you can\'t hear me! ...can you?');
 		$p1->say('@ASK p2');
-		$p1->say('@YIELD');
 		$p2->say('blah');
-		$p2->say('@YIELD');
 		is($p1->hear(), 'blah');
 	});
 
@@ -108,7 +92,7 @@ BusTest->run(
 	});
 
 
-# only relay freely up to first command
+# # only relay freely up to first command
 BusTest->run(
 	['p1', 'p2'],
 	sub {
@@ -125,13 +109,7 @@ BusTest->run(
 		$p1->say('oink');
 		sleep(1);
 		is($root->canHear(), 0);
-		is($p2->canHear(), 0);
-
-		$root->say('@YIELD');
-		sleep(1);
-		is($root->canHear(), 0);
 		is($p2->canHear(), 1);
-
 		is($p2->hear(), 'oink');
 	}, { debug => 1 });
 
@@ -185,7 +163,7 @@ sub new {
 		my $sendPath = catfile($me->{dir}, "${pn}-send");
 		my $returnPath = catfile($me->{dir}, "${pn}-return");
 		my $scriptPath = catfile($me->{dir}, "${pn}.sh");
-		
+
 		mkfifo($sendPath, 0700) or die "BAD";
 		mkfifo($returnPath, 0700) or die "BAD";
 

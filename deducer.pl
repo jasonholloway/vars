@@ -86,23 +86,31 @@ sub evalBlock {
     # then communicate these steps up the stack
     # shouldn't this again be the responsibility of the runner?
 
-
-	# TODO
-	# none of these messages are getting delivered in timely manner
-	# we say 'go' to the runner, but as soon as we YIELD, we have to wait for
-	# focus to return to us
-	#
-	# this is fundamentally two-way traffic, which we don't currently support:
-	# there's only one active party being pumped (or the clamped extra)
-	# idea: a very horrible two-way cooperative yielding
-	#
-	# every time a line gets dequeued
-	# that should determine the context for every other communication
-	#
-	# or I can support 'crap' duplex by actively relaying, even if not 'from'
-	# this would mean
-	#
-	#
+    # we've said @END so at this point we should be talking to who we think
+    # but... runner is still talking to us
+    # it's like back and forth should be independent in-scope pumpings
+    # requiring each party to say @END
+    # 
+    # with the @END above
+    # we're basically saying I'm still listeing
+    # but I want to talk to someone else now
+    #
+    # the asker sets up a convo
+    # and the receiver is always unknowingly in that context
+    # they keep on chatting, even if the asker stops caring
+    # if the asker moves on, they may never get a response on stdin
+    # 
+    # on ask, a new pair of relays is set up
+    # does each peer have its own stack? I think so
+    # which gives independence
+    #
+    # but what then with the processing of commands? do we still need @YIELD?
+    # perhaps not
+    # all we can do then is @ASK and @END
+    # with END stopping our communication to another
+    #
+    # YIELD is only needed if there is one shared convo
+    # todo get rid of YIELD!!!!
 
     say "running $target";
 
@@ -114,14 +122,22 @@ sub evalBlock {
                 my $v = decode($+{val});
                 my @vs = split(/¦/, $v);
 
-				# BUT given a duplicate suggestion
-				# we should _always_ prefer the first
-				# TODO only bind if we no other for that name, below
+                # BUT given a duplicate suggestion
+                # we should _always_ prefer the first
+                # TODO only bind if we no other for that name, below
 
-				# given all needed vars suggested, we can cancel a current run
-				# say '@ASK runner';
-				# say 'cancel';
-				# say '@END';
+                # so the problem here is that we're not in charge
+                #
+                #
+                #
+                #
+
+                lg('CANCEL!');
+
+                # given all needed vars suggested, we can cancel a current run
+                say '@ASK runner';
+                say 'cancel';
+                say '@END';
 
                 #todo surely vars sent to runner need to be encoded?
                 #tho this should be done by runner

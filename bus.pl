@@ -31,7 +31,7 @@ foreach my $peer (@peers) {
 }
 
 $SIG{'TERM'} = sub {
-  lg('TERM!!!');
+  # lg('TERM!!!');
   foreach my $p (@peers) {
     $p->close();
   }
@@ -46,153 +46,41 @@ sub main {
   my $select = new IO::Select(map { $_->{return} } @peers);
 
   while(my @handles = $select->can_read()) {
-	readFromAll(\@handles);
+    foreach my $h (@handles) {
+      my $p = $peersByHandle{$h};
 
-    while(defined(my $task = shift(@tasks))) {
-      my ($cmd, $arg) = @{$task};
-      given($cmd) {
-        when($PUMP) {
-          pump($arg);
-        }
-        when($RELAY) {
-          my ($from, $to, $tag) = @{$arg};
-          relay($from, $to, 0); #, $tag);
-        }
-		when($FIN) {
-		  my $h = $arg->{return};
-		  $select->remove(($h));
-		  if($arg->{alias} eq 'root') {
-			return;
-		  }
-		}
-      }
-    }
-  }
-}
+      # lg("[$p->{alias}] ...");
+      my ($bc, $lc) = $p->read();
 
-sub readFromAll {
-  my $handles = shift;
+      if($lc > 0) {
+        while(my @r = $p->handle()) {
+          my ($cmd, $arg) = @r;
 
-  foreach my $h (@{$handles}) {
-	my $p = $peersByHandle{$h};
-	lg("[$p->{alias}] ...");
-	my ($bc, $lc) = $p->read();
-
-	if($lc > 0) {
-	  push(@tasks, [$PUMP, $p]);
-	}
-
-	if($bc == 0) {
-	  push(@tasks, [$FIN, $p]);
-	}
-  }
-
-
-}
-
-sub pump {
-  my $p = shift;
-
-  my $from = $convs[0]{from};
-  my $to = $convs[0]{to};
-
-  lg('PUMP ' . $p->{alias});
-
-  if($p == $from) {
-    while(my ($cmd,$arg) = relay($from, $to, 1)) {
-      given($cmd) {
-        when('ASK') {
-          $to = $peersByAlias{$arg} or die "Referred to unknown peer $arg";
-          unshift(@convs, { from => $from, to => $to });
-        }
-        when('YIELD') {
-          my $tmp = $from;
-          $convs[0]{from} = $from = $to;
-          $convs[0]{to} = $to = $tmp;
-          push(@tasks, [$PUMP, $from]);
-        }
-        when('CLAMP') {
-          $clamp{from} = $to;
-          $clamp{to} = $from;
-          $clamp{tag} = $arg;
-          push(@tasks, [$RELAY, [$to, $from, $arg]]);
-          push(@tasks, [$PUMP, $p]);
-          return;
-        }
-        when('UNCLAMP') {
-		  my $tag = $clamp{tag};
-          %clamp = ();
-		  $from->say(".", "-$tag");
-        }
-        when('END') {
-          if(defined(shift(@convs))) {
-            $from = $convs[0]{from};
-            $to = $convs[0]{to};
+          given($cmd) {
+            when('ASK') {
+              my $to = $peersByAlias{$arg} or die "Referred to unknown peer $arg";
+              $p->pushTarget($to);
+              $to->pushTarget($p);
+            }
+            when('END') {
+              $p->popTarget();
+            }
+            when('ERROR') {
+              die "Error bubbled: $arg";
+            }
+            default {
+              die "unknown cmd $cmd";
+            }
           }
-          else { exit; }
         }
-        when('ERROR') {
-          die "Error bubbled: $arg";
-        }
-        default {
-          die "unknown cmd $cmd";
-        }
+      }
+
+      if($bc == 0) {
+        $select->remove(($h));
+        return if($p->{alias} eq 'root');
       }
     }
   }
-  elsif($p == $to) {
-    # lg("reverse relay $p->{alias}->$from->{alias}");
-
-    # we can only relay up till the first encountered command
-    # at which point, we have to pretend there's nothing to read
-    # but at this point we can't rely on the select to kick us back into action
-    # we need to be passed the baton explicitly to continue
-    #
-
-    
-    relay($p, $from, 0);
-  }
-  # elsif(defined($clamp{from}) and $p eq $clamp{from}) {
-  elsif(defined($clamp{from})) {
-    relay($clamp{from}, $clamp{to}, 0, $clamp{tag});
-  }
-}
-
-my %knownCmds = (
-  ASK => 1,
-  YIELD => 1,
-  END => 1,
-  ERROR => 1,
-  CLAMP => 1,
-  UNCLAMP => 1
-);
-
-sub relay {
-  my $from = shift;
-  my $to = shift;
-  my $allowCmds = shift;
-  my $tag = shift;
-
-  my $lines = $from->{lines};
-  $_ = { from => $from, to => $to };
-
-  while(1) {
-    my $line = $lines->[0];
-    last if !defined($line);
-
-    if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/ && defined($knownCmds{$+{cmd}})) {
-      return () if !$allowCmds;
-
-      shift(@{$lines});
-      return ($+{cmd}, $+{rest});
-    }
-    else {
-      shift(@{$lines});
-      $to->say($from->{alias}, $line);
-    }
-  }
-
-  ();
 }
 
 sub lg {
@@ -224,7 +112,8 @@ sub new {
     return => $return,
     pid => $pid,
     buffer => '',
-    lines => []
+    lines => [],
+    targets => []
   };
 
   bless $me, $class;
@@ -246,19 +135,54 @@ sub fromSpec {
   new Peer($alias, $send, $return, $pid);
 }
 
+
+sub pushTarget {
+  my $me = shift;
+  my $target = shift;
+  unshift(@{$me->{targets}}, $target);
+}
+
+sub popTarget {
+  my $me = shift;
+  shift(@{$me->{targets}});
+}
+
+
 sub read {
   my $me = shift;
-  
-  defined(my $c = sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer}))) or die "Problem reading $me->{alias}: $!";
 
-  while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
-    push(@{$me->{lines}}, $+{line});
-    # lg("READ [$me->{alias}...] $+{line}");
-    $me->{buffer} = $+{rest};
+  # TODO what about for blocks greater than 4kb??!?!
+
+  if(defined(my $c = sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer})))) {
+    while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
+      push(@{$me->{lines}}, $+{line});
+      # lg("READ [$me->{alias}...] $+{line}");
+      $me->{buffer} = $+{rest};
+    }
+
+    ($c, scalar @{$me->{lines}})
+  }
+  else {
+    die "Problem reading $me->{alias}: $!";
+  }
+}
+
+sub handle {
+  my $me = shift;
+  my $lines = $me->{lines};
+
+  while(defined(my $line = shift(@$lines))) {
+    if($line =~ /^@(?<cmd>\w+) ?(?<rest>.*)/) {
+      return ($+{cmd}, $+{rest});
+    }
+    elsif(defined(my $target = $me->{targets}[0])) {
+      $target->say($me->{alias}, $line);
+    }
   }
 
-  ($c, scalar @{$me->{lines}})
+  ()
 }
+
 
 sub close {
   my $me = shift;
