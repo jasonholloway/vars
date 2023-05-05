@@ -86,6 +86,8 @@ dispatch() {
 
 run() {
   local fids outlines type line currentBlock
+  local timerFifo
+  local -A dredgingPid=()
 
   say "@ASK files"
   say "find"
@@ -104,9 +106,10 @@ run() {
   say "${flags[*]}"
 
   rm -f "$outFile" || :
+  [[ ! -p "$timerFifo" ]] && mkfifo "$timerFifo"
 
   while hear type line; do
-    # echo "+++ $type $line" >&2
+    echo "+++ $type $line" >&2
     case "$type" in
 
       fin)
@@ -139,19 +142,37 @@ run() {
       summoning)
           vn=$line
           (
-              sleep 0.5
-              v=$(fzy --prompt "pick ${vn}> " <<< "plops")
-              say "suggest $vn $v"
-          ) &
-          dredgingPid=$!
+              sleep 1
+              # have we bound by this point?
+              # how can we possibly know?
+              # we need to talk into a single processor
+              # but even then, if we have an async bit, we rearrive at the same impasse
+              #
+              # so what? a fifo would give us a kind of job queue
+              # which we could write continuations into
+              #
 
-          # getting a bound should kill the above in its tracks
+              pipe=/tmp/vars-prompt
+              [[ ! -p $pipe ]] && mkfifo $pipe
+
+              trap 'kill -TERM $pid1 $pid2' INT
+
+              fzy --prompt "suggest $vn> " <<< "plops" >$pipe &
+              pid1=$!
+
+              (read v <$pipe && say "suggest $vn $v") &
+              pid2=$!
+
+              wait $pid1 $pid2
+          ) &
+          dredgingPid[$vn]=$!
           ;;
 
       bound)
-          { [[ $dredgingPid ]] && kill $dredgingPid && wait $dredgingPid; } 2>/dev/null
-          
           read -r src key val <<< "$line"
+
+          pid=${dredgingPid[$key]}
+          { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
 
           if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
               val='****'
@@ -190,6 +211,10 @@ run() {
 
       pick) {
               read -r name rawVals <<< "$line"
+
+              pid=${dredgingPid[$name]}
+              { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+
               rawVals=${rawVals#¦}
               rawVals=${rawVals//¦/$'\n'}
 
@@ -200,6 +225,9 @@ run() {
 
       ask) {
               read -r vn <<< "$line"
+
+              pid=${dredgingPid[$vn]}
+              { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
 
               [[ ! -e $contextFile ]] && touch $contextFile
               
@@ -218,6 +246,10 @@ run() {
 
       dredge) {
               read -r vn <<< "$line"
+
+              pid=${dredgingPid[$vn]}
+              { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+
               if [[ -e $contextFile ]]; then
                   tac $contextFile |
                   sed -n '/^'$vn'=/ { s/^.*=//p }' |
