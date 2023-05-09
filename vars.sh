@@ -107,245 +107,239 @@ run() {
 
 	rm -f "$outFile" || :
 
-	timerFifo="/tmp/vars-timer"
-	[[ -p "$timerFifo" ]] && rm "$timerFifo"
-	mkfifo "$timerFifo"
-
-	killFifo="/tmp/vars-kill"
-	[[ -p "$killFifo" ]] && rm "$killFifo"
-	mkfifo "$killFifo"
-
 	cmdFifo="/tmp/vars-cmds"
 	[[ -p "$cmdFifo" ]] && rm "$cmdFifo"
 	mkfifo "$cmdFifo"
 
-	receiverFifo="/tmp/vars-receiver"
-	[[ -p "$receiverFifo" ]] && rm "$receiverFifo"
-	mkfifo "$receiverFifo"
+	uiFifo="/tmp/vars-ui"
+	[[ -p "$killFifo" ]] && rm "$killFifo"
+	mkfifo "$killFifo"
 
 	declare -a actorPids=()
 
-	# kill
-	(
-			declare -A pids=()
+	receiverActor <&5 7>$cmdFifo &
+	actorPids+=($!)
+
+	controllerActor <$cmdFifo 7>$cmdFifo 8>$uiFifo &
+	actorPids+=($!)
+
+	uiActor <$uiFifo 7>$cmdFifo & #??????
+	actorPids+=($!)
+
+	wait
+}
+
+receiverActor() {
+	while read line; do
+		echo "$line" >&7
+	done
+}
+
+controllerActor() {
+	while read cmd line; do
+		lg "controller $cmd $line"
+		
+		case "$cmd" in
+			defer)
+				read seconds cmd2 <<< "$line"
+				sleep $seconds
+				echo "$cmd2" >&7
+				;;
+
+			pid)
+				read name pid <<< "$line"
+				echo "STORE PID $name = $pid" >&2 #todo
+				;;
+
+			out)
+				echo "$line" >> "$outFile"
+				echo "showOut $line" >&8
+				;;
+
+			bound)
+				echo "showBound $line" >&8
+				;;
+
+			pin)
+				read -r key val <<< "$line"
+				$VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
+				echo "showPin $key $val" >&8
+				;;
+
+			warn)
+				echo "showWarning $line" >&8
+				;;
+
+			error)
+				read line
+				echo "$line" >&2 # could be sent to UI
+				exit 1
+				;;
 			
-			while read cmd args; do
-				echo "KILL: $cmd $args" >&2
-				case "$cmd" in
-						"pid")
-								read name pid <<< "$args"
-								pids[$name]=$pid
-								;;
-						"kill")
-								set -x
-								name=$args
-								pid=${pids[$name]}
-								[[ $pid ]] && kill $pid 2>/dev/null
-								set +x
-								;;
-						"killAll")
-								kill "${pids[@]}" 2>/dev/null
-								wait "${pids[@]}" 2>/dev/null
-								;;
-				esac
-			done 
-	) <$killFifo >$cmdFifo &
-	actorPids+=($!)
+			fin)
+				say "@END"
+				break
+				;;
 
-	# receiver
-	(
-		while read type line; do
-				echo "$type $line"
-		done
-	) >$cmdFifo <&5 &
-	actorPids+=($!)
+			pick)
+				echo "pick $line" >&8
+				;;
 
-	
+			ask)
+				echo "ask $line" >&8
+				;;
 
+			running)
+				currentBlock="$line"
+				# todo switch mode when target block running
+				# or - each block should announce itself with number, which will then contextualise all future outs
+				;;
 
+			summoning)
+				vn=$line
+				#...
+				:
+				;;
+		esac
+	done
 
-	
+	# kill all here
+}
 
-	# timer
-	(
-			while read type args; do
-					case "$type" in
-							defer)
-									read seconds cmd <<<"$args"
-									sleep $seconds # todo would be better forking here
-									echo "$cmd"
-									;;
-					esac
-			done
-	) <$timerFifo >$cmdFifo &
-	actorPids+=($!)
+uiActor() {
+	while read type line; do
+		# echo "cmd $type $line" >&2
+		case "$type" in
 
-	# commands
-	{
-			while read type line; do
-				# echo "cmd $type $line" >&2
-				case "$type" in
-				fin)
-						say "@END"
-						break
-						;;
+		# targets)
+		# 		for src in $line; do
+		# 				IFS='|' read path index <<< "$src"
+		# 				shortPath=$(realpath --relative-to=$PWD $path) >&2
+		# 				src=${shortPath}$([[ $index ]] && echo "|$index")
 
-				error)
-						hear line
-						echo "$line" >&2
-						exit 1
-						;;
+		# 				echo -e "${colDim}Running ${src}${colNormal}" >&2
+		# 		done
+		# 		;;
 
-				targets)
-						for src in $line; do
-								IFS='|' read path index <<< "$src"
-								shortPath=$(realpath --relative-to=$PWD $path) >&2
-								src=${shortPath}$([[ $index ]] && echo "|$index")
+		# suggest)
+		# 		vn=$line
 
-								echo -e "${colDim}Running ${src}${colNormal}" >&2
-						done
-						;;
+		# 		# need to register a matcher based on incoming command
+		# 		# that can be processed in a timely manner, while we block here
 
-				running)
-						currentBlock="$line"
-						# todo switch mode when target block running
-						# or - each block should announce itself with number, which will then contextualise all future outs
-						;;
+		# 		v=$(
+		# 				fzy --prompt "suggest $vn> " <<< "ploppyplop" &
+		# 				echo "pid suggest $!" >&7 #todo need unique name here
+		# 				wait
+		# 		)
+		# 		[[ $? ]] && say "suggest $vn $v"
+		# 		;;
 
-				summoning)
-						vn=$line
-						
-						echo "defer 1 suggest $vn" >$timerFifo 
-						;;
+		showBound)
+				read -r src key val <<< "$line"
 
-				suggest)
-						vn=$line
+				if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
+						val='****'
+				else
+						echo "$key=${val//$'\60'/$'\30'}" >> $contextFile 
+				fi
 
-						# need to register a matcher based on incoming command
-						# that can be processed in a timely manner, while we block here
-						
-						v=$(
-								fzy --prompt "suggest $vn> " <<< "ploppyplop" &
-								echo "pid suggest $!" >&7 #todo need unique name here
-								wait
-						)
-						[[ $? ]] && say "suggest $vn $v"
-						;;
+				[[ ! $quietMode ]] && {
+						IFS='|' read path index <<< "$src"
+						shortPath=$(realpath --relative-to=$PWD $path) >&2
+						src=${shortPath}$([[ $index ]] && echo "|$index")
 
-				bound)
-						read -r src key val <<< "$line"
+						case "$src" in
+								cache*) key="\`$key";;
+								pin*) key="!$key";;
+						esac
 
-						echo "kill suggest" >&7
-						# pid=${dredgingPid[$key]}
-						# { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+						[[ ${#val} -gt 80 ]] && { val="${val::80}..."; }
+						echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
+				}
+				;;
 
-						# need just one coworker....
-						# which the receiver can selectively send things to, such as <bound>
+		showOut)
+				# if [[ $quietMode ]]; then
+				#			echo -n "$line"
+				# else 
+						echo "$line"
+				# fi
+				;;
 
+		showWarning)
+				echo -e "${colBad}${line}${colNormal}" >&2
+				;;
 
-						if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
-								val='****'
-						else
-								echo "$key=${val//$'\60'/$'\30'}" >> $contextFile 
-						fi
+		showPin) {
+			read key val <<< "$line"
+			echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
+		};;
 
-						[[ ! $quietMode ]] && {
-								IFS='|' read path index <<< "$src"
-								shortPath=$(realpath --relative-to=$PWD $path) >&2
-								src=${shortPath}$([[ $index ]] && echo "|$index")
+		pick) {
+			read -r name rawVals <<< "$line"
 
-								case "$src" in
-										cache*) key="\`$key";;
-										pin*) key="!$key";;
-								esac
+			rawVals=${rawVals#¦}
+			rawVals=${rawVals//¦/$'\n'}
 
-								[[ ${#val} -gt 80 ]] && { val="${val::80}..."; }
-								echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
-						}
-						;;
+			val=$(
+				fzy --prompt "pick ${name}> " <<< "$rawVals" &
 
-				out)
-						echo "$line" >> "$outFile"
+				echo "pid picker $!" >&7
+				wait
+				)
 
-						# if [[ $quietMode ]]; then
-						#			echo -n "$line"
-						# else 
-								echo "$line"
-						# fi
-						;;
+			echo "suggest $name $val" >&6 # could go back via controller??
+		};;
 
-				warn)
-						echo -e "${colBad}${line}${colNormal}" >&2
-						;;
+		ask) {
+				read -r vn <<< "$line"
 
-				pick) {
-								read -r name rawVals <<< "$line"
+				[[ ! -e $contextFile ]] && touch $contextFile
 
-								pid=${dredgingPid[$name]}
-								{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+				val=$(
+						tac $contextFile |
+						sed -n '/^'$vn'=/ { s/^.*=//p }' |
+						nl |
+						sort -k2 -u |
+						sort |
+						while read _ v; do echo "$v"; done |
+						fzy --prompt "dredge ${vn}> " &
 
-								rawVals=${rawVals#¦}
-								rawVals=${rawVals//¦/$'\n'}
+						echo "pid picker $!" >&7
+						wait
+				)
 
-								local val=$(fzy --prompt "pick ${name}> " <<< "$rawVals")
+				echo "suggest $vn $val" >&6
+		};;
 
-								echo "suggest $name $val"
-						} >&6;;
+		# dredge) {
+		# 				read -r vn <<< "$line"
 
-				ask) {
-								read -r vn <<< "$line"
+		# 				pid=${dredgingPid[$vn]}
+		# 				{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
 
-								pid=${dredgingPid[$vn]}
-								{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+		# 				if [[ -e $contextFile ]]; then
+		# 						tac $contextFile |
+		# 						sed -n '/^'$vn'=/ { s/^.*=//p }' |
+		# 						nl |
+		# 						sort -k2 -u |
+		# 						sort |
+		# 						while read _ v; do echo -n ¦$v; done
+		# 				fi
+		# 				echo
+		# 		} >&6;;
 
-								[[ ! -e $contextFile ]] && touch $contextFile
+		esac
+done <$cmdFifo
 
-								local val=$(
-										tac $contextFile |
-										sed -n '/^'$vn'=/ { s/^.*=//p }' |
-										nl |
-										sort -k2 -u |
-										sort |
-										while read _ v; do echo "$v"; done |
-										fzy --prompt "dredge ${vn}> "
-								)
-
-								echo "suggest $vn $val"
-						} >&6;;
-
-				dredge) {
-								read -r vn <<< "$line"
-
-								pid=${dredgingPid[$vn]}
-								{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
-
-								if [[ -e $contextFile ]]; then
-										tac $contextFile |
-										sed -n '/^'$vn'=/ { s/^.*=//p }' |
-										nl |
-										sort -k2 -u |
-										sort |
-										while read _ v; do echo -n ¦$v; done
-								fi
-								echo
-						} >&6;;
-
-				pin) {
-								read -r key val <<< "$line"
-								$VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
-								echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
-						};;
-
-				esac
-		done <$cmdFifo
-
-		echo "killAll" >&7
-		kill "${actorPids[@]}" 2>/dev/null
-
-	} <$cmdFifo 7>$killFifo 
+echo "killAll" >&7
+kill "${actorPids[@]}" 2>/dev/null
 
 	say "@END"
 }
+
+
 
 list() {
 	local fids names outs ins
@@ -627,6 +621,10 @@ parseArg() {
 
 render() {
 	source "$VARS_PATH/render.sh"
+}
+
+lg() {
+	echo "$*" >&2
 }
 
 main "$@"
