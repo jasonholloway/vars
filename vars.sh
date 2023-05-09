@@ -28,599 +28,605 @@ outFile="$HOME/.vars/out"
 pts=$(tty)
 
 main() {
-  mkdir -p $cacheDir
+	mkdir -p $cacheDir
 
-  parseMany parseFlag \
-  && {
-       parseGet \
-    || parseRun \
-    || parsePin \
-    || parseContext \
-    || parsePrep \
-    || parseLs \
-    || parseEdit \
-    || parseLoad \
-    || parseCache
-    }
+	parseMany parseFlag \
+	&& {
+			 parseGet \
+		|| parseRun \
+		|| parsePin \
+		|| parseContext \
+		|| parsePrep \
+		|| parseLs \
+		|| parseEdit \
+		|| parseLoad \
+		|| parseCache
+		}
 
-  [[ ${flags[*]} =~ q || ! -t 1 ]] && local quietMode=1
-  [[ ${flags[*]} =~ v ]] && local verboseMode=1
+	[[ ${flags[*]} =~ q || ! -t 1 ]] && local quietMode=1
+	[[ ${flags[*]} =~ v ]] && local verboseMode=1
 
-  if [[ ${#cmds[@]} -gt 0 ]]; then
-    {
-      coproc {
-        $VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
-      }
-      exec 5<&${COPROC[0]} 6>&${COPROC[1]}
+	if [[ ${#cmds[@]} -gt 0 ]]; then
+		{
+			coproc {
+				$VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
+			}
+			exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
-      dispatch ${cmds[@]}
+			dispatch ${cmds[@]}
 
-      exec 5<&- 6>&-
-    } | render
-  fi
+			exec 5<&- 6>&-
+		} | render
+	fi
 }
 
 dispatch() {
-    local curr
-    local -a ac;
+		local curr
+		local -a ac;
 
-    while :; do
-        curr=$1
-        shift
-        
-        case "$curr" in
-            "|")
-                "${ac[@]}" | dispatch $@
-                break
-                ;;
-            "")
-                "${ac[@]}"
-                break
-                ;;
-            *)
-                ac+=("$curr")
-                ;;
-        esac
-    done
+		while :; do
+				curr=$1
+				shift
+				
+				case "$curr" in
+						"|")
+								"${ac[@]}" | dispatch $@
+								break
+								;;
+						"")
+								"${ac[@]}"
+								break
+								;;
+						*)
+								ac+=("$curr")
+								;;
+				esac
+		done
 }
 
 run() {
-  local fids outlines type line currentBlock
-  local timerFifo cmdFifo killFifo receiverPid timerPid killPid
-  local -A dredgingPid=()
+	local fids outlines type line currentBlock
+	local timerFifo cmdFifo killFifo receiverPid timerPid killPid
+	local -A dredgingPid=()
 
-  say "@ASK files"
-  say "find"
-  hear fids
-  say "@END"
+	say "@ASK files"
+	say "find"
+	hear fids
+	say "@END"
 
-  say "@ASK files"
-  say "outline $fids"
-  hear outlines
-  say "@END"
+	say "@ASK files"
+	say "outline $fids"
+	hear outlines
+	say "@END"
 
-  say "@ASK deducer"
-  say "deduce"
-  say "$outlines${RS}${extraOutlines[*]}"
-  say "${blocks[*]}"
-  say "${flags[*]}"
+	say "@ASK deducer"
+	say "deduce"
+	say "$outlines${RS}${extraOutlines[*]}"
+	say "${blocks[*]}"
+	say "${flags[*]}"
 
-  rm -f "$outFile" || :
+	rm -f "$outFile" || :
 
-  timerFifo="/tmp/vars-timer"
-  [[ -p "$timerFifo" ]] && rm "$timerFifo"
-  mkfifo "$timerFifo"
+	timerFifo="/tmp/vars-timer"
+	[[ -p "$timerFifo" ]] && rm "$timerFifo"
+	mkfifo "$timerFifo"
 
-  killFifo="/tmp/vars-kill"
-  [[ -p "$killFifo" ]] && rm "$killFifo"
-  mkfifo "$killFifo"
+	killFifo="/tmp/vars-kill"
+	[[ -p "$killFifo" ]] && rm "$killFifo"
+	mkfifo "$killFifo"
 
-  cmdFifo="/tmp/vars-cmds"
-  [[ -p "$cmdFifo" ]] && rm "$cmdFifo"
-  mkfifo "$cmdFifo"
+	cmdFifo="/tmp/vars-cmds"
+	[[ -p "$cmdFifo" ]] && rm "$cmdFifo"
+	mkfifo "$cmdFifo"
 
-  receiverFifo="/tmp/vars-receiver"
-  [[ -p "$receiverFifo" ]] && rm "$receiverFifo"
-  mkfifo "$receiverFifo"
+	receiverFifo="/tmp/vars-receiver"
+	[[ -p "$receiverFifo" ]] && rm "$receiverFifo"
+	mkfifo "$receiverFifo"
 
-  declare -a actorPids=()
+	declare -a actorPids=()
 
-  # kill
-  (
-      declare -A pids=()
-      
-      while read cmd args; do
-        echo "KILL: $cmd $args" >&2
-        case "$cmd" in
-            "pid")
-                read name pid <<< "$args"
-                pids[$name]=$pid
-                ;;
-            "kill")
-                set -x
-                name=$args
-                pid=${pids[$name]}
-                [[ $pid ]] && kill $pid 2>/dev/null
-                set +x
-                ;;
-            "killAll")
-                kill "${pids[@]}" 2>/dev/null
-                wait "${pids[@]}" 2>/dev/null
-                ;;
-        esac
-      done 
-  ) <$killFifo >$cmdFifo &
-  actorPids+=($!)
+	# kill
+	(
+			declare -A pids=()
+			
+			while read cmd args; do
+				echo "KILL: $cmd $args" >&2
+				case "$cmd" in
+						"pid")
+								read name pid <<< "$args"
+								pids[$name]=$pid
+								;;
+						"kill")
+								set -x
+								name=$args
+								pid=${pids[$name]}
+								[[ $pid ]] && kill $pid 2>/dev/null
+								set +x
+								;;
+						"killAll")
+								kill "${pids[@]}" 2>/dev/null
+								wait "${pids[@]}" 2>/dev/null
+								;;
+				esac
+			done 
+	) <$killFifo >$cmdFifo &
+	actorPids+=($!)
 
-  # receiver
-  (
-    while read type line; do
-        echo "$type $line"
-    done
-  ) >$cmdFifo <&5 &
-  actorPids+=($!)
+	# receiver
+	(
+		while read type line; do
+				echo "$type $line"
+		done
+	) >$cmdFifo <&5 &
+	actorPids+=($!)
 
-  # timer
-  (
-      while read type args; do
-          case "$type" in
-              defer)
-                  read seconds cmd <<<"$args"
-                  sleep $seconds # todo would be better forking here
-                  echo "$cmd"
-                  ;;
-          esac
-      done
-  ) <$timerFifo >$cmdFifo &
-  actorPids+=($!)
-
-  # commands
-  {
-      while read type line; do
-        # echo "cmd $type $line" >&2
-        case "$type" in
-        fin)
-            say "@END"
-            break
-            ;;
-
-        error)
-            hear line
-            echo "$line" >&2
-            exit 1
-            ;;
-
-        targets)
-            for src in $line; do
-                IFS='|' read path index <<< "$src"
-                shortPath=$(realpath --relative-to=$PWD $path) >&2
-                src=${shortPath}$([[ $index ]] && echo "|$index")
-
-                echo -e "${colDim}Running ${src}${colNormal}" >&2
-            done
-            ;;
-
-        running)
-            currentBlock="$line"
-            # todo switch mode when target block running
-            # or - each block should announce itself with number, which will then contextualise all future outs
-            ;;
-
-        summoning)
-            vn=$line
-            
-            echo "defer 1 suggest $vn" >$timerFifo 
-            ;;
-
-        suggest)
-            vn=$line
-
-            # need to register a matcher based on incoming command
-            # that can be processed in a timely manner, while we block here
-            
-            v=$(
-                fzy --prompt "suggest $vn> " <<< "ploppyplop" &
-                echo "pid suggest $!" >&7 #todo need unique name here
-                wait
-            )
-            [[ $? ]] && say "suggest $vn $v"
-            ;;
-
-        bound)
-            read -r src key val <<< "$line"
-
-            echo "kill suggest" >&7
-            # pid=${dredgingPid[$key]}
-            # { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
-
-            # need just one coworker....
-            # which the receiver can selectively send things to, such as <bound>
+	
 
 
-            if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
-                val='****'
-            else
-                echo "$key=${val//$'\60'/$'\30'}" >> $contextFile 
-            fi
 
-            [[ ! $quietMode ]] && {
-                IFS='|' read path index <<< "$src"
-                shortPath=$(realpath --relative-to=$PWD $path) >&2
-                src=${shortPath}$([[ $index ]] && echo "|$index")
+	
 
-                case "$src" in
-                    cache*) key="\`$key";;
-                    pin*) key="!$key";;
-                esac
+	# timer
+	(
+			while read type args; do
+					case "$type" in
+							defer)
+									read seconds cmd <<<"$args"
+									sleep $seconds # todo would be better forking here
+									echo "$cmd"
+									;;
+					esac
+			done
+	) <$timerFifo >$cmdFifo &
+	actorPids+=($!)
 
-                [[ ${#val} -gt 80 ]] && { val="${val::80}..."; }
-                echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
-            }
-            ;;
+	# commands
+	{
+			while read type line; do
+				# echo "cmd $type $line" >&2
+				case "$type" in
+				fin)
+						say "@END"
+						break
+						;;
 
-        out)
-            echo "$line" >> "$outFile"
+				error)
+						hear line
+						echo "$line" >&2
+						exit 1
+						;;
 
-            # if [[ $quietMode ]]; then
-            #     echo -n "$line"
-            # else 
-                echo "$line"
-            # fi
-            ;;
+				targets)
+						for src in $line; do
+								IFS='|' read path index <<< "$src"
+								shortPath=$(realpath --relative-to=$PWD $path) >&2
+								src=${shortPath}$([[ $index ]] && echo "|$index")
 
-        warn)
-            echo -e "${colBad}${line}${colNormal}" >&2
-            ;;
+								echo -e "${colDim}Running ${src}${colNormal}" >&2
+						done
+						;;
 
-        pick) {
-                read -r name rawVals <<< "$line"
+				running)
+						currentBlock="$line"
+						# todo switch mode when target block running
+						# or - each block should announce itself with number, which will then contextualise all future outs
+						;;
 
-                pid=${dredgingPid[$name]}
-                { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+				summoning)
+						vn=$line
+						
+						echo "defer 1 suggest $vn" >$timerFifo 
+						;;
 
-                rawVals=${rawVals#¦}
-                rawVals=${rawVals//¦/$'\n'}
+				suggest)
+						vn=$line
 
-                local val=$(fzy --prompt "pick ${name}> " <<< "$rawVals")
+						# need to register a matcher based on incoming command
+						# that can be processed in a timely manner, while we block here
+						
+						v=$(
+								fzy --prompt "suggest $vn> " <<< "ploppyplop" &
+								echo "pid suggest $!" >&7 #todo need unique name here
+								wait
+						)
+						[[ $? ]] && say "suggest $vn $v"
+						;;
 
-                echo "suggest $name $val"
-            } >&6;;
+				bound)
+						read -r src key val <<< "$line"
 
-        ask) {
-                read -r vn <<< "$line"
+						echo "kill suggest" >&7
+						# pid=${dredgingPid[$key]}
+						# { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
 
-                pid=${dredgingPid[$vn]}
-                { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+						# need just one coworker....
+						# which the receiver can selectively send things to, such as <bound>
 
-                [[ ! -e $contextFile ]] && touch $contextFile
 
-                local val=$(
-                    tac $contextFile |
-                    sed -n '/^'$vn'=/ { s/^.*=//p }' |
-                    nl |
-                    sort -k2 -u |
-                    sort |
-                    while read _ v; do echo "$v"; done |
-                    fzy --prompt "dredge ${vn}> "
-                )
+						if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
+								val='****'
+						else
+								echo "$key=${val//$'\60'/$'\30'}" >> $contextFile 
+						fi
 
-                echo "suggest $vn $val"
-            } >&6;;
+						[[ ! $quietMode ]] && {
+								IFS='|' read path index <<< "$src"
+								shortPath=$(realpath --relative-to=$PWD $path) >&2
+								src=${shortPath}$([[ $index ]] && echo "|$index")
 
-        dredge) {
-                read -r vn <<< "$line"
+								case "$src" in
+										cache*) key="\`$key";;
+										pin*) key="!$key";;
+								esac
 
-                pid=${dredgingPid[$vn]}
-                { [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+								[[ ${#val} -gt 80 ]] && { val="${val::80}..."; }
+								echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
+						}
+						;;
 
-                if [[ -e $contextFile ]]; then
-                    tac $contextFile |
-                    sed -n '/^'$vn'=/ { s/^.*=//p }' |
-                    nl |
-                    sort -k2 -u |
-                    sort |
-                    while read _ v; do echo -n ¦$v; done
-                fi
-                echo
-            } >&6;;
+				out)
+						echo "$line" >> "$outFile"
 
-        pin) {
-                read -r key val <<< "$line"
-                $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
-                echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
-            };;
+						# if [[ $quietMode ]]; then
+						#			echo -n "$line"
+						# else 
+								echo "$line"
+						# fi
+						;;
 
-        esac
-    done <$cmdFifo
+				warn)
+						echo -e "${colBad}${line}${colNormal}" >&2
+						;;
 
-    echo "killAll" >&7
-    kill "${actorPids[@]}" 2>/dev/null
+				pick) {
+								read -r name rawVals <<< "$line"
 
-  } <$cmdFifo 7>$killFifo 
+								pid=${dredgingPid[$name]}
+								{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
 
-  say "@END"
+								rawVals=${rawVals#¦}
+								rawVals=${rawVals//¦/$'\n'}
+
+								local val=$(fzy --prompt "pick ${name}> " <<< "$rawVals")
+
+								echo "suggest $name $val"
+						} >&6;;
+
+				ask) {
+								read -r vn <<< "$line"
+
+								pid=${dredgingPid[$vn]}
+								{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+
+								[[ ! -e $contextFile ]] && touch $contextFile
+
+								local val=$(
+										tac $contextFile |
+										sed -n '/^'$vn'=/ { s/^.*=//p }' |
+										nl |
+										sort -k2 -u |
+										sort |
+										while read _ v; do echo "$v"; done |
+										fzy --prompt "dredge ${vn}> "
+								)
+
+								echo "suggest $vn $val"
+						} >&6;;
+
+				dredge) {
+								read -r vn <<< "$line"
+
+								pid=${dredgingPid[$vn]}
+								{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+
+								if [[ -e $contextFile ]]; then
+										tac $contextFile |
+										sed -n '/^'$vn'=/ { s/^.*=//p }' |
+										nl |
+										sort -k2 -u |
+										sort |
+										while read _ v; do echo -n ¦$v; done
+								fi
+								echo
+						} >&6;;
+
+				pin) {
+								read -r key val <<< "$line"
+								$VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
+								echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
+						};;
+
+				esac
+		done <$cmdFifo
+
+		echo "killAll" >&7
+		kill "${actorPids[@]}" 2>/dev/null
+
+	} <$cmdFifo 7>$killFifo 
+
+	say "@END"
 }
 
 list() {
-  local fids names outs ins
-  local -a outlines
+	local fids names outs ins
+	local -a outlines
 
-  findOutlines outlines
+	findOutlines outlines
 
-  for outline in ${outlines[@]}; do
-      
-      local IFS=$FS; read -r bid names ins outs <<<"$outline"
+	for outline in ${outlines[@]}; do
+			
+			local IFS=$FS; read -r bid names ins outs <<<"$outline"
 
-      local IFS=$','
-      for name in $names; do
-          echo "B;$name;$bid"
-      done
+			local IFS=$','
+			for name in $names; do
+					echo "B;$name;$bid"
+			done
 
-      for inp in $ins; do
-          echo "I;${inp%\*};$bid"
-      done
+			for inp in $ins; do
+					echo "I;${inp%\*};$bid"
+			done
 
-      for out in $outs; do
-          echo "O;${out%\*};$bid"
-      done
-  done
+			for out in $outs; do
+					echo "O;${out%\*};$bid"
+			done
+	done
 }
 
 findOutlines() {
-  local -n __into=$1
-  local fids _outlines
+	local -n __into=$1
+	local fids _outlines
 
-  say "@ASK files"
-  say "find"
-  hear fids
-  say "@END"
+	say "@ASK files"
+	say "find"
+	hear fids
+	say "@END"
 
-  say "@ASK files"
-  say "outline $fids"
-  hear _outlines
-  say "@END"
+	say "@ASK files"
+	say "outline $fids"
+	hear _outlines
+	say "@END"
 
-  IFS=$RS
-  __into+=($_outlines)
+	IFS=$RS
+	__into+=($_outlines)
 }
 
 edit() {
-    local bid file ln
-    
-    while [[ "$1" ]]; do
-        bid=$1;
+		local bid file ln
+		
+		while [[ "$1" ]]; do
+				bid=$1;
 
-        [[ $bid =~ ^([^,]+),([0-9]+)\|([0-9]+) ]] || exit 1
-        file=${BASH_REMATCH[1]}
-        ln=${BASH_REMATCH[3]}
+				[[ $bid =~ ^([^,]+),([0-9]+)\|([0-9]+) ]] || exit 1
+				file=${BASH_REMATCH[1]}
+				ln=${BASH_REMATCH[3]}
 
-        case "$EDITOR" in
-            emacsclient*)
-                eval "$EDITOR +$ln $file" >$pts;;
-            vi*)
-                eval "$EDITOR +'100|norm! zt' $file" >$pts;;
-            *)
-                eval "$EDITOR $file" >$pts;;
-        esac
+				case "$EDITOR" in
+						emacsclient*)
+								eval "$EDITOR +$ln $file" >$pts;;
+						vi*)
+								eval "$EDITOR +'100|norm! zt' $file" >$pts;;
+						*)
+								eval "$EDITOR $file" >$pts;;
+				esac
 
-        shift
-    done
+				shift
+		done
 }
 
 editPick() {
-    local -a outlines
+		local -a outlines
 
-    findOutlines outlines
+		findOutlines outlines
 
-    edit $(for o in ${outlines[@]}; do echo "${o//$FS/;}"; done | fzy --prompt "${name}> ")
+		edit $(for o in ${outlines[@]}; do echo "${o//$FS/;}"; done | fzy --prompt "${name}> ")
 }
 
 filterList() {
-    local type=$1
-    while read -r line; do
-        [[ ${line:0:2} == "$type;" ]] && echo "${line:2}"
-    done
+		local type=$1
+		while read -r line; do
+				[[ ${line:0:2} == "$type;" ]] && echo "${line:2}"
+		done
 }
 
 relativizeList() {
-    local -A relDirs=()
-    
-    while read -r line; do
-        IFS=\; read -r name bid _ <<<"$line"
-        IFS=\| read -r fid _ <<<"$bid"
-        IFS=\, read -r file _ <<<"$fid"
+		local -A relDirs=()
+		
+		while read -r line; do
+				IFS=\; read -r name bid _ <<<"$line"
+				IFS=\| read -r fid _ <<<"$bid"
+				IFS=\, read -r file _ <<<"$fid"
 
-        relDir=${relDirs[$file]}
+				relDir=${relDirs[$file]}
 
-        if [[ ! $relDir ]]; then
-          dir=$(dirname "$file")
-          relDir=$(realpath --relative-to="$PWD" "$dir")
-          relDirs[$file]=$relDir
-        fi
+				if [[ ! $relDir ]]; then
+					dir=$(dirname "$file")
+					relDir=$(realpath --relative-to="$PWD" "$dir")
+					relDirs[$file]=$relDir
+				fi
 
-        echo "$relDir/$name;$relDir;$line"
-    done
+				echo "$relDir/$name;$relDir;$line"
+		done
 }
 
 shift1() {
-  i=$((i + 1))
+	i=$((i + 1))
 }
 
 parse1() {
-  local re=$1
-  local _w=${words[$i]}
-  [[ $_w =~ $re ]] \
-      && w=$_w \
-      && shift1
+	local re=$1
+	local _w=${words[$i]}
+	[[ $_w =~ $re ]] \
+			&& w=$_w \
+			&& shift1
 }
 
 parseMany() {
-  while eval "$@"; do :; done
+	while eval "$@"; do :; done
 }
 
 parseGet() {
-  parse1 '^(g|ge|get)$' \
-    && parseNames targets \
-    && {
-      for t in $targets; do
-        blocks+=("get:$t")
-        extraOutlines+=("get:$t")
-      done
-      cmds+=("run")
-    }
+	parse1 '^(g|ge|get)$' \
+		&& parseNames targets \
+		&& {
+			for t in $targets; do
+				blocks+=("get:$t")
+				extraOutlines+=("get:$t")
+			done
+			cmds+=("run")
+		}
 }
 
 parseRun() {
-  parse1 '^(r|ru|run)$' \
-    && parseNames blocks \
-    && {
-      cmds+=("run")
-    }
+	parse1 '^(r|ru|run)$' \
+		&& parseNames blocks \
+		&& {
+			cmds+=("run")
+		}
 }
 
 parsePrep() {
-  parse1 '^(p|prep)$' \
-    && flags+=(p) \
-    && parseNames blocks \
-    && {
-      cmds+=("run")
-    }
+	parse1 '^(p|prep)$' \
+		&& flags+=(p) \
+		&& parseNames blocks \
+		&& {
+			cmds+=("run")
+		}
 }
 
 parseLs() {
-  parse1 '^(ls|list)$' \
-    && {
-      cmds+=("list")
+	parse1 '^(ls|list)$' \
+		&& {
+			cmds+=("list")
 
-      {
-        parse1 '^(b|bl|block|blocks)' \
-          && cmds+=("| filterList B")
-      } || {
-        parse1 '^(o|out|outs)' \
-          && cmds+=("| filterList O")
-      }
-      # } || {
-      #   parse1 '^(i|in|ins)' \
-      #     && cmds+=("| filterList I")
-      # }
+			{
+				parse1 '^(b|bl|block|blocks)' \
+					&& cmds+=("| filterList B")
+			} || {
+				parse1 '^(o|out|outs)' \
+					&& cmds+=("| filterList O")
+			}
+			# } || {
+			#		parse1 '^(i|in|ins)' \
+			#			&& cmds+=("| filterList I")
+			# }
 
-      parse1 '^rel' \
-        && cmds+=("| relativizeList")
-  }
+			parse1 '^rel' \
+				&& cmds+=("| relativizeList")
+	}
 }
 
 parseEdit() {
-  parse1 '^(e|ed|edit)$' \
-    && {
-      {
-        parse1 'pick' \
-          && cmds+=('editPick')
-      } || {
-        parse1 'bid' \
-            && parseMany "parseName bids" \
-            && cmds+=("edit" "${bids[@]}")
-      }
-  }
+	parse1 '^(e|ed|edit)$' \
+		&& {
+			{
+				parse1 'pick' \
+					&& cmds+=('editPick')
+			} || {
+				parse1 'bid' \
+						&& parseMany "parseName bids" \
+						&& cmds+=("edit" "${bids[@]}")
+			}
+	}
 }
 
 parsePin() {
-  parse1 '^(p|pi|pin)$' \
-    && {
-      {
-        parse1 '^(l|li|lis|list|ls)$' \
-        && $VARS_PATH/context.sh listPinned
-      } || {
-        parse1 '^(c|cl|clear)$' \
-        && $VARS_PATH/context.sh clearPinned
-      } || {
-        parse1 '^(u|unpin|r|rm|remove)$' \
-          && {
-            parseMany "parseName targets" \
-            && $VARS_PATH/context.sh unpin "${targets[@]}"
-          }
-      } || {
-        parseMany "parseName targets" \
-          && {
-            $VARS_PATH/context.sh pin "${targets[@]}"
-          }
-      }
-    }
+	parse1 '^(p|pi|pin)$' \
+		&& {
+			{
+				parse1 '^(l|li|lis|list|ls)$' \
+				&& $VARS_PATH/context.sh listPinned
+			} || {
+				parse1 '^(c|cl|clear)$' \
+				&& $VARS_PATH/context.sh clearPinned
+			} || {
+				parse1 '^(u|unpin|r|rm|remove)$' \
+					&& {
+						parseMany "parseName targets" \
+						&& $VARS_PATH/context.sh unpin "${targets[@]}"
+					}
+			} || {
+				parseMany "parseName targets" \
+					&& {
+						$VARS_PATH/context.sh pin "${targets[@]}"
+					}
+			}
+		}
 }
 
 parseContext() {
-  parse1 '^(x|con|cont|conte|contex|context)$' \
-      && {
-          {
-            parse1 '^(l|li|lis|list|ls)$' \
-            && $VARS_PATH/context.sh list
-          } || {
-            parse1 '^(c|cl|clear)$' \
-            && $VARS_PATH/context.sh clearContext
-          } || {
-            parse1 '^prev(ious)?$' \
-            && $VARS_PATH/context.sh previous
-          } || {
-            $VARS_PATH/context.sh list
-          }
-        }
+	parse1 '^(x|con|cont|conte|contex|context)$' \
+			&& {
+					{
+						parse1 '^(l|li|lis|list|ls)$' \
+						&& $VARS_PATH/context.sh list
+					} || {
+						parse1 '^(c|cl|clear)$' \
+						&& $VARS_PATH/context.sh clearContext
+					} || {
+						parse1 '^prev(ious)?$' \
+						&& $VARS_PATH/context.sh previous
+					} || {
+						$VARS_PATH/context.sh list
+					}
+				}
 }
 
 parseLoad() {
-  local count block
-  parse1 '^load$' \
-    && {
-      parse1 '^[0-9]+$' && count=$w
-    } \
-    && {
-      parse1 '.+' && block=$w
-    } \
-    && "$VARS_PATH/varsLoad.sh" "$count" "$block"
+	local count block
+	parse1 '^load$' \
+		&& {
+			parse1 '^[0-9]+$' && count=$w
+		} \
+		&& {
+			parse1 '.+' && block=$w
+		} \
+		&& "$VARS_PATH/varsLoad.sh" "$count" "$block"
 }
 
 parseCache() {
-  parse1 '^cache$' \
-    && (
-      (parse1 '^clear$' \
-        && rm -rf $cacheDir/* \
-        && echo cleared cache!) \
-      || find $cacheDir -type d
-    )
+	parse1 '^cache$' \
+		&& (
+			(parse1 '^clear$' \
+				&& rm -rf $cacheDir/* \
+				&& echo cleared cache!) \
+			|| find $cacheDir -type d
+		)
 }
 
 parseFlag() {
-  parse1 '^-[a-zA-Z]+$' \
-    && {
-      local i
-      for (( i=1 ; i < ${#w} ; i++ )); do
-        flags+=(${w:i:1});
-      done
-    }
+	parse1 '^-[a-zA-Z]+$' \
+		&& {
+			local i
+			for (( i=1 ; i < ${#w} ; i++ )); do
+				flags+=(${w:i:1});
+			done
+		}
 }
 
 parseAdHocBind() {
-  parse1 '^\w+=.+$' \
-    && adHocs+=($w)
+	parse1 '^\w+=.+$' \
+		&& adHocs+=($w)
 }
 
 parseName() {
-  local -n into=$1
-  parse1 '.+' \
-    && into+=($w)
+	local -n into=$1
+	parse1 '.+' \
+		&& into+=($w)
 }
 
 parseNames() {
-  parseMany "parseFlag || parseAdHocBind || parseName $1"
+	parseMany "parseFlag || parseAdHocBind || parseName $1"
 }
 
 parseArg() {
-  local w=${words[$i]}
-  [[ ! -z $w ]] \
-      && shift1 \
-      && echo "$w"
+	local w=${words[$i]}
+	[[ ! -z $w ]] \
+			&& shift1 \
+			&& echo "$w"
 }
 
 render() {
-  source "$VARS_PATH/render.sh"
+	source "$VARS_PATH/render.sh"
 }
 
 main "$@"
