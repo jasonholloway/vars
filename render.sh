@@ -3,6 +3,11 @@
 #NEED TO BOTH FEED TO JQ AND CAPTURE...
 #send captured string to stdout if jq doesn't like it
 
+# TODO read first line
+# if starts with '{' then pipe rest into jq
+#
+#
+
 val="$(cat)"
 
 if [[ -t 1 ]]; then
