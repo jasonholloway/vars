@@ -1,0 +1,3 @@
+[submodule "fzy"]
+	path = fzy
+	url = git@github.com:jasonholloway/fzy.git
