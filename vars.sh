@@ -137,6 +137,7 @@ receiverActor() {
 
 controllerActor() {
 	local -A boundVars=()
+	local -A pids=()
 	
 	while read cmd line; do
 		lg "co: $cmd $line"
@@ -148,8 +149,16 @@ controllerActor() {
 				;;
 
 			pid)
-				read name pid <<< "$line"
-				echo "STORE PID $name = $pid" >&2 #todo
+				read cmd2 name pid <<< "$line"
+				case "$cmd2" in
+					add)
+						pids[$name]="$pid ${pids[$name]}"
+						;;
+					"kill")
+						for p in ${pids[*]}; do kill $p; done
+						pids[$name]=""
+						;;
+				esac
 				;;
 
 			out)
@@ -158,9 +167,17 @@ controllerActor() {
 				;;
 
 			bound)
-				vn="${line%% *}"
+				read _ vn _ <<< "$line"
 				boundVars[$vn]=1
+
+				echo "pid kill dredge:$vn" >&7
 				echo "showBound $line" >&8
+				;;
+
+			suggest)
+				read vn v <<< "$line"
+				# cancel run here ??? todo
+				say "suggest $vn $v"
 				;;
 
 			pin)
@@ -180,6 +197,7 @@ controllerActor() {
 				;;
 			
 			fin)
+				for p in ${pids[waiting]}; do kill $p 2>/dev/null; done
 				say "@END"
 				echo "fin" >&8
 				break
@@ -202,21 +220,16 @@ controllerActor() {
 			summoning)
 				vn=$line
 				(
-					sleep 1
+					sleep 0.5
 					echo "tryDredge $vn" >&7
 				) &
-
-				# TODO post all pids back to control loop to keep tabs on
-				# then kill em all on fin
+				echo "pid add waiting $!" >&7
 				;;
 
 			tryDredge)
 				vn=$line
-
 				if [[ ! ${boundVars[$vn]} ]]; then
-					lg "WILL DREDGE $line"
-				else
-					lg "NOT DREDGING $vn"
+					echo "dredge $vn" >&8
 				fi
 				;;
 		esac
@@ -239,19 +252,18 @@ uiActor() {
 			# 		done
 			# 		;;
 
-			# suggest)
-			# 		vn=$line
+			dredge)
+				vn=$line
 
-			# 		# need to register a matcher based on incoming command
-			# 		# that can be processed in a timely manner, while we block here
+				v=$(
+					fzy --prompt "suggest $vn> " <<< "ploppyplop" &
+					pid=$!
+					echo "pid add dredge:$vn $pid" >&7
+					wait "$pid" && echo "pid remove dredge:$vn $pid" >&7   #TODO
+				)
 
-			# 		v=$(
-			# 				fzy --prompt "suggest $vn> " <<< "ploppyplop" &
-			# 				echo "pid suggest $!" >&7 #todo need unique name here
-			# 				wait
-			# 		)
-			# 		[[ $? ]] && say "suggest $vn $v"
-			# 		;;
+				[[ $? -eq 0 ]] && echo "suggest $vn $v" >&7
+				;;
 
 			showBound)
 					read -r src key val <<< "$line"

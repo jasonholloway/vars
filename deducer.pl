@@ -114,7 +114,7 @@ sub evalBlock {
 
     while(my $line = hear()) {
         given($line) {
-            when(/^(bind|suggest) (?<vn>[^ ]+) (?<val>.+)/) {
+            when(/^(bind|suggest) (?<vn>[^ ]+) (?<val>.*)/) {
                 my $v = decode($+{val});
                 my @vs = split(/¦/, $v);
 
