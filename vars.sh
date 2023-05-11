@@ -255,11 +255,39 @@ uiActor() {
 			# 		done
 			# 		;;
 
+			# dredge) {
+			# 				read -r vn <<< "$line"
+
+			# 				pid=${dredgingPid[$vn]}
+			# 				{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+
+			# 				if [[ -e $contextFile ]]; then
+			# 						tac $contextFile |
+			# 						sed -n '/^'$vn'=/ { s/^.*=//p }' |
+			# 						nl |
+			# 						sort -k2 -u |
+			# 						sort |
+			# 						while read _ v; do echo -n ¦$v; done
+			# 				fi
+			# 				echo
+			# 		} >&6;;
+
 			dredge)
 				vn=$line
 
+				found=$(
+					if [[ -e $contextFile ]]; then
+							tac $contextFile |
+							sed -n '/^'$vn'=/ { s/^.*=//p }' |
+							nl |
+							sort -k2 -u |
+							sort |
+							while read _ v; do echo $v; done
+					fi
+				)
+
 				v=$(
-					fzy --prompt "suggest $vn> " <<< "ploppyplop" &
+					fzy --prompt "suggest $vn> " <<< "$found" &
 					pid=$!
 					echo "pid add dredge:$vn $pid" >&7
 					wait "$pid" && echo "pid remove dredge:$vn $pid" >&7   #TODO
@@ -315,15 +343,6 @@ uiActor() {
 				rawVals=${rawVals#¦}
 				rawVals=${rawVals//¦/$'\n'}
 
-				# val=$(
-				# 	fzy --prompt "pick ${name}> " <<< "$rawVals" &
-
-				# 	echo "pid picker $!" >&7
-				# 	wait
-				# 	)
-
-				# echo "suggest $name $val" >&6 # could go back via controller??
-
 				v=$(
 					fzy --prompt "pick ${vn}> " <<< "$rawVals" &
 					pid=$!
@@ -354,23 +373,6 @@ uiActor() {
 
 					echo "suggest $vn $val" >&6
 			};;
-
-			# dredge) {
-			# 				read -r vn <<< "$line"
-
-			# 				pid=${dredgingPid[$vn]}
-			# 				{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
-
-			# 				if [[ -e $contextFile ]]; then
-			# 						tac $contextFile |
-			# 						sed -n '/^'$vn'=/ { s/^.*=//p }' |
-			# 						nl |
-			# 						sort -k2 -u |
-			# 						sort |
-			# 						while read _ v; do echo -n ¦$v; done
-			# 				fi
-			# 				echo
-			# 		} >&6;;
 
 			fin)
 				break
@@ -668,7 +670,7 @@ render() {
 }
 
 lg() {
-	echo "$*" >&2
+	[[ $VARS_LOG ]] && echo "$*" >&2
 }
 
 main "$@"
