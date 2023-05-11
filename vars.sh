@@ -356,7 +356,7 @@ list() {
 
 	for outline in ${outlines[@]}; do
 			
-			local IFS=$FS; read -r bid names ins outs <<<"$outline"
+			local IFS=$FS; read -r bid names ins outs flags <<<"$outline"
 
 			local IFS=$','
 			for name in $names; do

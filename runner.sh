@@ -107,7 +107,7 @@ run() {
 
 					(
 						echo "@listening $BASHPID"
-						hear _
+						hear _ # expected to be 'cancel'
 						echo "@fin"
 					) &
 
