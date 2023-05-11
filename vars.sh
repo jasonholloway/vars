@@ -219,7 +219,7 @@ controllerActor() {
 				;;
 
 			ask)
-				echo "ask $line" >&8
+				echo "dredge $line" >&8
 				;;
 
 			running)
@@ -263,26 +263,6 @@ uiActor() {
 			# 		done
 			# 		;;
 
-			dredge)
-				vn=$line
-
-				found=$(
-					if [[ -e $contextFile ]]; then
-						sed -n '/^'$vn'=.\+$/ { s/^.*=//p }' $contextFile |
-							nl | sort -k2 -u | sort -n | cut -f2
-					fi
-				)
-
-				v=$(
-					$fzy --prompt "suggest $vn> " <<< "$found" &
-					pid=$!
-					echo "pid add dredge:$vn $pid" >&7
-					wait "$pid" && echo "pid remove dredge:$vn $pid" >&7
-				)
-
-				[[ $? -eq 0 ]] && echo "suggest $vn $v" >&7
-				;;
-
 			showBound)
 					read -r src key val <<< "$line"
 
@@ -318,6 +298,27 @@ uiActor() {
 				echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
 			};;
 
+			dredge) ;&
+		  ask)
+				vn=$line
+
+				found=$(
+					if [[ -e $contextFile ]]; then
+						sed -n '/^'$vn'=.\+$/ { s/^.*=//p }' $contextFile |
+							nl | sort -k2 -u | sort -n | cut -f2
+					fi
+				)
+
+				v=$(
+					$fzy --prompt "suggest $vn> " <<< "$found" &
+					pid=$!
+					echo "pid add dredge:$vn $pid" >&7
+					wait "$pid" && echo "pid remove dredge:$vn $pid" >&7
+				)
+
+				[[ $? -eq 0 ]] && echo "suggest $vn $v" >&7
+				;;
+
 			pick) {
 				read -r vn rawVals <<< "$line"
 
@@ -332,27 +333,6 @@ uiActor() {
 				)
 
 				[[ $? -eq 0 ]] && echo "suggest $vn $v" >&7
-			};;
-
-			ask) {
-					read -r vn <<< "$line"
-
-					[[ ! -e $contextFile ]] && touch $contextFile
-
-					val=$(
-							tac $contextFile |
-							sed -n '/^'$vn'=/ { s/^.*=//p }' |
-							nl |
-							sort -k2 -u |
-							sort |
-							while read _ v; do echo "$v"; done |
-							$fzy --prompt "dredge ${vn}> " &
-
-							echo "pid picker $!" >&7
-							wait
-					)
-
-					echo "suggest $vn $val" >&6
 			};;
 
 			fin)
