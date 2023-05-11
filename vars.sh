@@ -136,7 +136,7 @@ receiverActor() {
 }
 
 controllerActor() {
-	local -A boundVars=()
+	local -A maskVars=()
 	local -A pids=()
 	
 	while read cmd line; do
@@ -171,7 +171,7 @@ controllerActor() {
 
 			bound)
 				read _ vn _ <<< "$line"
-				boundVars[$vn]=1
+				maskVars[$vn]=1
 
 				echo "pid kill dredge:$vn" >&7
 				echo "showBound $line" >&8
@@ -231,7 +231,7 @@ controllerActor() {
 
 			tryDredge)
 				vn=$line
-				if [[ ! ${boundVars[$vn]} ]]; then
+				if [[ ! ${maskVars[$vn]} ]]; then
 					echo "dredge $vn" >&8
 				fi
 				;;
@@ -310,19 +310,28 @@ uiActor() {
 			};;
 
 			pick) {
-				read -r name rawVals <<< "$line"
+				read -r vn rawVals <<< "$line"
 
 				rawVals=${rawVals#¦}
 				rawVals=${rawVals//¦/$'\n'}
 
-				val=$(
-					fzy --prompt "pick ${name}> " <<< "$rawVals" &
+				# val=$(
+				# 	fzy --prompt "pick ${name}> " <<< "$rawVals" &
 
-					echo "pid picker $!" >&7
-					wait
-					)
+				# 	echo "pid picker $!" >&7
+				# 	wait
+				# 	)
 
-				echo "suggest $name $val" >&6 # could go back via controller??
+				# echo "suggest $name $val" >&6 # could go back via controller??
+
+				v=$(
+					fzy --prompt "pick ${vn}> " <<< "$rawVals" &
+					pid=$!
+					echo "pid add pick:$vn $pid" >&7
+					wait "$pid" && echo "pid remove pick:$vn $pid" >&7
+				)
+
+				[[ $? -eq 0 ]] && echo "suggest $vn $v" >&7
 			};;
 
 			ask) {
