@@ -158,8 +158,8 @@ controllerActor() {
 						pids[$name]=${pids[$name]//$pid/}
 						;;
 					"kill")
-						for p in ${pids[$name]}; do kill $p; done
-						pids[$name]=""
+						for p in ${pids[$name]}; do kill $p; done 2>/dev/null
+						unset pids[$name]
 						;;
 				esac
 				;;
@@ -170,11 +170,18 @@ controllerActor() {
 				;;
 
 			bound)
-				read _ vn _ <<< "$line"
+				read src vn v <<< "$line"
 				maskVars[$vn]=1
 
 				echo "pid kill dredge:$vn" >&7
-				echo "showBound $line" >&8
+
+				if [[ $vn =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
+					v='****'
+				else
+					sed -i "1i$vn=${v//$'\60'/$'\30'}" $contextFile 
+				fi
+
+				echo "showBound $src $vn $v" >&8
 				;;
 
 			suggest)
@@ -255,34 +262,13 @@ uiActor() {
 			# 		done
 			# 		;;
 
-			# dredge) {
-			# 				read -r vn <<< "$line"
-
-			# 				pid=${dredgingPid[$vn]}
-			# 				{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
-
-			# 				if [[ -e $contextFile ]]; then
-			# 						tac $contextFile |
-			# 						sed -n '/^'$vn'=/ { s/^.*=//p }' |
-			# 						nl |
-			# 						sort -k2 -u |
-			# 						sort |
-			# 						while read _ v; do echo -n ¦$v; done
-			# 				fi
-			# 				echo
-			# 		} >&6;;
-
 			dredge)
 				vn=$line
 
 				found=$(
 					if [[ -e $contextFile ]]; then
-							tac $contextFile |
-							sed -n '/^'$vn'=/ { s/^.*=//p }' |
-							nl |
-							sort -k2 -u |
-							sort |
-							while read _ v; do echo $v; done
+						sed -n '/^'$vn'=/ { s/^.*=//p }' $contextFile |
+							nl | sort -k2 -u | sort -n | cut -f2
 					fi
 				)
 
@@ -290,7 +276,7 @@ uiActor() {
 					fzy --prompt "suggest $vn> " <<< "$found" &
 					pid=$!
 					echo "pid add dredge:$vn $pid" >&7
-					wait "$pid" && echo "pid remove dredge:$vn $pid" >&7   #TODO
+					wait "$pid" && echo "pid remove dredge:$vn $pid" >&7
 				)
 
 				[[ $? -eq 0 ]] && echo "suggest $vn $v" >&7
@@ -298,12 +284,6 @@ uiActor() {
 
 			showBound)
 					read -r src key val <<< "$line"
-
-					if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
-							val='****'
-					else
-							echo "$key=${val//$'\60'/$'\30'}" >> $contextFile 
-					fi
 
 					[[ ! $quietMode ]] && {
 							IFS='|' read path index <<< "$src"
