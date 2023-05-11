@@ -267,7 +267,7 @@ uiActor() {
 
 				found=$(
 					if [[ -e $contextFile ]]; then
-						sed -n '/^'$vn'=/ { s/^.*=//p }' $contextFile |
+						sed -n '/^'$vn'=.\+$/ { s/^.*=//p }' $contextFile |
 							nl | sort -k2 -u | sort -n | cut -f2
 					fi
 				)
