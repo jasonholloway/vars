@@ -154,8 +154,11 @@ controllerActor() {
 					add)
 						pids[$name]="$pid ${pids[$name]}"
 						;;
+					remove)
+						pids[$name]=${pids[$name]//$pid/}
+						;;
 					"kill")
-						for p in ${pids[*]}; do kill $p; done
+						for p in ${pids[$name]}; do kill $p; done
 						pids[$name]=""
 						;;
 				esac
