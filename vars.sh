@@ -21,6 +21,7 @@ colNormal='\033[0m'
 colDim='\e[38;5;240m'
 colDimmest='\e[38;5;236m'
 
+fzy="$VARS_PATH/fzy/fzy"
 cacheDir="$HOME/.vars/cache"
 contextFile="$HOME/.vars/context"
 outFile="$HOME/.vars/out"
@@ -158,8 +159,8 @@ controllerActor() {
 						pids[$name]=${pids[$name]//$pid/}
 						;;
 					"kill")
-						for p in ${pids[$name]}; do kill $p; done 2>/dev/null
-						unset pids[$name]
+						for p in ${pids[$name]}; do kill -INT $p; done
+						pids[$name]=""
 						;;
 				esac
 				;;
@@ -273,7 +274,7 @@ uiActor() {
 				)
 
 				v=$(
-					fzy --prompt "suggest $vn> " <<< "$found" &
+					$fzy --prompt "suggest $vn> " <<< "$found" &
 					pid=$!
 					echo "pid add dredge:$vn $pid" >&7
 					wait "$pid" && echo "pid remove dredge:$vn $pid" >&7
@@ -324,7 +325,7 @@ uiActor() {
 				rawVals=${rawVals//¦/$'\n'}
 
 				v=$(
-					fzy --prompt "pick ${vn}> " <<< "$rawVals" &
+					$fzy --prompt "pick ${vn}> " <<< "$rawVals" &
 					pid=$!
 					echo "pid add pick:$vn $pid" >&7
 					wait "$pid" && echo "pid remove pick:$vn $pid" >&7
@@ -345,7 +346,7 @@ uiActor() {
 							sort -k2 -u |
 							sort |
 							while read _ v; do echo "$v"; done |
-							fzy --prompt "dredge ${vn}> " &
+							$fzy --prompt "dredge ${vn}> " &
 
 							echo "pid picker $!" >&7
 							wait
@@ -438,7 +439,7 @@ editPick() {
 
 		findOutlines outlines
 
-		edit $(for o in ${outlines[@]}; do echo "${o//$FS/;}"; done | fzy --prompt "${name}> ")
+		edit $(for o in ${outlines[@]}; do echo "${o//$FS/;}"; done | $fzy --prompt "${name}> ")
 }
 
 filterList() {
