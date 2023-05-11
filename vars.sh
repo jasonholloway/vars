@@ -108,37 +108,38 @@ run() {
 	rm -f "$outFile" || :
 
 	cmdFifo="/tmp/vars-cmds"
-	[[ -p "$cmdFifo" ]] && rm "$cmdFifo"
-	mkfifo "$cmdFifo"
+	[[ ! -p "$cmdFifo" ]] && mkfifo "$cmdFifo"
 
 	uiFifo="/tmp/vars-ui"
-	[[ -p "$killFifo" ]] && rm "$killFifo"
-	mkfifo "$killFifo"
+	[[ ! -p "$uiFifo" ]] && mkfifo "$uiFifo"
 
 	declare -a actorPids=()
 
-	receiverActor <&5 7>$cmdFifo &
+	receiverActor &
 	actorPids+=($!)
 
-	controllerActor <$cmdFifo 7>$cmdFifo 8>$uiFifo &
+	controllerActor &
 	actorPids+=($!)
 
-	uiActor <$uiFifo 7>$cmdFifo & #??????
-	actorPids+=($!)
-
-	wait
+	uiActor
 }
 
 receiverActor() {
-	while read line; do
-		echo "$line" >&7
-	done
+	while read cmd line; do
+		lg "re: $cmd $line"
+		case "$cmd" in
+			*)
+				echo "$cmd $line" >&7
+				;;
+		esac
+	done <&5 7>$cmdFifo 8>$uiFifo
 }
 
 controllerActor() {
+	local -A boundVars=()
+	
 	while read cmd line; do
-		lg "controller $cmd $line"
-		
+		lg "co: $cmd $line"
 		case "$cmd" in
 			defer)
 				read seconds cmd2 <<< "$line"
@@ -157,6 +158,8 @@ controllerActor() {
 				;;
 
 			bound)
+				vn="${line%% *}"
+				boundVars[$vn]=1
 				echo "showBound $line" >&8
 				;;
 
@@ -178,6 +181,7 @@ controllerActor() {
 			
 			fin)
 				say "@END"
+				echo "fin" >&8
 				break
 				;;
 
@@ -197,146 +201,162 @@ controllerActor() {
 
 			summoning)
 				vn=$line
-				#...
-				:
+				(
+					sleep 1
+					echo "tryDredge $vn" >&7
+				) &
+
+				# TODO post all pids back to control loop to keep tabs on
+				# then kill em all on fin
+				;;
+
+			tryDredge)
+				vn=$line
+
+				if [[ ! ${boundVars[$vn]} ]]; then
+					lg "WILL DREDGE $line"
+				else
+					lg "NOT DREDGING $vn"
+				fi
 				;;
 		esac
-	done
-
-	# kill all here
+	done <$cmdFifo 7>$cmdFifo 8>$uiFifo 
 }
 
 uiActor() {
-	while read type line; do
-		# echo "cmd $type $line" >&2
-		case "$type" in
+	{
+		while read type line; do
+			lg "ui: $type $line"
+			case "$type" in
 
-		# targets)
-		# 		for src in $line; do
-		# 				IFS='|' read path index <<< "$src"
-		# 				shortPath=$(realpath --relative-to=$PWD $path) >&2
-		# 				src=${shortPath}$([[ $index ]] && echo "|$index")
+			# targets)
+			# 		for src in $line; do
+			# 				IFS='|' read path index <<< "$src"
+			# 				shortPath=$(realpath --relative-to=$PWD $path) >&2
+			# 				src=${shortPath}$([[ $index ]] && echo "|$index")
 
-		# 				echo -e "${colDim}Running ${src}${colNormal}" >&2
-		# 		done
-		# 		;;
+			# 				echo -e "${colDim}Running ${src}${colNormal}" >&2
+			# 		done
+			# 		;;
 
-		# suggest)
-		# 		vn=$line
+			# suggest)
+			# 		vn=$line
 
-		# 		# need to register a matcher based on incoming command
-		# 		# that can be processed in a timely manner, while we block here
+			# 		# need to register a matcher based on incoming command
+			# 		# that can be processed in a timely manner, while we block here
 
-		# 		v=$(
-		# 				fzy --prompt "suggest $vn> " <<< "ploppyplop" &
-		# 				echo "pid suggest $!" >&7 #todo need unique name here
-		# 				wait
-		# 		)
-		# 		[[ $? ]] && say "suggest $vn $v"
-		# 		;;
+			# 		v=$(
+			# 				fzy --prompt "suggest $vn> " <<< "ploppyplop" &
+			# 				echo "pid suggest $!" >&7 #todo need unique name here
+			# 				wait
+			# 		)
+			# 		[[ $? ]] && say "suggest $vn $v"
+			# 		;;
 
-		showBound)
-				read -r src key val <<< "$line"
+			showBound)
+					read -r src key val <<< "$line"
 
-				if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
-						val='****'
-				else
-						echo "$key=${val//$'\60'/$'\30'}" >> $contextFile 
-				fi
+					if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
+							val='****'
+					else
+							echo "$key=${val//$'\60'/$'\30'}" >> $contextFile 
+					fi
 
-				[[ ! $quietMode ]] && {
-						IFS='|' read path index <<< "$src"
-						shortPath=$(realpath --relative-to=$PWD $path) >&2
-						src=${shortPath}$([[ $index ]] && echo "|$index")
+					[[ ! $quietMode ]] && {
+							IFS='|' read path index <<< "$src"
+							shortPath=$(realpath --relative-to=$PWD $path) >&2
+							src=${shortPath}$([[ $index ]] && echo "|$index")
 
-						case "$src" in
-								cache*) key="\`$key";;
-								pin*) key="!$key";;
-						esac
+							case "$src" in
+									cache*) key="\`$key";;
+									pin*) key="!$key";;
+							esac
 
-						[[ ${#val} -gt 80 ]] && { val="${val::80}..."; }
-						echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
-				}
-				;;
+							[[ ${#val} -gt 80 ]] && { val="${val::80}..."; }
+							echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
+					}
+					;;
 
-		showOut)
-				# if [[ $quietMode ]]; then
-				#			echo -n "$line"
-				# else 
-						echo "$line"
-				# fi
-				;;
+			showOut)
+					if [[ $quietMode ]]; then
+							echo -n "$line"
+					else 
+							echo "$line"
+					fi
+					;;
 
-		showWarning)
-				echo -e "${colBad}${line}${colNormal}" >&2
-				;;
+			showWarning)
+					echo -e "${colBad}${line}${colNormal}" >&2
+					;;
 
-		showPin) {
-			read key val <<< "$line"
-			echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
-		};;
+			showPin) {
+				read key val <<< "$line"
+				echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
+			};;
 
-		pick) {
-			read -r name rawVals <<< "$line"
+			pick) {
+				read -r name rawVals <<< "$line"
 
-			rawVals=${rawVals#¦}
-			rawVals=${rawVals//¦/$'\n'}
-
-			val=$(
-				fzy --prompt "pick ${name}> " <<< "$rawVals" &
-
-				echo "pid picker $!" >&7
-				wait
-				)
-
-			echo "suggest $name $val" >&6 # could go back via controller??
-		};;
-
-		ask) {
-				read -r vn <<< "$line"
-
-				[[ ! -e $contextFile ]] && touch $contextFile
+				rawVals=${rawVals#¦}
+				rawVals=${rawVals//¦/$'\n'}
 
 				val=$(
-						tac $contextFile |
-						sed -n '/^'$vn'=/ { s/^.*=//p }' |
-						nl |
-						sort -k2 -u |
-						sort |
-						while read _ v; do echo "$v"; done |
-						fzy --prompt "dredge ${vn}> " &
+					fzy --prompt "pick ${name}> " <<< "$rawVals" &
 
-						echo "pid picker $!" >&7
-						wait
-				)
+					echo "pid picker $!" >&7
+					wait
+					)
 
-				echo "suggest $vn $val" >&6
-		};;
+				echo "suggest $name $val" >&6 # could go back via controller??
+			};;
 
-		# dredge) {
-		# 				read -r vn <<< "$line"
+			ask) {
+					read -r vn <<< "$line"
 
-		# 				pid=${dredgingPid[$vn]}
-		# 				{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+					[[ ! -e $contextFile ]] && touch $contextFile
 
-		# 				if [[ -e $contextFile ]]; then
-		# 						tac $contextFile |
-		# 						sed -n '/^'$vn'=/ { s/^.*=//p }' |
-		# 						nl |
-		# 						sort -k2 -u |
-		# 						sort |
-		# 						while read _ v; do echo -n ¦$v; done
-		# 				fi
-		# 				echo
-		# 		} >&6;;
+					val=$(
+							tac $contextFile |
+							sed -n '/^'$vn'=/ { s/^.*=//p }' |
+							nl |
+							sort -k2 -u |
+							sort |
+							while read _ v; do echo "$v"; done |
+							fzy --prompt "dredge ${vn}> " &
 
-		esac
-done <$cmdFifo
+							echo "pid picker $!" >&7
+							wait
+					)
 
-echo "killAll" >&7
-kill "${actorPids[@]}" 2>/dev/null
+					echo "suggest $vn $val" >&6
+			};;
 
-	say "@END"
+			# dredge) {
+			# 				read -r vn <<< "$line"
+
+			# 				pid=${dredgingPid[$vn]}
+			# 				{ [[ $pid ]] && kill -INT $pid 2>/dev/null; }
+
+			# 				if [[ -e $contextFile ]]; then
+			# 						tac $contextFile |
+			# 						sed -n '/^'$vn'=/ { s/^.*=//p }' |
+			# 						nl |
+			# 						sort -k2 -u |
+			# 						sort |
+			# 						while read _ v; do echo -n ¦$v; done
+			# 				fi
+			# 				echo
+			# 		} >&6;;
+
+			fin)
+				break
+				;;
+
+			esac
+		done
+
+		kill "${actorPids[@]}" 2>/dev/null
+	} <$uiFifo 7>$cmdFifo
 }
 
 
