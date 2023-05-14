@@ -213,3 +213,38 @@ sub say {
   print STDERR "[$src -> $me->{alias}] $line\n" if $debug;
 }
 
+
+  # the runner should have an optional pty
+  # so different scripts can run in slightly different contexts (instead of always being interactive by default)
+  # so with the tty flag the runner makes a pty available
+  # more than that - it mans all input must be streamed through the pty
+  # 
+  # and then the pty must be multiplexed somehow
+  # we either present many at once, or - more simply - we do some kind of locking serialization of sessions
+  # either way, a pty must be requested by the root from some central place
+  #
+  # - Runner requesty PTY
+  # - PTY deets are served back
+  # - PTY provides unmediated input and output
+  #
+  # but locking on the PTY - it's useless if we disallow other PTY uses as soon as a block begins
+  # as the interactive blocks are precisely the ones we want to sometimes preempt
+  #
+  # BUT it's not just the PTY, it's STDERR as well requiring synchronization
+  # if we have a PTY on the go, we want to block STDERR for a bit
+  # everything in fact goes to STDERR, which is what we actually want to synchronize
+  #
+  # at the top level, we have PTYs and a one-way output Pipe, both wanting to write to STDERR
+  # the PTYs have precedence, as soon as one gets going, it claims the output
+  # as such, the pipe is effectively a default; given nothing else, let's listen to that
+  #
+  # additionally a PTY should only really lock the output on its first i/o (could even just be its first bytes out for simplicity)
+  # 
+  # whatever is doing the pumping of the PTYs needs to be in a 'proper' language
+  # and it could even be an additional module...
+  # the runner asks this other module for a PTY
+  # similarly root asks for a PTY when suggesting
+  # and a pipe for streaming output
+  # so all runtime i/o goes via this other module
+  #
+  

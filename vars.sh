@@ -50,7 +50,7 @@ main() {
 	if [[ ${#cmds[@]} -gt 0 ]]; then
 		{
 			coproc {
-				$VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
+				$VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts;io:$VARS_PATH/io.pl $pts"
 			}
 			exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
@@ -86,9 +86,14 @@ dispatch() {
 }
 
 run() {
-	local fids outlines type line currentBlock
+	local fids outlines type line currentBlock sink
 	local timerFifo cmdFifo killFifo receiverPid timerPid killPid
 	local -A dredgingPid=()
+
+	say '@ASK io'
+	say 'getPipe'
+	hear _ sink
+	say '@END'
 
 	say "@ASK files"
 	say "find"
@@ -343,7 +348,7 @@ uiActor() {
 		done
 
 		kill "${actorPids[@]}" 2>/dev/null
-	} <$uiFifo 7>$cmdFifo
+	} <$uiFifo 7>$cmdFifo 1>$sink 2>$sink
 }
 
 
