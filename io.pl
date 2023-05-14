@@ -19,7 +19,8 @@ sub main {
 				say "pipe /proc/$$/fd/2";
 			}
 			when('getPty') {
-				say "pty $pts /proc/$$/fd/2";
+				# say "pty $pts /proc/$$/fd/2";
+				say "pty /dev/tty";  #/proc/$$/fd/2";
 			}
 		}
 	}

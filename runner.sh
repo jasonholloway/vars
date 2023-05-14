@@ -75,20 +75,33 @@ run() {
 					done
 				;;
 				*)
-					say "@ASK files"
+					say '@ASK files'
 					say "body $bid"
 					hear hint
 					hear body
-					say "@END"
+					say '@END'
+
+					say '@ASK io'
+					say 'getPty'
+					hear _ pty
+					say '@END'
 
 					decode body body
 
+					USE_PTY=1
+
 					(
 						echo "@running $BASHPID"
-						
-						source $VARS_PATH/helpers.sh 
 
-						shopt -s extglob
+						[[ $USE_PTY ]] && {
+							pres+=("mount --bind $pty /dev/tty;")
+							pres+=("exec </dev/tty 2>/dev/tty;")
+						}
+
+						pres+=("source $VARS_PATH/helpers.sh;")
+						pres+=("shopt -s extglob;")
+						
+						[[ $VARS_DEBUG ]] && pres+=("set -x;")
 
 						for val in "${vals[@]}"; do
 							read -r vn v <<< "$val"
@@ -96,11 +109,13 @@ run() {
 							pres+=("$vn+=('$v');")
 						done
 
-						eval "
-							[[ \$VARS_DEBUG ]] && set -x
-							${pres[*]}
-							$body
-							" <"$pts"
+						body="${pres[*]} $body"
+
+						if [[ $USE_PTY ]]; then
+							unshare -r -m bash -c "$body"
+						else
+							eval "$body"
+						fi
 
 						echo "@fin"
 					) &

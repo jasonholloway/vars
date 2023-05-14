@@ -93,6 +93,8 @@ run() {
 	say '@ASK io'
 	say 'getPipe'
 	hear _ sink
+	say 'getPty'
+	hear _ pty
 	say '@END'
 
 	say "@ASK files"
@@ -254,6 +256,8 @@ controllerActor() {
 
 uiActor() {
 	{
+		fzy="$fzy -t $pty"
+
 		while read type line; do
 			lg "ui: $type $line"
 			case "$type" in

@@ -120,7 +120,18 @@ echo hello >&2
 @tty 'echo HELLO! $(tty) >&2' 
 
 
+#++++++++++++++++++
+# n: fzy
+echo to STDOUT 
+echo to STDERR >&2
+tty
+tty >&2
 
+fzy <<< "
+moo
+baa
+oink
+"
 
 #++++++++++
 # in: rat*
