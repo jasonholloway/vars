@@ -14,70 +14,57 @@ my $pts = shift;
 $|++;
 
 sub main {
-  my $controller = new Controller('controller', *STDIN);
+  my $inp = new Controller('inp', *STDIN);
 
-  my $select = new IO::Select([ $controller->{from} ]);
+	my $selector = new Selector;
+	$selector->add($inp);
 
-  while(my @handles = $select->can_read()) {
-		foreach my $h (@handles) {
-			if($h eq $controller->{from}) {
-				$controller->read();
-			}
-		}
-	}
-
-
-	# while (my $line = hear()) {
-	# 	given($line) {
-	# 		when("getPipe") {
-	# 			say "pipe /proc/$$/fd/2";
-	# 		}
-	# 		when('getPty') {
-	# 			my $pty = getPty();
-	# 			say "pty $pty";
-	# 		}
-
-	# 		# todo and close?????
-	# 	}
-	# }
-}
-
-sub getPipe {
-	#...
-}
-
-sub getPty {
-	my $pty = new IO::Pty;
-	# print $pty, "WOOFWOOF\n";
-	$pty->ttyname();
-
-	# and now we want to read from above
-}
-
-sub lg {
-	my ($line) = @_;
-	print STDERR "$line\n";
-}
-
-sub hearWords {
-	return split($_[0] // ' ', hear());
-}
-
-sub hear {
-	start:
-		chomp(my $line = <STDIN> || '');
-		given($line) {
-			when('@PUMP') {
-				say '@PUMP';
-				goto start;
-			}
-			default {
-				return $line;
-			}
-		}
+	$selector->run();
 }
 
 main();
+
+
+
+package Selector;
+
+sub new {
+	my $class = shift;
+
+	my $me = {};
+	$me->{select} = new IO::Select;
+	$me->{sinks} = {};
+
+	bless $me, $class;
+
+	$me
+}
+
+sub add {
+	my $me = shift;
+	my $sink = shift;
+
+	my $h = $sink->{src};
+
+	$me->{sinks}{$h} = $sink;
+	$me->{select}->add($h);
+}
+
+sub run {
+	my $me = shift;
+
+  while(my @handles = $me->{select}->can_read()) {
+		foreach my $h (@handles) {
+			if(defined(my $sink = $me->{sinks}{$h})) {
+				$sink->read($me);
+			}
+		}
+	}
+}
+
+
+
+
 
 
 package Sink;
@@ -88,7 +75,7 @@ use Data::Dumper;
 sub new {
   my $class = shift;
   my $name = shift;
-	my $from = shift;
+	my $src = shift;
 
 	# if stdin, we want to buffer lines and execute actions based on these
 	# if pipe, we shovel through to output directly, unbuffered
@@ -96,7 +83,8 @@ sub new {
 
   my $me = {
     name => $name,
-    from => $from,
+    src => $src,
+		buffer => ''
   };
 
   bless $me, $class;
@@ -106,9 +94,10 @@ sub new {
 
 sub read {
   my $me = shift;
+	my $runner = shift;
 
-  if(defined(my $c = sysread($me->{return}, $me->{buffer}, 4096, length($me->{buffer})))) {
-		$me->onBuffer();
+  if(defined(my $c = sysread($me->{src}, $me->{buffer}, 4096, length($me->{buffer})))) {
+		$me->onBuffer($runner);
     $c
   }
   else {
@@ -121,7 +110,7 @@ sub onBuffer {
 
 sub close {
   my $me = shift;
-  close($me->{from}) or die "Can't close...";
+  close($me->{src}) or die "Can't close...";
 }
 
 sub lg {
@@ -147,6 +136,7 @@ sub new {
 
 sub onBuffer {
 	my $me = shift;
+	my $runner = shift;
 	
 	while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
 		push(@{$me->{lines}}, $+{line});
@@ -154,17 +144,74 @@ sub onBuffer {
 	}
 
 	if(scalar @{$me->{lines}}) {
-		$me->onLine();
+		$me->onLine($runner);
 	}
 }
 
-sub onLine {
+sub onLine {}
+
+
+
+
+
+
+
+package CorkableStream;
+
+use base 'Sink';
+
+sub new {
+	my $class = shift;
+	my $name = shift;
+	my $src = shift;
+	my $dest = shift;
+
+	my $me = $class->SUPER::new($name, $src);
+	bless $me, $class;
+
+	$me->{corked} = 1;
+	$me->{dest} = $dest;
+
+	$me
 }
+
+sub onBuffer {
+	my $me = shift;
+	my $runner = shift;
+	$me->shovel();
+}
+
+sub cork {
+	my $me = shift;
+	$me->{corked} = 1;
+}
+
+sub uncork {
+	my $me = shift;
+	$me->{corked} = 0;
+	$me->shovel();
+}
+
+sub shovel {
+	my $me = shift;
+	
+	if(!$me->{corked}) {
+		while(length($me->{buffer}) > 0) {
+			my $c = syswrite($me->{dest}, $me->{buffer});
+			$me->{buffer} = substr($me->{buffer}, $c);
+		}
+	}
+}
+
+
+
+
 
 
 package Controller;
 
 use base 'LineSink';
+use POSIX qw(mkfifo remove);
 
 sub new {
 	my $class = shift;
@@ -177,20 +224,52 @@ sub new {
 
 sub onLine {
 	my $me = shift;
+	my $runner = shift;
 
   while(defined(my $line = shift(@{$me->{lines}}))) {
-    Sink::lg("HANDLE [$me->{name}...] $line");
 		given($line) {
 			when("getPipe") {
-				Sink::lg("woof woof woof");
-				# say "pipe /proc/$$/fd/2";
+				my $pipe = $me->getPipe($runner);
+	 			say "pipe $pipe";
 			}
 			when('getPty') {
-				# my $pty = getPty();
-				# say "pty $pty";
+				my $pty = $me->getPty($runner);
+				say "pty $pty";
 			}
 
 			# todo and close?????
 		}
   }
+}
+
+sub getPipe {
+	my $me = shift;
+	my $runner = shift;
+
+	my $fifoPath = "/tmp/vars-io-pipe"; # TODO should be unique name!!!!
+
+	remove($fifoPath);
+	mkfifo($fifoPath, 0700) or die "BAD";
+	open(my $fifo, "+< $fifoPath") or die "BAD";
+
+	# "/proc/$$/fd/2"
+
+	my $stream = new CorkableStream('anon', $fifo, *STDERR);
+	$stream->uncork(); #!!!!!!
+	$runner->add($stream);
+
+	$fifoPath
+}
+
+sub getPty {
+	my $me = shift;
+	my $runner = shift;
+
+	my $pty = new IO::Pty;
+	my $ptyPath = $pty->ttyname();
+
+	#pty needs pumps...
+	#todo
+
+	"/dev/tty"
 }
