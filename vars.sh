@@ -91,10 +91,10 @@ run() {
 	local -A dredgingPid=()
 
 	say '@ASK io'
-	say 'getPipe'
+	say 'sink'
 	hear _ sink
-	say 'getPty'
-	hear _ pty
+	say 'duplex'
+	hear _ pty0 pty1
 	say '@END'
 
 	say "@ASK files"
@@ -256,7 +256,8 @@ controllerActor() {
 
 uiActor() {
 	{
-		fzy="$fzy -t $pty"
+		# TODO fzy needs wrapping with pty0 and pty1
+		# fzy="$fzy -t $pty"
 
 		while read type line; do
 			lg "ui: $type $line"

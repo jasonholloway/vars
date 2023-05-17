@@ -11,7 +11,7 @@ export VARS_PATH=${CURDIR}
 
 endef
 
-install: canRead fzy
+install: canRead fzy fifopty
 	@$(file >${shimPath},$(shim))
 	@chmod +x ${shimPath}
 	$(info installed shim to ${shimPath})
@@ -20,4 +20,6 @@ canRead: canRead.c
 
 fzy: 
 	cd fzy && make
+
+fifopty: fifopty.c
 

@@ -82,8 +82,8 @@ run() {
 					say '@END'
 
 					say '@ASK io'
-					say 'getPty'
-					hear _ pty
+					say 'duplex'
+					hear _ pty0 pty1
 					say '@END'
 
 					decode body body
@@ -94,6 +94,7 @@ run() {
 						echo "@running $BASHPID"
 
 						[[ $USE_PTY ]] && {
+							todo bundle and provide as pty
 							pres+=("mount --bind $pty /dev/tty;")
 							pres+=("exec </dev/tty 2>/dev/tty;")
 						}
@@ -112,8 +113,6 @@ run() {
 						body="${pres[*]}"
 
 						if [[ $USE_PTY ]]; then
-							`{ echo -n "RUN: "; ls /dev/pts; } >&2`;
-							
 							unshare -r -m bash -c "$body"
 						else
 							eval "$body"

@@ -228,13 +228,13 @@ sub onLine {
 
   while(defined(my $line = shift(@{$me->{lines}}))) {
 		given($line) {
-			when("getPipe") {
-				my $pipe = $me->getPipe($runner);
-	 			say "pipe $pipe";
+			when("sink") {
+				my $pipe = $me->getSink($runner);
+	 			say "sink $pipe";
 			}
-			when('getPty') {
-				my $pty = $me->getPty($runner);
-				say "pty $pty";
+			when('duplex') {
+				(my $send, my $return) = $me->getDuplex($runner);
+				say "duplex $send $return";
 			}
 
 			# todo and close?????
@@ -242,17 +242,14 @@ sub onLine {
   }
 }
 
-sub getPipe {
+sub getSink {
 	my $me = shift;
 	my $runner = shift;
 
-	my $fifoPath = "/tmp/vars-io-pipe"; # TODO should be unique name!!!!
+	my $fifoPath = fifoPath();
 
-	remove($fifoPath);
 	mkfifo($fifoPath, 0700) or die "BAD";
-	open(my $fifo, "+< $fifoPath") or die "BAD";
-
-	# "/proc/$$/fd/2"
+	open(my $fifo, "+< $fifoPath") or die "BAD $fifoPath $!";
 
 	my $stream = new CorkableStream('anon', $fifo, *STDERR);
 	$stream->uncork(); #!!!!!!
@@ -261,22 +258,42 @@ sub getPipe {
 	$fifoPath
 }
 
-sub getPty {
+sub getDuplex {
 	my $me = shift;
 	my $runner = shift;
 
-	my $pty = new IO::Pty;
-	my $ptyPath = $pty->ttyname();
+	my $returnPath = fifoPath();
+	mkfifo($returnPath, 0700) or die "BAD";
+	open(my $return, "+< $returnPath") or die "BAD";
+	$return->autoflush(1);
 
-	$pty->autoflush(1);
-	print $pty "WOOF\n";
+	my $sendPath = fifoPath();
+	mkfifo($sendPath, 0700) or die "BAD";
+	open(my $send, "+> $sendPath") or die "BAD";
 
-	#pty needs pumps...
-	#todo
+	open(my $pty1, "> $pts") or die "BAD";
+	my $stream0 = new CorkableStream('anon', $return, $pty1);
+	$stream0->uncork(); #!!!!!!
+	$runner->add($stream0);
 
-	`{ echo - n "IO: "; ls /dev/pts; } >&2`;
+	open(my $pty0, "< $pts") or die "BAD";
+	my $stream1 = new CorkableStream('anon', $pty0, $send);
+	$stream1->uncork(); #!!!!!!
+	$runner->add($stream1);
 
-	# "/dev/tty"
+	($sendPath, $returnPath)
+}
 
-	$ptyPath
+# todo clear up old streams
+
+# todo clean up fifos
+
+sub fifoPath {
+	'/tmp/vars-io-' . uuid()
+}
+
+sub uuid {
+	open my $fh, "/proc/sys/kernel/random/uuid" or die $!;
+	chomp(my $id = scalar <$fh>);
+	$id
 }
