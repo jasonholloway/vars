@@ -268,8 +268,15 @@ sub getPty {
 	my $pty = new IO::Pty;
 	my $ptyPath = $pty->ttyname();
 
+	$pty->autoflush(1);
+	print $pty "WOOF\n";
+
 	#pty needs pumps...
 	#todo
 
-	"/dev/tty"
+	`{ echo - n "IO: "; ls /dev/pts; } >&2`;
+
+	# "/dev/tty"
+
+	$ptyPath
 }

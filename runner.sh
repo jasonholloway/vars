@@ -109,9 +109,11 @@ run() {
 							pres+=("$vn+=('$v');")
 						done
 
-						body="${pres[*]} $body"
+						body="${pres[*]}"
 
 						if [[ $USE_PTY ]]; then
+							`{ echo -n "RUN: "; ls /dev/pts; } >&2`;
+							
 							unshare -r -m bash -c "$body"
 						else
 							eval "$body"
