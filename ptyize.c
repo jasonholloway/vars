@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
   }
   childArgv[j] = NULL;
 
-  int mfd = open("/dev/ptmx", O_RDWR | O_NOCTTY); //poss non-blocking flag as well?
+  int mfd = open("/dev/ptmx", O_RDWR | O_NOCTTY | O_NONBLOCK); //poss non-blocking flag as well?
   if(mfd < 0) { fail("opening mfd %d", mfd); }
 
   if(grantpt(mfd) < 0) { fail("granting pts"); }
@@ -75,6 +75,7 @@ int main(int argc, char *argv[]) {
       break;
 
     default:
+      close(sfd);
       runParent(pid, f0, f1, mfd);
       break;
   }
@@ -115,7 +116,10 @@ void pumpMaster(int fd0, int fd1, int mfd) {
 
     if(FD_ISSET(mfd, &rfds)) {
       int c = read(mfd, buff, 4096);
-      if(c < 0) fail("reading from mfd");
+      if(c < 0) {
+        if(errno == EIO) exit(0);
+        if(errno != EAGAIN) fail("reading from mfd");
+      }
       
       int r = write(fd1, buff, c);
       if(r < 0) fail("writing to fd1");
