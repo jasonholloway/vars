@@ -93,12 +93,6 @@ run() {
 					(
 						echo "@running $BASHPID"
 
-						[[ $USE_PTY ]] && {
-							todo bundle and provide as pty
-							pres+=("mount --bind $pty /dev/tty;")
-							pres+=("exec </dev/tty 2>/dev/tty;")
-						}
-
 						pres+=("source $VARS_PATH/helpers.sh;")
 						pres+=("shopt -s extglob;")
 						
@@ -113,7 +107,7 @@ run() {
 						body="${pres[*]}"
 
 						if [[ $USE_PTY ]]; then
-							unshare -r -m bash -c "$body"
+							$VARS_PATH/ptyize -0$pty0 -1$pty1 -i -o bash -c "$body"
 						else
 							eval "$body"
 						fi

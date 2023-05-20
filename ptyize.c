@@ -106,23 +106,19 @@ void pumpMaster(int fd0, int fd1, int mfd) {
   while(select(4096, &rfds, NULL, NULL, NULL) > 0) {
 
     if(FD_ISSET(fd0, &rfds)) {
-      /* printf("readin from fd0\n"); */
       int c = read(fd0, buff, 4096);
       if(c < 0) fail("reading from fd0");
       
       int r = write(mfd, buff, c);
       if(r < 0) fail("writing to mfd");
-      /* printf("wrote\n"); */
     }
 
     if(FD_ISSET(mfd, &rfds)) {
-      /* printf("readin from mfd\n"); */
       int c = read(mfd, buff, 4096);
       if(c < 0) fail("reading from mfd");
       
       int r = write(fd1, buff, c);
       if(r < 0) fail("writing to fd1");
-      /* printf("wrote\n"); */
     }
     
     FD_ZERO(&rfds);
