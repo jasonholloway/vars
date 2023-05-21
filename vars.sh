@@ -257,7 +257,7 @@ controllerActor() {
 uiActor() {
 	{
 		# TODO fzy needs wrapping with pty0 and pty1
-		# fzy="$fzy -t $pty"
+		fzy="$VARS_PATH/ptyize -0$pty0 -1$pty1 $fzy"
 
 		while read type line; do
 			lg "ui: $type $line"

@@ -18,30 +18,34 @@ void pumpMaster();
 void runChild();
 void setupChild();
 
-#define MAP_IN 1
-#define MAP_OUT 2
-#define MAP_ERR 4
+#define FLAG_IN 1
+#define FLAG_OUT 2
+#define FLAG_ERR 4
+#define FLAG_RAW 8
 
 int main(int argc, char *argv[]) {
-  int i = 1, mapFlags = 0;
+  int i = 1, flags = 0;
   char *f0 = "/dev/tty";
   char *f1 = "/dev/tty";
 
   for(; i < argc && argv[i][0] == '-'; i++) {
     if(argv[i][1] == 'i') {
-      mapFlags |= MAP_IN;
+      flags |= FLAG_IN;
     }
     if(argv[i][1] == 'o') {
-      mapFlags |= MAP_OUT;
+      flags |= FLAG_OUT;
     }
     if(argv[i][1] == 'e') {
-      mapFlags |= MAP_ERR;
+      flags |= FLAG_ERR;
     }
     if(argv[i][1] == '0') {
       f0 = argv[i] + 2;
     }
     if(argv[i][1] == '1') {
       f1 = argv[i] + 2;
+    }
+    if(argv[i][1] == 'r') {
+      flags |= FLAG_RAW;
     }
   }
 
@@ -52,7 +56,7 @@ int main(int argc, char *argv[]) {
   }
   childArgv[j] = NULL;
 
-  int mfd = open("/dev/ptmx", O_RDWR | O_NOCTTY | O_NONBLOCK); //poss non-blocking flag as well?
+  int mfd = open("/dev/ptmx", O_RDWR | O_NOCTTY | O_NONBLOCK);
   if(mfd < 0) { fail("opening mfd %d", mfd); }
 
   if(grantpt(mfd) < 0) { fail("granting pts"); }
@@ -64,6 +68,38 @@ int main(int argc, char *argv[]) {
   int sfd = open(ptsn, O_RDWR | O_NOCTTY);
   if(sfd < 0) fail("opening %s", ptsn);
 
+
+  int ttyfd = open("/dev/tty", O_RDONLY | O_NOCTTY);
+
+  struct winsize sz;
+  if(ioctl(ttyfd, TIOCGWINSZ, &sz) < 0) fail("getting tty size");
+  if(ioctl(mfd, TIOCSWINSZ, &sz) < 0) fail("setting pts size");
+  
+  struct termio tio;
+  struct termio tio_orig;
+  if(ioctl(ttyfd, TCGETA, &tio) < 0) fail("getting tty attrs");
+  tio_orig = tio;
+
+  if(flags & FLAG_RAW) {
+    tio.c_iflag &= ~(INLCR | ICRNL | ISTRIP | IXON | BRKINT);
+
+    /* disable all output processing */
+    tio.c_oflag &= ~OPOST;
+
+    /* non-canonical, ignore signals and no echoing on output */
+    tio.c_lflag &= ~(ICANON | ISIG | ECHO);
+    tio.c_cc[VMIN] = 1;
+    tio.c_cc[VTIME] = 0;
+  }
+
+
+  if(ioctl(ttyfd, TCSETA, &tio) < 0) fail("setting tty attrs");
+  
+  // todo... restore above
+  // and close at very end
+  close(ttyfd);
+
+
   int pid;
   switch(pid = fork()) {
     case -1:
@@ -71,7 +107,7 @@ int main(int argc, char *argv[]) {
       return 1;
 
     case 0:
-      runChild(mfd, sfd, mapFlags, childArgv);
+      runChild(mfd, sfd, flags, childArgv);
       break;
 
     default:
@@ -104,14 +140,23 @@ void pumpMaster(int fd0, int fd1, int mfd) {
   FD_SET(fd0, &rfds);
   FD_SET(mfd, &rfds);
 
-  while(select(4096, &rfds, NULL, NULL, NULL) > 0) {
+  FILE *logf = fopen("./log", "a");
+
+  while(select(1024, &rfds, NULL, NULL, NULL) > 0) {
 
     if(FD_ISSET(fd0, &rfds)) {
       int c = read(fd0, buff, 4096);
       if(c < 0) fail("reading from fd0");
+
+      fwrite(buff, 1, c, logf);
+      fwrite("\n", 1, 1, logf);
+      fflush(logf);
       
       int r = write(mfd, buff, c);
-      if(r < 0) fail("writing to mfd");
+      if(r < 0) {
+        if(errno == EIO) exit(0);
+        if(errno != EAGAIN) fail("writing to mfd");
+      }
     }
 
     if(FD_ISSET(mfd, &rfds)) {
@@ -124,7 +169,7 @@ void pumpMaster(int fd0, int fd1, int mfd) {
       int r = write(fd1, buff, c);
       if(r < 0) fail("writing to fd1");
     }
-    
+
     FD_ZERO(&rfds);
     FD_SET(fd0, &rfds);
     FD_SET(mfd, &rfds);
@@ -133,30 +178,30 @@ void pumpMaster(int fd0, int fd1, int mfd) {
 
 
 
-void runChild(int mfd, int sfd, int mapFlags, char *argv[]) {
+void runChild(int mfd, int sfd, int flags, char *argv[]) {
   close(mfd);
 
-  setupChild(sfd, mapFlags);
+  setupChild(sfd, flags);
 
   if(argv[0] != NULL) {
-    if(execv(argv[0], argv) < 0) fail("running cmd");
+    if(execvp(argv[0], argv) < 0) fail("running cmd");
   }
 }
 
 
-void setupChild(int sfd, int mapFlags) {
+void setupChild(int sfd, int flags) {
   int sid = setsid();
   if(sid < 0) fail("putting child in new session");
   
   if(ioctl(sfd, TIOCSCTTY, 0) < 0) fail("setting controlling terminal to %d", sfd);
 
-  if(mapFlags & MAP_IN) {
+  if(flags & FLAG_IN) {
     if(dup2(sfd, 0) == -1) fail("updating STDIN");
   }
-  if(mapFlags & MAP_OUT) {
+  if(flags & FLAG_OUT) {
     if(dup2(sfd, 1) == -1) fail("updating STDOUT");
   }
-  if(mapFlags & MAP_ERR) {
+  if(flags & FLAG_ERR) {
     if(dup2(sfd, 2) == -1) fail("updating STDERR");
   }
 }

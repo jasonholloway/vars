@@ -9,7 +9,7 @@ no warnings 'experimental';
 use lib $ENV{VARS_PATH};
 use IO::Pty;
 
-my $pts = shift;
+my $tty = shift;
 
 $|++;
 
@@ -271,13 +271,13 @@ sub getDuplex {
 	mkfifo($sendPath, 0700) or die "BAD";
 	open(my $send, "+> $sendPath") or die "BAD";
 
-	open(my $pty1, "> $pts") or die "BAD";
-	my $stream0 = new CorkableStream('anon', $return, $pty1);
+	open(my $tty1, "> $tty") or die "BAD";
+	my $stream0 = new CorkableStream('anon', $return, $tty1);
 	$stream0->uncork(); #!!!!!!
 	$runner->add($stream0);
 
-	open(my $pty0, "< $pts") or die "BAD";
-	my $stream1 = new CorkableStream('anon', $pty0, $send);
+	open(my $tty0, "< $tty") or die "BAD";
+	my $stream1 = new CorkableStream('anon', $tty0, $send);
 	$stream1->uncork(); #!!!!!!
 	$runner->add($stream1);
 

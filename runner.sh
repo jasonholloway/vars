@@ -81,14 +81,14 @@ run() {
 					hear body
 					say '@END'
 
-					say '@ASK io'
-					say 'duplex'
-					hear _ pty0 pty1
-					say '@END'
+					# say '@ASK io'
+					# say 'duplex'
+					# hear _ pty0 pty1
+					# say '@END'
 
 					decode body body
 
-					USE_PTY=1
+					USE_PTY=
 
 					(
 						echo "@running $BASHPID"
@@ -107,7 +107,7 @@ run() {
 						body="${pres[*]}"
 
 						if [[ $USE_PTY ]]; then
-							$VARS_PATH/ptyize -0$pty0 -1$pty1 -i -o bash -c "$body"
+							$VARS_PATH/ptyize -0$pty0 -1$pty1 -i -o /bin/bash -c "$body"
 						else
 							eval "$body"
 						fi
