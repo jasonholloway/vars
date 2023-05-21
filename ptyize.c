@@ -13,7 +13,6 @@
 #include <sys/select.h>
 
 void fail(const char *, ...);
-void runParent();
 void pumpMaster();
 void runChild();
 void setupChild();
@@ -32,10 +31,10 @@ int main(int argc, char *argv[]) {
     if(argv[i][1] == 'i') {
       flags |= FLAG_IN;
     }
-    if(argv[i][1] == 'o') {
+    if(argv[i][1] == 'o' || isatty(1)) { // or if stdout is tty
       flags |= FLAG_OUT;
     }
-    if(argv[i][1] == 'e') {
+    if(argv[i][1] == 'e') { //need to also default on if tty?
       flags |= FLAG_ERR;
     }
     if(argv[i][1] == '0') {
@@ -81,24 +80,14 @@ int main(int argc, char *argv[]) {
   tio_orig = tio;
 
   if(flags & FLAG_RAW) {
-    tio.c_iflag &= ~(INLCR | ICRNL | ISTRIP | IXON | BRKINT);
-
-    /* disable all output processing */
     tio.c_oflag &= ~OPOST;
-
-    /* non-canonical, ignore signals and no echoing on output */
-    tio.c_lflag &= ~(ICANON | ISIG | ECHO);
+    tio.c_iflag &= ~(INLCR | ICRNL | ISTRIP | IXON | BRKINT);
+    tio.c_lflag &= ~(ICANON | ECHO); // | ISIG);
     tio.c_cc[VMIN] = 1;
     tio.c_cc[VTIME] = 0;
   }
 
-
   if(ioctl(ttyfd, TCSETA, &tio) < 0) fail("setting tty attrs");
-  
-  // todo... restore above
-  // and close at very end
-  close(ttyfd);
-
 
   int pid;
   switch(pid = fork()) {
@@ -107,25 +96,35 @@ int main(int argc, char *argv[]) {
       return 1;
 
     case 0:
+      close(ttyfd);
       runChild(mfd, sfd, flags, childArgv);
       break;
 
     default:
       close(sfd);
-      runParent(pid, f0, f1, mfd);
+
+      int fd0 = open(f0, O_RDONLY | O_NOCTTY);
+      if(fd0 < 0) fail("opening %s as fd0", f0);
+
+      int fd1 = open(f1, O_WRONLY | O_NOCTTY);
+      if(fd1 < 1) fail("opening %s as fd1", f1);
+
+      pumpMaster(fd0, fd1, mfd);
+
+      if(ioctl(ttyfd, TCSETA, &tio_orig) < 0) fail("resetting tty attrs");
+      close(ttyfd);
       break;
   }
 }
 
-void runParent(int childPid, char *f0, char *f1, int mfd) {
-  int fd0 = open(f0, O_RDONLY | O_NOCTTY);
-  if(fd0 < 0) fail("opening %s as fd0", f0);
-
-  int fd1 = open(f1, O_WRONLY | O_NOCTTY);
-  if(fd1 < 1) fail("opening %s as fd1", f1);
-  
-  pumpMaster(fd0, fd1, mfd);
-}
+/*
+ *
+ Need to auto-detect output as tty - if it isn't, then we defo don't want to redirect to tty
+ but if it is, then it's going to be the wrong tty...
+ TODO:
+   if out is tty, then replace it with _our_ tty
+ 
+ */
 
 void pumpMaster(int fd0, int fd1, int mfd) {
   // todo if we listen for writability as well,
@@ -140,7 +139,7 @@ void pumpMaster(int fd0, int fd1, int mfd) {
   FD_SET(fd0, &rfds);
   FD_SET(mfd, &rfds);
 
-  FILE *logf = fopen("./log", "a");
+  /* FILE *logf = fopen("./log", "a"); */
 
   while(select(1024, &rfds, NULL, NULL, NULL) > 0) {
 
@@ -148,21 +147,23 @@ void pumpMaster(int fd0, int fd1, int mfd) {
       int c = read(fd0, buff, 4096);
       if(c < 0) fail("reading from fd0");
 
-      fwrite(buff, 1, c, logf);
-      fwrite("\n", 1, 1, logf);
-      fflush(logf);
+      /* fwrite(buff, 1, c, logf); */
+      /* fwrite("\n", 1, 1, logf); */
+      /* fflush(logf); */
       
       int r = write(mfd, buff, c);
       if(r < 0) {
-        if(errno == EIO) exit(0);
+        if(errno == EIO) break;
         if(errno != EAGAIN) fail("writing to mfd");
       }
+
+      fsync(mfd);
     }
 
     if(FD_ISSET(mfd, &rfds)) {
       int c = read(mfd, buff, 4096);
       if(c < 0) {
-        if(errno == EIO) exit(0);
+        if(errno == EIO) break;
         if(errno != EAGAIN) fail("reading from mfd");
       }
       
