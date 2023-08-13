@@ -104,7 +104,7 @@ run() {
 							pres+=("$vn+=('$v');")
 						done
 
-						body="${pres[*]}"
+						body="${pres[*]} $body"
 
 						if [[ $USE_PTY ]]; then
 							$VARS_PATH/ptyize -0$pty0 -1$pty1 -i -o /bin/bash -c "$body"
@@ -151,7 +151,7 @@ run() {
 					echo $cacheTill >>"$cacheFile"
 					printf "%s\n" "${buff[@]}" >>"$cacheFile"
 
-					else
+				else
 					while read -r line; do echo "$line"; done
 				fi
 			}
