@@ -46,6 +46,11 @@ food > shop
 ; biscuits > corner shop
 
 
+#++++
+# out: fluffyPet
+sleep 2
+@bind fluffyPet gerbil
+
 
 #+++++++++++
 # n: strokePet

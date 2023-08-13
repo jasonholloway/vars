@@ -207,7 +207,7 @@ run() {
 			esac
 		done
 
-		for pid in ${pids[@]}; do pkill -P $pid 2>/dev/null; done
+		for pid in ${pids[@]}; do pkill -INT -P $pid; done
 
 		say fin
 	}
