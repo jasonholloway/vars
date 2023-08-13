@@ -5,6 +5,7 @@ no warnings 'experimental';
 
 use lib '.';
 use Test2::V0;
+use POSIX ":sys_wait_h";
 
 sub lg {
   my $s = shift;
@@ -111,7 +112,28 @@ BusTest->run(
 		is($root->canHear(), 0);
 		is($p2->canHear(), 1);
 		is($p2->hear(), 'oink');
+	});
+
+
+# # bus should close when stdin closed
+BusTest->run(
+	['p1'],
+	sub {
+		my ($root, $p1, $fx) = @_;
+
+		$root->say('@ASK p1');
+		$root->say('hello');
+		$p1->say('woof');
+
+		close($fx->{rootSend});
+
+		sleep 1;
+
+		isnt(waitpid($fx->{bus}{pid}, WNOHANG), 0, "bus shouldn't still be running");
+
+		#todo check that peer has closed as well
 	}, { debug => 1 });
+
 
 
 done_testing;
@@ -130,7 +152,7 @@ sub run {
 
 	$_ = Fixture->new($spec, $flags);
 
-	$sub->(@{$_->{peers}});
+	$sub->(@{$_->{peers}}, $_);
 
 	$_->cleanup();
 }
@@ -192,6 +214,8 @@ END_SCRIPT
 	$me->{bus} = {
 		pid => open3(my $rootSend, my $rootReturn, '>&STDERR', $cmd)
 	};
+
+	$me->{rootSend} = $rootSend;
 
 	unshift(@{$me->{peers}}, Peer->new('root', $rootSend, $rootReturn));
 

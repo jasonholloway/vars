@@ -7,7 +7,8 @@ age > hat,cat
 #++++ bash
 # n: getSurname
 # out: surname
-echo surname=Boggins 
+echo hello >&2
+@bind surname Boggins 
 
 
 #++++++

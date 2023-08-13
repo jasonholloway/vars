@@ -101,7 +101,7 @@ sub read {
     $c
   }
   else {
-    die "Problem reading $me->{alias}: $!";
+    die "Problem reading $me->{name}: $!";
   }
 }
 
@@ -251,7 +251,7 @@ sub getSink {
 	mkfifo($fifoPath, 0700) or die "BAD";
 	open(my $fifo, "+< $fifoPath") or die "BAD $fifoPath $!";
 
-	my $stream = new CorkableStream('anon', $fifo, *STDERR);
+	my $stream = new CorkableStream('controller:stderr', $fifo, *STDERR);
 	$stream->uncork(); #!!!!!!
 	$runner->add($stream);
 
@@ -272,12 +272,12 @@ sub getDuplex {
 	open(my $send, "+> $sendPath") or die "BAD";
 
 	open(my $tty1, "> $tty") or die "BAD";
-	my $stream0 = new CorkableStream('anon', $return, $tty1);
+	my $stream0 = new CorkableStream('controller>tty', $return, $tty1);
 	$stream0->uncork(); #!!!!!!
 	$runner->add($stream0);
 
 	open(my $tty0, "< $tty") or die "BAD";
-	my $stream1 = new CorkableStream('anon', $tty0, $send);
+	my $stream1 = new CorkableStream('controller<tty', $tty0, $send);
 	$stream1->uncork(); #!!!!!!
 	$runner->add($stream1);
 

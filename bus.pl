@@ -45,7 +45,7 @@ my $FIN = 3;
 sub main {
   my $select = new IO::Select(map { $_->{return} } @peers);
 
-  while(my @handles = $select->can_read()) {
+  Select: while(my @handles = $select->can_read()) {
     foreach my $h (@handles) {
       my $p = $peersByHandle{$h};
 
@@ -77,9 +77,19 @@ sub main {
 
       if($bc == 0) {
         $select->remove(($h));
-        return if($p->{alias} eq 'root');
+
+        if($p->{alias} eq "root") {
+          last Select;
+          return;
+        }
+        else {
+        }
       }
     }
+  }
+
+  foreach my $p (@peers) {
+    $p->close();
   }
 }
 
@@ -92,6 +102,7 @@ sub lg {
 
 
 main();
+
 
 
 package Peer;
@@ -191,8 +202,8 @@ sub handle {
 sub close {
   my $me = shift;
 
-  close($me->{send}) or die "Can't close...";
-  close($me->{return}) or die "Can't close...";
+  close($me->{send}); #or die "Can't close...";
+  close($me->{return}); #or die "Can't close...";
 
   my $pid = $me->{pid};
   if(defined($pid)) {
