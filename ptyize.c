@@ -22,6 +22,8 @@ void setupChild();
 #define FLAG_ERR 4
 #define FLAG_RAW 8
 
+// idea: a ptyize server would receive commands via a socket, and fork out instances
+
 int main(int argc, char *argv[]) {
   int i = 1, flags = 0;
   char *f0 = "/dev/tty";
