@@ -279,7 +279,7 @@ uiActor() {
 					[[ ! $quietMode ]] && {
 							IFS='|' read path index <<< "$src"
 							shortPath=$(realpath --relative-to=$PWD $path) >&2
-							src=${shortPath}$([[ $index ]] && echo "|$index")
+							src=${shortPath}$([[ $index ]] && echo ":$index")
 
 							case "$src" in
 									cache*) key="\`$key";;
@@ -287,7 +287,7 @@ uiActor() {
 							esac
 
 							[[ ${#val} -gt 80 ]] && { val="${val::80}..."; }
-							echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}${src}${colNormal}" >&2
+							echo -e "${colBindName}${key}=${colBindValue}${val} ${colDimmest}v://${src}${colNormal}" >&2
 					}
 					;;
 
