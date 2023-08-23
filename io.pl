@@ -14,7 +14,7 @@ my $tty = shift;
 $|++;
 
 sub main {
-  my $inp = new Controller('inp', *STDIN);
+	my $inp = new Controller('inp', *STDIN);
 
 	my $selector = new Selector;
 	$selector->add($inp);
@@ -53,7 +53,7 @@ sub add {
 sub run {
 	my $me = shift;
 
-  while(my @handles = $me->{select}->can_read()) {
+	while(my @handles = $me->{select}->can_read()) {
 		foreach my $h (@handles) {
 			if(defined(my $sink = $me->{sinks}{$h})) {
 				$sink->read($me);
@@ -73,49 +73,49 @@ use IPC::Open3;
 use Data::Dumper;
 
 sub new {
-  my $class = shift;
-  my $name = shift;
+	my $class = shift;
+	my $name = shift;
 	my $src = shift;
 
 	# if stdin, we want to buffer lines and execute actions based on these
 	# if pipe, we shovel through to output directly, unbuffered
 	# if pty, we shovel through in two directions: a duplex pipe
 
-  my $me = {
-    name => $name,
-    src => $src,
+	my $me = {
+		name => $name,
+		src => $src,
 		buffer => ''
-  };
+	};
 
-  bless $me, $class;
+	bless $me, $class;
 
-  $me
+	$me
 }
 
 sub read {
-  my $me = shift;
+	my $me = shift;
 	my $runner = shift;
 
-  if(defined(my $c = sysread($me->{src}, $me->{buffer}, 4096, length($me->{buffer})))) {
+	if(defined(my $c = sysread($me->{src}, $me->{buffer}, 4096, length($me->{buffer})))) {
 		$me->onBuffer($runner);
-    $c
-  }
-  else {
-    die "Problem reading $me->{name}: $!";
-  }
+		$c
+	}
+	else {
+		die "Problem reading $me->{name}: $!";
+	}
 }
 
 sub onBuffer {
 }
 
 sub close {
-  my $me = shift;
-  close($me->{src}) or die "Can't close...";
+	my $me = shift;
+	close($me->{src}) or die "Can't close...";
 }
 
 sub lg {
-  my $s = shift;
-  print STDERR "$s\n";
+	my $s = shift;
+	print STDERR "$s\n";
 }
 
 
@@ -137,7 +137,7 @@ sub new {
 sub onBuffer {
 	my $me = shift;
 	my $runner = shift;
-	
+
 	while($me->{buffer} =~ /^(?<line>[^\n]*)\n(?<rest>[\s\S]*)$/m) {
 		push(@{$me->{lines}}, $+{line});
 		$me->{buffer} = $+{rest};
@@ -208,6 +208,7 @@ sub shovel {
 
 
 
+
 package Controller;
 
 use base 'LineSink';
@@ -226,7 +227,7 @@ sub onLine {
 	my $me = shift;
 	my $runner = shift;
 
-  while(defined(my $line = shift(@{$me->{lines}}))) {
+	while(defined(my $line = shift(@{$me->{lines}}))) {
 		given($line) {
 			when("sink") {
 				my $pipe = $me->getSink($runner);
@@ -239,7 +240,7 @@ sub onLine {
 
 			# todo and close?????
 		}
-  }
+	}
 }
 
 sub getSink {
