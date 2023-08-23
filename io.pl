@@ -205,7 +205,13 @@ sub shovel {
 
 
 
-
+# instead of asking for a sink or a duplex, with each being given its own pane (imagine!)
+# we want access to left or right...
+# well, actually, as a first step, each request could just be given a pane
+#
+# which means we need a tmux session attached up top (ie here)
+#
+#
 
 
 
