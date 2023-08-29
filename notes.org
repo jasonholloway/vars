@@ -1,0 +1,8 @@
+
+so our input comes into the terminal, and is pumped by the proxy on to the program
+
+the program's output is received by the proxy and then forwarded into the terminal
+
+we need two cats - there's no benefit to socat then, given cat and file-based fifos
+
+
