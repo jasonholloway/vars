@@ -6,7 +6,6 @@ source "${VARS_PATH:-.}/common.sh"
 fifoIn=$1
 fifoOut=$2
 contextFile=$3
-outFile=$4
 
 fzy="$VARS_PATH/fzy/fzy"
 
@@ -77,7 +76,7 @@ controllerActor() {
 				;;
 
 			out)
-				echo "$line" >> "$outFile"
+				echo "$line" >> ${VARS_OUT_FILE}
 				echo "showOut $line" >&8
 				;;
 
