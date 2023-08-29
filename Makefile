@@ -11,7 +11,7 @@ export VARS_PATH=${CURDIR}
 
 endef
 
-install: canRead fzy ptyize
+install: canRead fzy ptyize pause
 	@$(file >${shimPath},$(shim))
 	@chmod +x ${shimPath}
 	$(info installed shim to ${shimPath})
