@@ -212,6 +212,21 @@ sub shovel {
 # which means we need a tmux session attached up top (ie here)
 #
 #
+# tmux can be started up "up top" and passed inwards (just need the server name)
+# but then to run stuff from a subshell, still need to host arbitrary bits of code in it
+#
+# we can do this, but only via ptyize and some kind of proxy
+# and this proxy would need to run _processes_ rather than just subshells etc
+# so at the top level we'd have a script that boots up tmux, and runs the necessaries in it
+#
+# what would be provided to io.pl?
+# some way of starting a proc off inside tmux
+# tho what we really want is for panes to be pre-provided, and for ptyize to do the business with that
+# (which may be possible)
+#
+# but in the first instance, we need to do the tmux creation up top
+# 
+#
 
 
 
