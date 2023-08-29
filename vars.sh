@@ -91,6 +91,7 @@ run() {
 	local -A dredgingPid=()
 
 	say '@ASK io'
+	say "pty $(tty)"
 	say 'sink'
 	hear _ sink
 	say 'duplex'
@@ -256,7 +257,17 @@ controllerActor() {
 
 uiActor() {
 	{
-		# TODO fzy needs wrapping with pty0 and pty1
+			# TODO fzy needs wrapping with pty0 and pty1
+			# what we really want here is our own _pty_ device
+			# which we can use as STDIN
+			# this is what io.pl should provide us with
+			# instead of the fifos
+			# tho ptyize should be making it seem to be a nice tty for our command
+			#
+			# we just wanna say, give me a pty device please
+			# and io.pl should give us one
+			# and we are responsible for closing it nicely
+			
 		fzy="$VARS_PATH/ptyize -r -0$pty0 -1$pty1 $fzy"
 
 		while read type line; do
@@ -307,6 +318,13 @@ uiActor() {
 				read key val <<< "$line"
 				echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
 			};;
+
+
+			# we want entire UI subshell to have its own tmux pane
+			# 
+			#
+			#
+			
 
 			dredge) ;&
 		  ask)

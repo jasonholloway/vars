@@ -1,6 +1,7 @@
 \#*
 .\#*
 canRead
+pause
 ptyize
 fifopty
 

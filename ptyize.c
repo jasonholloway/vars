@@ -141,7 +141,7 @@ void pumpMaster(int fd0, int fd1, int mfd) {
   FD_SET(fd0, &rfds);
   FD_SET(mfd, &rfds);
 
-  /* FILE *logf = fopen("./log", "a"); */
+  FILE *logf = fopen("/tmp/ptyize.log", "a");
 
   while(select(1024, &rfds, NULL, NULL, NULL) > 0) {
 
@@ -149,9 +149,9 @@ void pumpMaster(int fd0, int fd1, int mfd) {
       int c = read(fd0, buff, 4096);
       if(c < 0) fail("reading from fd0");
 
-      /* fwrite(buff, 1, c, logf); */
-      /* fwrite("\n", 1, 1, logf); */
-      /* fflush(logf); */
+      fwrite(buff, 1, c, logf);
+      fwrite("\n", 1, 1, logf);
+      fflush(logf);
       
       int r = write(mfd, buff, c);
       if(r < 0) {

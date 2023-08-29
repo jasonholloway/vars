@@ -235,13 +235,33 @@ sub onLine {
 
 	while(defined(my $line = shift(@{$me->{lines}}))) {
 		given($line) {
+			when(/^pty ([\w\/]+)/) {
+				my $root0 = getFifo();
+				my $root1 = getFifo();
+				my $root2 = getFifo();
+
+				my $pid = fork;
+				if($pid == 0) {
+					# exec "$ENV{VARS_PATH}/ptyize -0$tty -1$tty cat"
+					# exec "socat -r/tmp/socat.log file:$tty,rawer exec:'$ENV{VARS_PATH}/ptyize ',pty,ctty";
+					# exec "socat -r/tmp/socat.log file:$tty,cfmakeraw exec:'strace -f -o/tmp/strace.log cat',pty,ctty,cfmakeraw"; #  tmux -Lvars new-session $ENV{VARS_PATH}/termProxy.sh $root0 $root1 $root2',pty,ctty";
+					exec "socat -r/tmp/socat.log file:$tty,cfmakeraw exec:'tmux -Lvars new-session strace -f -o/tmp/strace.log $ENV{VARS_PATH}/termProxy.sh $root0 $root1 $root2',pty,icanon=1";
+				}
+				else {
+					$me->{pid} = $pid;
+					$me->{pty} = $pid;
+					$me->{root0} = $root0;
+					$me->{root1} = $root1;
+					$me->{root2} = $root2;
+				}
+			}
 			when("sink") {
-				my $pipe = $me->getSink($runner);
-	 			say "sink $pipe";
+				say "sink $me->{root2}";
 			}
 			when('duplex') {
-				(my $send, my $return) = $me->getDuplex($runner);
-				say "duplex $send $return";
+				say "duplex $me->{root0} $me->{root2}";
+				# (my $send, my $return) = $me->getDuplex($runner);
+				# say "duplex $send $return";
 			}
 
 			# todo and close?????
@@ -249,16 +269,24 @@ sub onLine {
 	}
 }
 
+sub getFifo {
+	my $fifoPath = fifoPath();
+	mkfifo($fifoPath, 0700) or die "BAD";
+	$fifoPath
+}
+
 sub getSink {
 	my $me = shift;
 	my $runner = shift;
+	my $name = shift;
+	my $dest = shift;
 
 	my $fifoPath = fifoPath();
 
 	mkfifo($fifoPath, 0700) or die "BAD";
 	open(my $fifo, "+< $fifoPath") or die "BAD $fifoPath $!";
 
-	my $stream = new CorkableStream('controller:stderr', $fifo, *STDERR);
+	my $stream = new CorkableStream("controller:$name", $fifo, $dest);
 	$stream->uncork(); #!!!!!!
 	$runner->add($stream);
 

@@ -81,14 +81,42 @@ run() {
 					hear body
 					say '@END'
 
-					# say '@ASK io'
-					# say 'duplex'
-					# hear _ pty0 pty1
-					# say '@END'
-
 					decode body body
 
-					USE_PTY=
+					# very reasonably expecting a pty to be provided here
+					# now I'm back at thinking we should just put these into tmux
+					# but thereby consigning our main log to tmux too
+					# when we ask for an extra duplex
+					# we put it in a tmux frame with the rest in the background...
+					# a simple wheeze; but it'd leave the terminal history alone
+					#
+					# but this tmux pane would take over the first, the main log
+					#
+					# really we'd need the whole shebang in tmux
+					# but then vim wouldn't take over the entire screen as expected...
+					# it'd just take over one pane, half a screen or subpane even, gross disappointment subsequent
+					#
+					# you get different ptys then
+					# sometimes you want a full one
+					# and sometimes just a normal one
+					# 
+					# it'd be different at least
+					# and _functional_
+					# so, yes, put everything in tmux panes
+					# it's what's _demanded_
+					# by this shite
+					# 
+					# how do we know we need a pty?
+					# for now, provision them for all
+
+					USE_PTY= #1
+
+					if [[ $USE_PTY ]]; then
+						say '@ASK io'
+						say 'duplex'
+						hear _ pty0 pty1
+						say '@END'
+					fi
 
 					(
 						echo "@running $BASHPID"

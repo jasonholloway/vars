@@ -23,3 +23,5 @@ fzy:
 
 ptyize: ptyize.c
 
+pause: pause.c
+
