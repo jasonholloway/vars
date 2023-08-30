@@ -83,33 +83,18 @@ run() {
 
 					decode body body
 
-					# very reasonably expecting a pty to be provided here
-					# now I'm back at thinking we should just put these into tmux
-					# but thereby consigning our main log to tmux too
-					# when we ask for an extra duplex
-					# we put it in a tmux frame with the rest in the background...
-					# a simple wheeze; but it'd leave the terminal history alone
-					#
-					# but this tmux pane would take over the first, the main log
-					#
-					# really we'd need the whole shebang in tmux
-					# but then vim wouldn't take over the entire screen as expected...
-					# it'd just take over one pane, half a screen or subpane even, gross disappointment subsequent
-					#
-					# you get different ptys then
-					# sometimes you want a full one
-					# and sometimes just a normal one
-					# 
-					# it'd be different at least
-					# and _functional_
-					# so, yes, put everything in tmux panes
-					# it's what's _demanded_
-					# by this shite
-					# 
-					# how do we know we need a pty?
-					# for now, provision them for all
-
 					USE_PTY=1
+
+					echo "RUNFLAGS $runFlags" >&2
+
+					# hints should tell us about run options
+					# eg vim and less are full pty
+					# when enabled, we wouldn't capture stdout - does this mean it should be opt in, the inverse? I think so: 'stdout_cmd' should be the hint
+					# todo: needed to support vim and less
+
+					# ideally, we'd request a pane, with full command string, and be given back
+					# input and output fifos (TODO)
+					# which we'd then have to nicely close
 
 					# if [[ $USE_PTY ]]; then
 					# 	say '@ASK io'
@@ -140,10 +125,13 @@ run() {
 
 							cat $fifoOut &
 							pid=$!
-								
-							tmux -L${VARS_TMUX_SOCKET} splitw -h "/bin/bash -c '{ $body } >$fifoOut'"
 
+							tmux -L${VARS_TMUX_SOCKET} splitw -h /bin/bash -c "{ ${body%;}
+} >$fifoOut"
+
+							echo WAITIN >&2
 							wait "$pid"
+							echo DONE >&2
 						else
 							eval "$body"
 						fi
