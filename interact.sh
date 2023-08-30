@@ -240,7 +240,7 @@ uiActor() {
 				)
 
 				v=$(
-					$fzy --prompt "suggest $vn> " <<< "$found" &
+					choose "suggest $vn> " <<< "$found" &
 					pid=$!
 					echo "pid add dredge:$vn $pid" >&7
 					wait "$pid" && echo "pid remove dredge:$vn $pid" >&7
@@ -256,7 +256,7 @@ uiActor() {
 				rawVals=${rawVals//¦/$'\n'}
 
 				v=$(
-					$fzy --prompt "pick ${vn}> " <<< "$rawVals" &
+					choose "pick ${vn}" <<< "$rawVals" &
 					pid=$!
 					echo "pid add pick:$vn $pid" >&7
 					wait "$pid" && echo "pid remove pick:$vn $pid" >&7
@@ -274,6 +274,24 @@ uiActor() {
 
 		kill "${actorPids[@]}" 2>/dev/null
 	} <$uiFifo 7>$cmdFifo
+}
+
+choose() {
+  prompt=$1
+
+  fifoIn="/tmp/vars-choose-in.fifo"
+  [[ ! -p "$fifoIn" ]] && mkfifo "$fifoIn"
+
+  fifoOut="/tmp/vars-choose-out.fifo"
+  [[ ! -p "$fifoOut" ]] && mkfifo "$fifoOut"
+
+  cat <$fifoOut &
+  
+  tmux -L${VARS_TMUX_SOCKET} splitw -h "/bin/sh -c '$fzy --prompt \"$prompt\" >$fifoOut <$fifoIn'"
+
+	cat >$fifoIn
+
+	wait
 }
 
 lg() {

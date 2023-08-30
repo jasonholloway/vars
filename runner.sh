@@ -109,14 +109,14 @@ run() {
 					# how do we know we need a pty?
 					# for now, provision them for all
 
-					USE_PTY= #1
+					USE_PTY=1
 
-					if [[ $USE_PTY ]]; then
-						say '@ASK io'
-						say 'duplex'
-						hear _ pty0 pty1
-						say '@END'
-					fi
+					# if [[ $USE_PTY ]]; then
+					# 	say '@ASK io'
+					# 	say 'duplex'
+					# 	hear _ pty0 pty1
+					# 	say '@END'
+					# fi
 
 					(
 						echo "@running $BASHPID"
@@ -135,10 +135,24 @@ run() {
 						body="${pres[*]} $body"
 
 						if [[ $USE_PTY ]]; then
-							$VARS_PATH/ptyize -0$pty0 -1$pty1 -i -o /bin/bash -c "$body"
+							fifoOut="/tmp/vars-run-out.fifo"
+							[[ ! -p "$fifoOut" ]] && mkfifo "$fifoOut"
+
+							cat $fifoOut &
+							pid=$!
+								
+							tmux -L${VARS_TMUX_SOCKET} splitw -h "/bin/bash -c '{ $body } >$fifoOut'"
+
+							wait "$pid"
 						else
 							eval "$body"
 						fi
+
+						# if [[ $USE_PTY ]]; then
+						# 	$VARS_PATH/ptyize -0$pty0 -1$pty1 -i -o /bin/bash -c "$body"
+						# else
+						# 	eval "$body"
+						# fi
 
 						echo "@fin"
 					) &
