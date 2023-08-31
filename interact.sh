@@ -287,7 +287,7 @@ choose() {
 
   cat <$fifoOut &
   
-  pane=$(tmux -L${VARS_TMUX_SOCKET} splitw -h "/bin/sh -c '$fzy --prompt \"$prompt\" >$fifoOut <$fifoIn'")
+  pane=$(tmux -L${VARS_TMUX_SOCKET} splitw -v "/bin/sh -c '$fzy --prompt \"$prompt\" >$fifoOut <$fifoIn'")
 	trap 'tmux -L${VARS_TMUX_SOCKET} kill-pane -t$pane' SIGINT
 
 	cat >$fifoIn

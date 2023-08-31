@@ -17,3 +17,9 @@ exec ${VARS_PATH}/render.sh <${VARS_OUT_FILE}
 # dispatch needs to be offering panes out as requested
 #
 #
+# we want 1 log: which includes binds
+# so when we log, we don't log to stderr (though: all these logs are coming from the bus)
+# STDERR could then be the means of joining all these streams happily together
+# wherever a line comes from
+# this would also mean we only ever write the result to STDOUT
+#

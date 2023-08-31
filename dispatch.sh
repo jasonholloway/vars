@@ -39,9 +39,6 @@ main() {
 
 	[[ ${flags[*]} =~ q || ! -t 1 ]] && local quietMode=1
 	[[ ${flags[*]} =~ v ]] && local verboseMode=1
-
-	paneLog=$(tmux -L${VARS_TMUX_SOCKET} split-window -dPh tail -f /tmp/vars.log) 
-	echo "TMUX RESULT: $paneLog" >>/tmp/vars2.log
 		
 	{
 		if [[ ${#cmds[@]} -gt 0 ]]; then
@@ -55,8 +52,6 @@ main() {
 			exec 5<&- 6>&-
 		fi
 	} >$VARS_OUT_FILE
-
-	tmux -L${VARS_TMUX_SOCKET} kill-pane -t $paneLog
 }
 
 dispatch() {

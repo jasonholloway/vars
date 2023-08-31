@@ -85,8 +85,6 @@ run() {
 
 					USE_PTY=1
 
-					echo "RUNFLAGS $runFlags" >&2
-
 					# hints should tell us about run options
 					# eg vim and less are full pty
 					# when enabled, we wouldn't capture stdout - does this mean it should be opt in, the inverse? I think so: 'stdout_cmd' should be the hint
@@ -95,13 +93,6 @@ run() {
 					# ideally, we'd request a pane, with full command string, and be given back
 					# input and output fifos (TODO)
 					# which we'd then have to nicely close
-
-					# if [[ $USE_PTY ]]; then
-					# 	say '@ASK io'
-					# 	say 'duplex'
-					# 	hear _ pty0 pty1
-					# 	say '@END'
-					# fi
 
 					(
 						echo "@running $BASHPID"
@@ -126,21 +117,17 @@ run() {
 							cat $fifoOut &
 							pid=$!
 
+							# the output fifo should be written to directly by helpers
+							# leaving stdout simply going to window
+							# stderr could be captured into the log however
+
 							tmux -L${VARS_TMUX_SOCKET} splitw -h /bin/bash -c "{ ${body%;}
 } >$fifoOut"
 
-							echo WAITIN >&2
 							wait "$pid"
-							echo DONE >&2
 						else
 							eval "$body"
 						fi
-
-						# if [[ $USE_PTY ]]; then
-						# 	$VARS_PATH/ptyize -0$pty0 -1$pty1 -i -o /bin/bash -c "$body"
-						# else
-						# 	eval "$body"
-						# fi
 
 						echo "@fin"
 					) &

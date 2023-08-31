@@ -8,12 +8,7 @@ use lib $ENV{VARS_PATH};
 use Data::Dumper;
 use IO::Select;
 
-# if($ENV{VARS_DEBUG}) {
-  open(my $log, '>>', '/tmp/vars.log') or die "Failed to open vars log";
-  $log->autoflush(1);
-  print $log "Starting bus.pl\n";
-# }
-
+my $log = $ENV{VARS_DEBUG} ? *STDERR : 0;
 
 my $root = new Peer($log, 'root', *STDOUT, *STDIN);
 my @convs = ({ from => $root, to => $root });
