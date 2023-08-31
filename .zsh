@@ -68,7 +68,7 @@ bindkey 'jvg' vars_get
 
 
 vars_run() {
-  allTargets=$(vars list blocks rel)
+  allTargets=$(VARS_IFACE=simple vars list blocks rel)
 
   chosen=$(echo "$allTargets" | awk -F\; '{ print $1 }' | fzy -q ""$1"" -l 20)
 
@@ -110,7 +110,7 @@ bindkey 'jve' vars_edit
 
 
 vars_pinArbitrary() {
-  allTargets=$(vars list ins)
+  allTargets=$(VARS_IFACE=simple vars list ins)
 
   var=$(echo "$allTargets" | awk -F\; '{ print $1 }' | sort | uniq | fzy -q ""$1"" -l 20)
 
@@ -129,10 +129,10 @@ bindkey 'jvp' vars_pinArbitrary
 
 
 vars_pinFromContext() {
-  var=$(vars context list | tac | fzy -q ""$1"" -l 20)
+  var=$(VARS_IFACE=simple vars context list | tac | fzy -q ""$1"" -l 20)
 
   if [[ $? && ! -z $var ]]; then
-    vars pin $var
+    VARS_IFACE=simple vars pin $var
   fi
 
   zle reset-prompt
@@ -145,10 +145,10 @@ bindkey 'jvxp' vars_pinFromContext
 
 
 vars_unpin() {
-  var=$(vars pin list | fzy -q ""$1"" -l 20 | cut -f1)
+  var=$(VARS_IFACE=simple vars pin list | fzy -q ""$1"" -l 20 | cut -f1)
 
   if [[ $? && ! -z $var ]]; then
-    vars pin rm $var
+    VARS_IFACE=simple vars pin rm $var
   fi
 
   zle reset-prompt
