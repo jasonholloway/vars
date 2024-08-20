@@ -220,6 +220,7 @@ run() {
 
       pin) {
               read -r key val <<< "$line"
+              
               $VARS_PATH/context.sh pin "${key}=${val}" &> /dev/null
               echo -e "${colBindName}${key}<-${colBindValue}${val}${colNormal}" >&2
           };;
@@ -429,7 +430,7 @@ parsePin() {
       } || {
         parseMany "parseName targets" \
           && {
-            $VARS_PATH/context.sh pin "${targets[@]}"
+            $VARS_PATH/context.sh pin "${targets[*]}"
           }
       }
     }

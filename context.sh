@@ -10,8 +10,8 @@ main() {
   shift
 
   case $cmd in
-      pin) pin $@;;
-      unpin) unpin $@;;
+      pin) pin "$@";;
+      unpin) unpin "$@";;
       list) list;;
       listPinned) listPinned;;
       clearPinned) clearPinned;;
@@ -25,7 +25,7 @@ pin() {
     
   local -A toAdd=()
 
-  for n in $@; do
+  for n in "$@"; do
     if [[ $n =~ ^[[:alnum:]]+=.* ]]; then
       toAdd[${n%%=*}]=${n#*=}
     fi
@@ -35,7 +35,7 @@ pin() {
     local v=${toAdd[$n]}
     local b=$(base64 -w0 <<< "$v")
     echo "$b" > "$pinnedDir/$n"
-    echo "PINNED $n=$(crop 50 $v)" >&2
+    echo "PINNED $n=\"$(crop 50 $v)\"" >&2
   done
 }
 
