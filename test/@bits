@@ -17,6 +17,17 @@ pig: Babe|Pigathy
 @bind dogCount ${#dog[@]}
 
 
+#+++++++++++
+# out: bat
+@bind bat Brian
+@bind bat Bernice
+
+#++++++++++++
+# in: bat*
+# out: batCount
+@bind batCount ${#bat[@]}
+
+
 #+++++++
 # in: potentialPet*:dog+pig+food hamster
 # n: buyPets

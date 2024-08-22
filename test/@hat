@@ -3,6 +3,14 @@ age > hat,cat
 ; 7 > baseball,timbo
 ; 70 > flatcap,dave
 
+#++++++++++++ map
+cat > meeow
+; dave > <<EOF
+meeow
+meeow
+EOF
+; timbo > purr
+
 
 #++++ bash
 # n: getSurname

@@ -1,5 +1,37 @@
 BEGIN {
     ruleI=0
+    heredoc=0
+    heredocText=""
+}
+
+# start heredoc
+/^ *[;:].*<<EOF$/ {
+    gsub("^\\s*[;:]\\s*", "")
+    gsub("<<EOF$", "")
+    heredocText=$0
+    heredoc=1
+    next
+}
+
+# end heredoc
+heredoc!=0 && /^EOF/ {
+    rules[ruleI++]=heredocText
+    heredocText=""
+    heredoc=0
+    next
+}
+
+# continue heredoc
+heredoc!=0 {
+    if(heredoc == 1) {
+        heredocText = heredocText $0
+    }
+    else {
+        heredocText = heredocText"\n"$0
+    }
+    
+    heredoc++
+    next
 }
 
 # empty
