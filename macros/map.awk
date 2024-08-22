@@ -75,7 +75,9 @@ END {
 
         for(k in ruleOuts) {
             printf "    "
-            print "@bind "outs[k]" \""ruleOuts[k]"\""
+            print "@bindHeredoc "outs[k]" <<EOF"
+            print ruleOuts[k]
+            print "EOF"
         }
 
         print "  ;;"

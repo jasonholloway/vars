@@ -161,6 +161,8 @@ run() {
           ;;
 
       out)
+          decode line line
+          
           echo "$line" >> "$outFile"
           
           if [[ $quietMode ]]; then

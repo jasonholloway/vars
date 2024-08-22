@@ -69,7 +69,7 @@ run() {
 										for val in "${vals[@]}"; do
 												read -r vvn v <<< "$val"
 												if [[ $vvn == $vn ]]; then
-														decode v v
+														# decode v v
 														say "out $v"
 												fi
 										done
@@ -148,6 +148,20 @@ run() {
 								@bind[[:space:]][[:word:]]*)
 										read -r _ vn v <<< "$line"
 										say bind "$vn" "$v"
+								;;
+
+								@bindHeredoc[[:space:]][[:word:]]*)
+										read -r _ vn _ <<< "$line"
+										say bindHeredoc "$vn"
+
+										while read -r l; do
+											if [[ $l =~ ^EOF ]];
+												then break;
+												else say "$l";
+											fi
+										done
+
+										say "EOF"
 								;;
 
 								@set[[:space:]][[:word:]]*)

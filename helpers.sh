@@ -95,6 +95,12 @@
     echo @bind "$vn" "¦${__r[*]}"
 }
 
+@bindHeredoc() {
+    local vn="$1"
+    local val=$(cat)
+    echo @bind "$vn" "${val//$'\n'/$'\036'}"
+}
+
 @tty() {
     echo @tty $@
 }

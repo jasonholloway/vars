@@ -91,11 +91,13 @@ sub evalBlock {
     while(my $line = hear()) {
         given($line) {
             when(/^bind (?<vn>[^ ]+) (?<val>.+)/) {
-                my $v = decode($+{val});
-                my @vs = split(/¦/, $v);
+                # my $v = decode($+{val});
+                # my @vs = split(/¦/, $v);
 
                 #todo surely vars sent to runner need to be encoded?
                 #tho this should be done by runner
+
+                my @vs = split(/¦/, $+{val});
                 push(@{$boundOuts{$+{vn}} //= []}, @vs);
             }
             when(/^set (?<name>[^ ]+) (?<val>.+)/) {
