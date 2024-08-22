@@ -1,8 +1,8 @@
 
 dog,age > food
-:	Bert > bones
+:	Bert > 'bones'
 :	Rex,13 > biscuits,lamb chunks
-: Pepsis > chicken neck
+: Pepsis > "chicken neck"
 : Adri > <<EOF
     lovely dog stuff
     cabbage

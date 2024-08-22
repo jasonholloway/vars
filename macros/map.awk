@@ -64,7 +64,9 @@ heredoc {
     split(parts[2], rOuts, / *, */)
 
     for(i in rOuts) {
-        vals[valI]=rOuts[i]
+        v=rOuts[i]
+        gsub("(^\"|')|(\"|'$)", "", v)
+        vals[valI]=v
         rOuts[i]=valI
         valI++
     }
