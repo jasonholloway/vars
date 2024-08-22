@@ -5,6 +5,7 @@ use Data::Dumper;
 use MIME::Base64 qw( decode_base64 );
 use 5.034;
 no warnings 'experimental';
+no warnings 'deprecated';
 
 use lib $ENV{VARS_PATH};
 use Sig;

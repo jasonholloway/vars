@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use 5.034;
 no warnings 'experimental';
+no warnings 'deprecated';
 
 use lib $ENV{VARS_PATH};
 use Data::Dumper;
