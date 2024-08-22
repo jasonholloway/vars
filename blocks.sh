@@ -42,6 +42,11 @@ readBlock() {
       local macroFile="$VARS_PATH/macros/${macro}.awk"
       if [[ -e $macroFile ]]; then
           block="$(awk -f "$macroFile" <<<"$block")"
+
+          # {
+          #   echo "EXPANDED ${macroFile}:"
+          #   echo "$block"
+          # } >&2
       fi
   fi
 
