@@ -190,7 +190,7 @@ sub tokenize {
 
 	sub readToken {
 			 (/^( +)/ and emit(SPACE, $1))
-		or (/^(\w[\w_0-9]*)/ and emit(WORD, $1))
+		or (/^(\w[\w_0-9.]*)/ and emit(WORD, $1))
 		or (/^(\{)/ and emit(BRACE_OPEN, $1))
 		or (/^(\})/ and emit(BRACE_CLOSE, $1))
 		or (/^(:)/ and emit(COLON, $1))
