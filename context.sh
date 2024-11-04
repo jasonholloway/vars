@@ -26,7 +26,7 @@ pin() {
   local -A toAdd=()
 
   for n in "$@"; do
-    if [[ $n =~ ^[[:alnum:]]+=.* ]]; then
+    if [[ $n =~ ^_?[[:alnum:]]+=.* ]]; then
       toAdd[${n%%=*}]=${n#*=}
     fi
   done 
