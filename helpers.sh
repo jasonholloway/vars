@@ -13,6 +13,8 @@
       local move=1
       local schema status isError
 
+      echo "" > /tmp/resp
+
       while true; do
         [[ $move ]] && { read -r line || break; }
         move=
@@ -53,7 +55,7 @@
             ;;
 
             body)
-              echo "$line" 
+              echo "$line" | tee -a /tmp/resp
               [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
               move=1
             ;;
