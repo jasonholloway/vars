@@ -63,6 +63,16 @@ heredoc {
     split(parts[1], rIns, / *, */)
     split(parts[2], rOuts, / *, */)
 
+    for(i in rIns) {
+        v=rIns[i]
+
+        if(v !~ /[|*]/) {
+            v="\""v"\""
+        }
+
+        rIns[i]=v
+    }
+
     for(i in rOuts) {
         v=rOuts[i]
         gsub("(^\"|')|(\"|'$)", "", v)
