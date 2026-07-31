@@ -182,13 +182,11 @@ sub summon {
           # tho - not backtracking if all paths are tried and combined
           # each supplier would just be filtered nastily here
           #
-
             
             foreach my $source (@{$x->{supplying}{$vn} or []}) {
               # filter on conditions here
               evalBlock($x, $source);
             }
-
             
             getVar($x, $vn)
         }

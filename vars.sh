@@ -474,10 +474,18 @@ parseCache() {
   parse1 '^cache$' \
     && (
       (parse1 '^clear$' \
-        && rm -rf $cacheDir/* \
-        && echo cleared cache!) \
-      || find $cacheDir -type d
-    )
+        && ({
+          parse1 '^last$' \
+            && find $cacheDir -name 'O-last' -delete \
+            && echo cleared last outline cache!
+        } \
+        || {
+          rm -rf $cacheDir/* \
+            && echo cleared cache!
+        })
+    ) \
+    || find $cacheDir -type d
+  )
 }
 
 parseFlag() {
