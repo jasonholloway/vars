@@ -185,8 +185,10 @@ sub summon {
               # filter on conditions here
               evalBlock($x, $source);
             }
+
+            
             getVar($x, $vn)
-          }
+        }
         || askVar($x, $vn);
 
     my $vals = $v->{vals};

@@ -118,6 +118,7 @@ run() {
 															"@cacheFor "*)
 																	read -r _ cacheFor _ <<<"$line"
 																	cacheTill=$((now + cacheFor))
+
 																	;;
 
 															*)
@@ -131,7 +132,15 @@ run() {
 											printf "%s\n" "${buff[@]}" >>"$cacheFile"
 
 									else
-											while read -r line; do echo "$line"; done
+											while read -r line; do
+														case "$line" in
+																"@cache"*)
+																		;;
+																*)
+																		echo "$line"
+																		;;
+														esac
+											done
 									fi
 							}
 				fi
