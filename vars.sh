@@ -89,14 +89,20 @@ dispatch() {
 run() {
   local fids outlines type line currentBlock
 
-  say "@ASK files"
-  say "find"
-  say "@YIELD"
-  hear fids
-  say "outline $fids"
-  say "@YIELD"
-  hear outlines
-  say "@END"
+  if [[ -e .outlines ]]; then
+      outlines=$(cat .outlines)
+  else
+    say "@ASK files"
+    say "find"
+    say "@YIELD"
+    hear fids
+    say "outline $fids"
+    say "@YIELD"
+    hear outlines
+    say "@END"
+
+    echo "$outlines" > .outlines
+  fi
 
   say "@ASK deducer"
   say "deduce"
@@ -478,8 +484,8 @@ parseCache() {
       (parse1 '^clear$' \
         && ({
           parse1 '^last$' \
-            && find $cacheDir -name 'O-last' -delete \
-            && echo cleared last outline cache!
+            && rm -f "./.outlines" \
+            && echo cleared local outline cache!
         } \
         || {
           rm -rf $cacheDir/* \

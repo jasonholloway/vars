@@ -29,16 +29,6 @@ getOutlines() {
 
   fids=$*
 
-  lastCacheFile="${cacheDir}/O-last"
-
-  if [[ $VARS_USE_LAST_OUTLINE_CACHE && -e $lastCacheFile ]]; then
-    {
-      read -r allOutlines
-      say "$allOutlines"
-      return
-    } <"$lastCacheFile"
-  fi
-
   hash=$(echo "$fids" | sha1sum)
   cacheFile="$cacheDir/O-${hash%% *}"
 
@@ -60,7 +50,6 @@ getOutlines() {
 
   allOutlines=$(IFS=$RS; echo "${outlines[*]}")
   echo "$allOutlines" >"$cacheFile"
-  cp "$cacheFile" "$lastCacheFile"
 
   say "$allOutlines"
 }
