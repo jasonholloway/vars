@@ -48,6 +48,8 @@ main() {
 
   if [[ ${#cmds[@]} -gt 0 ]]; then
     {
+      trap 'kill $COPROC_PID' EXIT
+
       coproc {
         $VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
       }
