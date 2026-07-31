@@ -18,3 +18,9 @@ for r in ${rodent[@]}; do echo "hello, $r"; done
 
 
 
+#+ val
+rat
+: Oscar
+
+
+

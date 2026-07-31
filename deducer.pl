@@ -2,7 +2,8 @@
 use strict;
 use warnings;
 use Data::Dumper;
-use MIME::Base64 qw( decode_base64 );
+use MIME::Base64 qw(decode_base64);
+use List::Util qw(uniq);
 use 5.034;
 no warnings 'experimental';
 no warnings 'deprecated';
@@ -181,6 +182,8 @@ sub summon {
           # tho - not backtracking if all paths are tried and combined
           # each supplier would just be filtered nastily here
           #
+
+            
             foreach my $source (@{$x->{supplying}{$vn} or []}) {
               # filter on conditions here
               evalBlock($x, $source);
@@ -196,6 +199,7 @@ sub summon {
 
     # lg(Dumper($in));
 
+    # todo this should be done after processing all sources !!!!!
     if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
         say "pick $alias ¦".join('¦', @{$vals});
         say '@YIELD';
@@ -205,7 +209,7 @@ sub summon {
             say "pin $alias $+{val}";
         }
 
-        $v = addVar($x, $alias, [$+{val}], "picked");
+        $v = putVar($x, $alias, [$+{val}], "picked");
     }
 
     if($pins) {
@@ -257,7 +261,9 @@ sub addVar {
     my $scope = $x->{scopes}[-1];
     my $v = $scope->{$vn} //= {};
 
-    $v->{vals} = $vals;
+    push(@{$v->{vals}}, @{$vals});
+    @{$v->{vals}} = uniq @{$v->{vals}};
+
     $v->{source} = $source; # todo should be source per val
 
     say "bound $source $vn " . join('¦', @{$vals});
@@ -275,7 +281,7 @@ sub putVar {
     my $scope = $x->{scopes}[-1];
     my $v = $scope->{$vn} //= {};
 
-    $v->{vals} = $vals;
+    @{$v->{vals}} = @{$vals};
     $v->{source} = $source; # todo should be source per val
 
     say "bound $source $vn " . join('¦', @{$vals});
