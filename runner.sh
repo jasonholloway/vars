@@ -25,9 +25,10 @@ main() {
 }
 
 run() {
-		local cacheFile
+		local cacheFile cacheVals
 		local outline runFlags blockFlags ivn vn isMultiIn v
 		local -a vals=()
+		local now=$(date +%s)
 
 		IFS=$FS read -r bid _ _ _ blockFlags <<< "$*"
 
@@ -43,19 +44,26 @@ run() {
 		[[ $blockFlags =~ C ]] && isCacheable=1
 
 		if [[ $isCacheable ]]; then
-				local hash=$(sha1sum <<< "$bid ${vals[*]}")
+				cacheVals=$(for val in "${vals[@]}"; do echo "$val"; done | sort | tr '\n' '\30')
+				local hash=$(sha1sum <<< "$bid ${cacheVals}")
 				cacheFile="$cacheDir/R-${hash%% *}"
 		fi
 
 		{
 				runIt=1
-				if [[ $isCacheable && -e $cacheFile ]]; then
+
+				if [[ $isCacheable && -e "$cacheFile" ]]; then
 						{
 								read -r line
+
 								if [[ $line > $now ]]; then
+									read -r line
+
+									if [[ "$line" == "$cacheVals" ]]; then
 										echo @fromCache
 										cat
 										runIt=
+									fi
 								fi
 						} <"$cacheFile"
 				fi
@@ -118,7 +126,6 @@ run() {
 															"@cacheFor "*)
 																	read -r _ cacheFor _ <<<"$line"
 																	cacheTill=$((now + cacheFor))
-
 																	;;
 
 															*)
@@ -129,7 +136,10 @@ run() {
 											done
 
 											echo $cacheTill >>"$cacheFile"
+											echo $cacheVals >>"$cacheFile"
 											printf "%s\n" "${buff[@]}" >>"$cacheFile"
+
+											echo "wrote to cache $cacheFile"
 
 									else
 											while read -r line; do
