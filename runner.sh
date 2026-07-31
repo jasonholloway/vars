@@ -140,8 +140,6 @@ run() {
 											echo $cacheVals >>"$cacheFile"
 											printf "%s\n" "${buff[@]}" >>"$cacheFile"
 
-											echo "wrote to cache $cacheFile"
-
 									else
 											while read -r line; do
 														case "$line" in
