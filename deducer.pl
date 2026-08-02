@@ -400,7 +400,7 @@ sub readVar {
 sub readUserPins {
     my %ac;
 
-    while(my $path = glob("$ENV{HOME}/.vars/pinned/*")) {
+    while(my $path = glob("$ENV{HOME}/.vars/current/pinned/*")) {
         $path =~ /(?<vn>[^\/]+)$/;
         my $vn = $+{vn};
 

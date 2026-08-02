@@ -10,9 +10,9 @@ alias vcc="vars cache clear"
 alias vcl="vars cache clear last"
 alias vpl="vars pin list"
 alias vxl="vars context list"
-alias vxz="vars context prev"
+alias vxs="vars context switch"
+alias vxf="vars context fork"
 alias vz="vars context prev"
-
 
 vars_choose() {
   target=$(vars list | fzy -q ""$1"" -l 20)
@@ -188,7 +188,8 @@ bindkey -s 'jvpc' 'vars pin clear^M'
 
 bindkey -s 'jvx' 'vars context list^M'
 bindkey -s 'jvxl' 'vars context list^M'
-bindkey -s 'jvxc' 'vars context clear^M'
+bindkey -s 'jvxs' 'vars context switch^M'
+bindkey -s 'jvxf' 'vars context fork^M'
 
 bindkey -s 'jvxz' 'vars context prev^M'
 bindkey -s 'jvz' 'vars context prev^M'

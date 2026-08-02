@@ -22,8 +22,8 @@ colDim='\e[38;5;240m'
 colDimmest='\e[38;5;236m'
 
 cacheDir="$HOME/.vars/cache"
-contextFile="$HOME/.vars/context"
-outFile="$HOME/.vars/out"
+contextFile="$HOME/.vars/current/context"
+outFile="$HOME/.vars/current/out"
 
 pts=$(tty)
 
@@ -424,6 +424,8 @@ parseEdit() {
   }
 }
 
+ctx=$VARS_PATH/context.sh
+
 parsePin() {
   parse1 '^(p|pi|pin)$' \
     && {
@@ -453,7 +455,21 @@ parseContext() {
       && {
           {
             parse1 '^(l|li|lis|list|ls)$' \
-            && $VARS_PATH/context.sh list
+            && $ctx listContexts
+          } || {
+            parse1 '^(s|switch)$' \
+            && {
+              echo "Switch to context:"
+              newContext=$($ctx listContexts | fzy)
+              $ctx switchContext $newContext
+            }
+          } || {
+            parse1 '^(f|fork)$' \
+            && {
+              echo -n "Enter name for new context: "
+              read newContextName
+              $ctx forkContext "$newContextName"
+            }
           } || {
             parse1 '^(c|cl|clear)$' \
             && $VARS_PATH/context.sh clearContext

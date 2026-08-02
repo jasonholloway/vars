@@ -1,8 +1,9 @@
 #!/bin/bash
 
-outFile=$HOME/.vars/out
-contextFile=$HOME/.vars/context
-pinnedDir=$HOME/.vars/pinned
+userDir=$HOME/.vars
+outFile=$userDir/out
+contextFile=$userDir/current/context
+pinnedDir=$userDir/current/pinned
 mkdir -p "$pinnedDir"
 
 main() {
@@ -17,6 +18,10 @@ main() {
       clearPinned) clearPinned;;
       clearContext) clearContext;;
       previous) previous;;
+      currentContext) currentContext;;
+      listContexts) listContexts;;
+      switchContext) switchContext "$1";;
+      forkContext) forkContext "$1";;
   esac
 }
 
@@ -96,6 +101,36 @@ crop() {
   else
     echo "$rest"
   fi
+}
+
+currentContext() {
+  cat "$userDir/currentName"
+}
+
+listContexts() {
+  find $userDir/contexts -mindepth 1 -maxdepth 1 -type d -printf "%f\n"
+}
+
+switchContext() {
+  cd $userDir
+
+  name="$1"
+  path="contexts/$name"
+
+  if [[ -d $path ]]; then
+    ln -sfv -T "$path" current \
+    && echo "$name" >currentName
+  fi
+}
+
+forkContext() {
+  cd "$userDir"
+
+  newName="$1"
+  currentName=$(currentContext)
+
+  cp -R "contexts/$currentName" "contexts/$newName" \
+     && switchContext "$newName"
 }
 
 main "$@"
