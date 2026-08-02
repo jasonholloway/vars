@@ -14,6 +14,7 @@ use constant OR => 6;
 use constant PLUS => 7;
 use constant AND => 8;
 use constant MODIFIER => 9;
+use constant HASH => 10;
 
 sub parse {
 	my $raw = shift;
@@ -84,6 +85,11 @@ sub parse {
 
 			if(my ($mod) = take(MODIFIER)) {
 				$ac{modifier} = $mod;
+			}
+
+			while(take(HASH)) {
+				my ($arg) = take(WORD);
+				push(@{$ac{args}}, $arg);
 			}
 
 			if(my %pins = parsePins()) {
@@ -190,7 +196,7 @@ sub tokenize {
 
 	sub readToken {
 			 (/^( +)/ and emit(SPACE, $1))
-		or (/^(\w[\w_0-9.]*)/ and emit(WORD, $1))
+		or (/^(\w[\w_0-9.\-]*)/ and emit(WORD, $1))
 		or (/^(\{)/ and emit(BRACE_OPEN, $1))
 		or (/^(\})/ and emit(BRACE_CLOSE, $1))
 		or (/^(:)/ and emit(COLON, $1))
@@ -199,6 +205,7 @@ sub tokenize {
 		or (/^(\+)/ and emit(PLUS, $1))
 		or (/^(\&)/ and emit(AND, $1))
 		or (/^(\!|\*)/ and emit(MODIFIER, $1))
+		or (/^(\#)/ and emit(HASH, $1))
 	}
 
 	sub emit {
@@ -206,6 +213,11 @@ sub tokenize {
 		my $s = shift;
 		substr($_, 0, length($s), '');
 		[$t, $s]
+	}
+
+	sub lg {
+			my ($line) = @_;
+			print STDERR "$line\n";
 	}
 }
 

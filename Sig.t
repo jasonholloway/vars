@@ -280,5 +280,18 @@ is(
 	"parse multifarious names"
 );
 
+is(
+	Sig::parse("brian:lion#large#loathsome"),
+	[
+		{
+			alias => "brian",
+			from => [{
+				name => "lion",
+				args => ["large", "loathsome"]
+			}]
+		}
+	],
+	"parse args"
+);
 
 done_testing;
