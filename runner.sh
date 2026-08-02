@@ -28,12 +28,14 @@ run() {
 		local cacheFile cacheVals
 		local outline runFlags blockFlags ivn vn isMultiIn v
 		local -a vals=()
+		local -a args=()
 		local now=$(date +%s)
 
 		IFS=$FS read -r bid _ _ _ blockFlags <<< "$*"
 
 		while hear type line; do
 				case $type in
+						arg) args+=("$line");;
 						flags) runFlags=$line;;
 						val) vals+=("$line");;
 						go) break;
@@ -44,7 +46,7 @@ run() {
 		[[ $blockFlags =~ C ]] && isCacheable=1
 
 		if [[ $isCacheable ]]; then
-				cacheVals=$(for val in "${vals[@]}"; do echo "$val"; done | sort | tr '\n' '\30')
+				cacheVals=$(for val in "${args[@]}" "${vals[@]}"; do echo "$val"; done | sort | tr '\n' '\30')
 				local hash=$(sha1sum <<< "$bid ${cacheVals}")
 				cacheFile="$cacheDir/R-${hash%% *}"
 		fi
@@ -54,16 +56,36 @@ run() {
 
 				if [[ $isCacheable && -e "$cacheFile" ]]; then
 						{
-								read -r line
+								local missed
+								
+								while read -r type line; do
+											case "$type" in
+													"t")
+															if [[ $line < $now ]]; then
+																	missed=1
+																	break
+															fi
+													;;
+													"f")
+															:
+													;;
+													"v")
+															if [[ "$line" != "$cacheVals" ]]; then
+																	missed=1
+																	break
+															fi
+													;;
+													"")
+															:
+															break
+													;;
+											esac
+								done 
 
-								if [[ $line > $now ]]; then
-									read -r line
-
-									if [[ "$line" == "$cacheVals" ]]; then
+								if [[ ! $missed ]]; then
 										echo @fromCache
 										cat
 										runIt=
-									fi
 								fi
 						} <"$cacheFile"
 				fi
@@ -82,6 +104,14 @@ run() {
 												fi
 										done
 								;;
+
+								file:*)
+										vn="${bid##*:}"
+										vn="${vn%\*}"
+										echo "TODO: Evaluate file $vn" >&2
+										:
+								;;
+
 								*)
 										say "@ASK files"
 										say "body $bid"
@@ -96,6 +126,12 @@ run() {
 												source $VARS_PATH/helpers.sh 
 
 												shopt -s extglob
+
+												local argI=0
+												for arg in "${args[@]}"; do
+														pres+=("ARG${argI}='$arg';")
+														argI=$((argI + 1))
+												done
 
 												for val in "${vals[@]}"; do
 														read -r vn v <<< "$val"
@@ -136,9 +172,12 @@ run() {
 													esac
 											done
 
-											echo $cacheTill >>"$cacheFile"
-											echo $cacheVals >>"$cacheFile"
-											printf "%s\n" "${buff[@]}" >>"$cacheFile"
+											{
+												echo "t ${cacheTill}"
+												echo "v ${cacheVals}"
+												echo 
+												printf "%s\n" "${buff[@]}"
+											} >"$cacheFile"
 
 									else
 											while read -r line; do

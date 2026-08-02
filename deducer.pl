@@ -34,12 +34,15 @@ sub main {
 
 sub evalBlock {
     my $x = shift;
-    my $target = shift;
-    my $block = $x->{blocks}{$target};
+    my $bid = shift;
+    my $block = $x->{blocks}{$bid};
+
+    # lg("TARGET: " . Dumper(\$target));
+    # lg("BLOCK: " . Dumper(\$block));
 
     if(grep(/P/, @{$block->{flags}})) {
         say '@ASK files';
-        say "pins $target";
+        say "pins $bid";
         say '@YIELD';
 
         my @blockPins;
@@ -61,13 +64,22 @@ sub evalBlock {
     my %boundIns;
 
     foreach my $in (@{$block->{ins} or []}) {
-      my ($alias, $vs) = summon($x, $in, $target);
+      my ($alias, $vs) = summon($x, $in, $bid);
       push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
     }
 
     say '@ASK runner';
     say "run $block->{outline}";
+
     say "flags @{$block->{flags}}";
+
+
+    #where to get args????
+    #they are against each OUT *******
+
+    # foreach my $arg (@{$target->{args}}) {
+    #     say "arg $arg"
+    # }
 
     foreach my $vn (keys %boundIns) {
         my $v = $boundIns{$vn};
@@ -85,7 +97,7 @@ sub evalBlock {
     # then communicate these steps up the stack
     # shouldn't this again be the responsibility of the runner?
 
-    say "running $target";
+    say "running $bid";
 
     my %boundOuts;
 
@@ -113,21 +125,24 @@ sub evalBlock {
 
     foreach my $vn (keys %boundOuts) {
         my @vs = @{$boundOuts{$vn}};
-        addVar($x, $vn, \@vs, $target);
+        addVar($x, $vn, \@vs, $bid);
     }
 }
 
 sub summon {
   my $x = shift;
   my $in = shift;
-  my $target = shift;
+  my $bid = shift;
+
+  lg("summon " . Dumper(\$in) . " " . $bid);
 
   my $alias = $in->{alias};
 
   my @vs;
 
   foreach my $source (@{$in->{from}}) {
-    my $vn = $source->{name};
+    my $vn0 = $source->{name};
+    my $vn = join("#", $vn0, @{$source->{args}});
     my $pins = $source->{pins};
 
     if($pins) {
@@ -183,7 +198,7 @@ sub summon {
           # each supplier would just be filtered nastily here
           #
             
-            foreach my $source (@{$x->{supplying}{$vn} or []}) {
+            foreach my $source (@{$x->{supplying}{$vn0} or []}) {
               # filter on conditions here
               evalBlock($x, $source);
             }
@@ -217,7 +232,7 @@ sub summon {
     push(@vs, @{$v->{vals}});
   }
 
-  putVar($x, $alias, \@vs, $target);
+  putVar($x, $alias, \@vs, $bid);
 
   ($alias, \@vs)
 }
@@ -331,10 +346,6 @@ sub readInputs {
             push(@{$supplying{$out->{name}}}, $bid);
         }
     }
-
-    # should receive single target _outline_
-    # this would allow us to inject in get:blah from outside
-    # meaning we don't have to synthesize here
 
     my %targets;
     foreach my $targetName (hearWords()) {

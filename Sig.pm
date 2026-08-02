@@ -83,6 +83,8 @@ sub parse {
 				name => $name
 			);
 
+			@{$ac{args}} = ();
+
 			if(my ($mod) = take(MODIFIER)) {
 				$ac{modifier} = $mod;
 			}
