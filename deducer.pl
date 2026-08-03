@@ -134,7 +134,7 @@ sub summon {
   my $in = shift;
   my $bid = shift;
 
-  lg("summon " . Dumper(\$in) . " " . $bid);
+  # lg("summon " . Dumper(\$in) . " " . $bid);
 
   my $alias = $in->{alias};
 

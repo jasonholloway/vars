@@ -74,7 +74,7 @@ readBlock() {
 
   say "${names[*]}"
   say "${ins[*]}"
-  say "${outs[*]}"
+  say "${outs[*]} ${names[*]}"
   say "${flags[*]}"
 
   for p in "${pins[@]}"; do

@@ -309,11 +309,22 @@ edit() {
 }
 
 editPick() {
-    local -a outlines
+  picked=$(list | filterList O | fzy)
 
-    findOutlines outlines
+  if [[ $picked ]]; then
+      IFS=\; read vn rest <<<"$picked"
+      IFS=\| read rest linum <<<"$rest"
+      IFS=\, read file hash <<< "$rest"
 
-    edit $(for o in ${outlines[@]}; do echo "${o//$FS/;}"; done | fzy --prompt "${name}> ")
+      case "$EDITOR" in
+          emacsclient*)
+              eval "$EDITOR +$linum $file" >$pts;;
+          vi*)
+              eval "$EDITOR +'100|norm! zt' $file" >$pts;;
+          *)
+              eval "$EDITOR $file" >$pts;;
+      esac
+  fi
 }
 
 filterList() {
