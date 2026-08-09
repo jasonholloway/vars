@@ -225,7 +225,8 @@ sub evalBlock {
     }
 
     if($singleOut and scalar(%boundOuts) == 0) {
-        addVar($x, $singleOut, [join("\n", @linesOut)], $bid);
+        my $val = join("\n", @linesOut);
+        addVar($x, $singleOut, [$val], $bid);
     }
 }
 
@@ -291,7 +292,7 @@ sub addVar {
 
     $v->{source} = $source; # todo should be source per val
 
-    say "bound $source $vn " . join('¦', @{$vals});
+    emitBound($vn, $vals, $source);
 
     $v;
 }
@@ -309,10 +310,22 @@ sub putVar {
     @{$v->{vals}} = @{$vals};
     $v->{source} = $source; # todo should be source per val
 
-    say "bound $source $vn " . join('¦', @{$vals});
+    emitBound($vn, $vals, $source);
 
     $v;
 }
+
+sub emitBound {
+    my $vn = shift;
+    my $vals = shift;
+    my $source = shift;
+
+    my $v = join('|', @$vals);
+    $v =~ tr/\n/\30/;
+
+    say "bound $source $vn $v";
+}
+
 
 sub getVar {
     my $x = shift;

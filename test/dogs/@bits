@@ -9,4 +9,16 @@ dog > food
 
 #++++
 # n: sayBoo
-echo boo!
+cat <<EOF
+blah blah blah
+
+woof woof woof
+
+moo
+
+EOF
+
+#++++
+# n: wot
+# in: sayBoo
+echo YUP

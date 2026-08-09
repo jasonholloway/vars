@@ -147,10 +147,14 @@ run() {
       bound)
           read -r src key val <<< "$line"
 
+          val=${val//$'\30'/$'\n'};
+
           if [[ "$src" == "ROOT" ]]; then
-              echo $val
+              echo "$val"
               continue
           fi
+
+          val=${val%%$'\n'*} 
 
           if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
               val='****'
