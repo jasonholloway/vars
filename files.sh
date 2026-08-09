@@ -211,14 +211,16 @@ findFiles() {
   {
     find -L ~+ -maxdepth "$peekDepth" ! -readable -prune -o -name "$pattern" -printf "0,%p,%T@\n"
 
-    (
-      while cd ..; do
-        find ~+ -maxdepth 1 ! -readable -prune -o -name "$pattern" -printf "0,%p,%T@\n"
-        [[ $PWD = / ]] && exit 0
-      done
-    )
+    if [[ -z $VARS_VERY_LOCAL ]]; then
+      (
+        while cd ..; do
+          find ~+ -maxdepth 1 ! -readable -prune -o -name "$pattern" -printf "0,%p,%T@\n"
+          [[ $PWD = / ]] && exit 0
+        done
+      )
+    fi
 
-    if [[ -z $VARS_LOCAL && -d "$globalDir" ]]; then
+    if [[ -z $VARS_LOCAL && -z $VARS_VERY_LOCAL && -d "$globalDir" ]]; then
       find -L "$globalDir" -maxdepth "$globalPeekDepth" ! -readable -prune -o -name "$pattern" -printf "9,%p,%T@\n"
     fi
   } \

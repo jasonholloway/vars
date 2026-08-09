@@ -21,8 +21,20 @@ sub main {
                 $x{scopes} = [ {} ];
                 $x{pins} = readUserPins();
 
+                # if($ENV{VARS_DEBUG}) {
+                #     lg(Dumper(\%x));
+                # }
+
                 foreach my $target (keys %{$x{targets}}) {
-                    evalBlock(\%x, $target);
+                    evalExp(\%x,
+                            {
+                                alias => $target,
+                                from => [{
+                                    name => $target,
+                                    args => []
+                                }]
+                            },
+                            "ROOT");
                 }
 
                 say 'fin';
@@ -32,13 +44,88 @@ sub main {
     }
 }
 
+sub evalExp {
+  my $x = shift;
+  my $exp = shift;
+  my $bid = shift;
+
+  my $alias = $exp->{alias};
+
+  my @vs;
+
+  foreach my $source (@{$exp->{from}}) {
+    my $vn0 = $source->{name};
+    my $vn = join("#", $vn0, @{$source->{args}});
+    my $pins = $source->{pins};
+
+    if($pins) {
+      pushScope($x);
+      foreach my $pvn (keys %{$pins}) {
+        addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
+      }
+    }
+
+    my $v = summonOut($x, $vn);
+    my $vals = $v->{vals};
+    my $mod = $exp->{modifier};
+
+    # lg("VALS " . Dumper(\$vals));
+
+    # todo this should be done after processing all sources !!!!!
+    if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
+        say "pick $alias ¦".join('¦', @{$vals});
+        say '@YIELD';
+        hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
+
+        if($+{pin}) {
+            say "pin $alias $+{val}";
+        }
+
+        $v = putVar($x, $alias, [$+{val}], "picked");
+    }
+
+    if($pins) {
+      popScope($x);
+    }
+
+    push(@vs, @{$v->{vals}});
+  }
+
+  putVar($x, $alias, \@vs, $bid);
+
+  ($alias, \@vs)
+}
+
+sub summonOut {
+    my $x = shift;
+    my $vn = shift;
+
+    # lg("TARGET: " . $vn);
+    # lg(Dumper($x));
+    # lg(Dumper($x->{supplying}{$target}));
+
+    return getVar($x, $vn)
+        || tryPinned($x, $vn)
+        || do {
+            my @bids;
+
+            foreach my $bid (@{$x->{supplying}->{$vn}}) {
+                push(@bids, $bid);
+            }
+
+            foreach my $bid (@bids) {
+                evalBlock($x, $bid);
+            }
+            
+            getVar($x, $vn)
+        }
+        || askVar($x, $vn);
+}
+
 sub evalBlock {
     my $x = shift;
     my $bid = shift;
     my $block = $x->{blocks}{$bid};
-
-    # lg("TARGET: " . Dumper(\$target));
-    # lg("BLOCK: " . Dumper(\$block));
 
     if(grep(/P/, @{$block->{flags}})) {
         say '@ASK files';
@@ -64,7 +151,7 @@ sub evalBlock {
     my %boundIns;
 
     foreach my $in (@{$block->{ins} or []}) {
-      my ($alias, $vs) = summon($x, $in, $bid);
+      my ($alias, $vs) = evalExp($x, $in, $bid);
       push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
     }
 
@@ -100,6 +187,12 @@ sub evalBlock {
     say "running $bid";
 
     my %boundOuts;
+    my @linesOut = ();
+    my $singleOut;
+
+    if(scalar(@{$block->{outs}}) == 1) {
+        $singleOut = $block->{outs}[0]->{name};
+    }
 
     while(my $line = hear()) {
         given($line) {
@@ -118,6 +211,9 @@ sub evalBlock {
     #           attrs[$n]="$v"
                 #...
             }
+            when(/^out (?<line>.*)/) {
+                push(@linesOut, $+{line});
+            }
             when('fin') { last }
             default { say $line }
         }
@@ -127,115 +223,31 @@ sub evalBlock {
         my @vs = @{$boundOuts{$vn}};
         addVar($x, $vn, \@vs, $bid);
     }
+
+    if($singleOut and scalar(%boundOuts) == 0) {
+        addVar($x, $singleOut, [join("\n", @linesOut)], $bid);
+    }
 }
 
-sub summon {
-  my $x = shift;
-  my $in = shift;
-  my $bid = shift;
-
-  # lg("summon " . Dumper(\$in) . " " . $bid);
-
-  my $alias = $in->{alias};
-
-  my @vs;
-
-  foreach my $source (@{$in->{from}}) {
-    my $vn0 = $source->{name};
-    my $vn = join("#", $vn0, @{$source->{args}});
-    my $pins = $source->{pins};
-
-    if($pins) {
-      pushScope($x);
-      foreach my $pvn (keys %{$pins}) {
-        addVar($x, $pvn, [$pins->{$pvn}[0]], "pinned") # all pins need enumerating
-      }
-    }
-
-		# so instead of doing one, then the other
-		# evalling and dredging should be done in parallel
-		# the problem being that both use the bus...
-		# so then the bus needs to support multiplexing
-		#
-
-    my $v = getVar($x, $vn)
-        || tryPinned($x, $vn)
-        || do {
-          # the problem here is that we only want to offer dredged
-          # when there is either multiple or a certain delay
-          # and the dredged val is never a proper val, more a passing suggestion
-          # which means this isn't a problem for the deducer
-          # but rather _vars_, while it waits for a successful conclusion to a run
-          # leaps into action, and offers its quick suggestion, which is a kind of opportunistic override
-
-          # then if further values arrive
-          # or if a run and binding succeeds happily
-          # the frontend steps back and lets things run on
-
-          # which means perl methinks as it's complicated this
-
-          # and so, we need some kind of interrupt from the frontend
-          # <- @UNCORK 3 <prefix>
-          # -> <prefix> line blah
-          # -> <prefix> line blah
-          # <- @CORK 3
-          # -> <prefix> fin
-
-          # so, when listening for run results
-          # 
-          #
-          #
+# so we have two summons
+# one is for when we have read the block and now need to summon inputs too
+# 
+#
+#
+#
+#
+#
+#
+#
 
 
 
-          # not sure how else to do it - in the middle of communication with the runner
-          # but we can't actively poll - we just register a drain
-          #
-            
-          
-          # backtracking walk would be round here
-          # tho - not backtracking if all paths are tried and combined
-          # each supplier would just be filtered nastily here
-          #
-            
-            foreach my $source (@{$x->{supplying}{$vn0} or []}) {
-              # filter on conditions here
-              evalBlock($x, $source);
-            }
-            
-            getVar($x, $vn)
-        }
-        || askVar($x, $vn);
 
-    my $vals = $v->{vals};
-    my $mod = $in->{modifier};
 
-    # lg(Dumper($in));
-
-    # todo this should be done after processing all sources !!!!!
-    if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
-        say "pick $alias ¦".join('¦', @{$vals});
-        say '@YIELD';
-        hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
-
-        if($+{pin}) {
-            say "pin $alias $+{val}";
-        }
-
-        $v = putVar($x, $alias, [$+{val}], "picked");
-    }
-
-    if($pins) {
-      popScope($x);
-    }
-
-    push(@vs, @{$v->{vals}});
-  }
-
-  putVar($x, $alias, \@vs, $bid);
-
-  ($alias, \@vs)
-}
+# TODO TODO TODO
+# need to move more bits from below into summonOut
+#
+#
 
 sub tryPinned {
     my $x = shift;
@@ -348,15 +360,24 @@ sub readInputs {
     }
 
     my %targets;
-    foreach my $targetName (hearWords()) {
-        if(exists $blocks->{$targetName}) {
-            $targets{$targetName} = 1;
-        }
-        elsif(exists $blocksByName{$targetName}) {
-            my $bid = $blocksByName{$targetName}{bid};
-            $targets{$bid} = 1;
-        }
+    foreach my $tn (hearWords()) {
+        $targets{$tn} = 1;
     }
+
+    # foreach my $targetName (hearWords()) {
+    #     if(exists $blocks->{$targetName}) {
+    #         $targets{$targetName} = 1;
+    #     }
+    #     elsif(exists $blocksByName{$targetName}) {
+    #         my $bid = $blocksByName{$targetName}{bid};
+    #         $targets{$bid} = 1;
+    #     }
+    #     elsif(exists $supplying{$targetName}) {
+    #         foreach my $bid (@{$supplying{$targetName}}) {
+    #             $targets{$bid} = 1;
+    #         }
+    #     }
+    # }
     
     (
         blocks => $blocks,

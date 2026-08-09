@@ -147,6 +147,11 @@ run() {
       bound)
           read -r src key val <<< "$line"
 
+          if [[ "$src" == "ROOT" ]]; then
+              echo $val
+              continue
+          fi
+
           if [[ $key =~ (^_)|([pP]ass)|([sS]ecret)|([pP]wd) ]]; then
               val='****'
           else
@@ -375,8 +380,10 @@ parseGet() {
     && parseNames targets \
     && {
       for t in $targets; do
-        blocks+=("get:$t")
-        extraOutlines+=("get:$t")
+        blocks+=("$t")
+
+        # blocks+=("get:$t")
+        # extraOutlines+=("get:$t")
       done
       cmds+=("run")
     }

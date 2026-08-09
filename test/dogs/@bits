@@ -1,0 +1,12 @@
+#+ val
+dog: Bert|Rex|Biter|Nobby
+
+#++++++++++++++++++++ map
+dog > food
+;	[Bb]* > bones
+;	[Rr]* > biscuits
+;	* > meat
+
+#++++
+# n: sayBoo
+echo boo!
