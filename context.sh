@@ -1,7 +1,7 @@
 #!/bin/bash
 
 userDir=$HOME/.vars
-outFile=$userDir/out
+outFile=$userDir/current/out
 contextFile=$userDir/current/context
 pinnedDir=$userDir/current/pinned
 mkdir -p "$pinnedDir"

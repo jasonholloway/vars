@@ -147,10 +147,10 @@ run() {
       bound)
           read -r src key val <<< "$line"
 
-          val=${val//$'\30'/$'\n'};
+          val=${val//$'\31'/$'\n'};
 
           if [[ "$src" == "ROOT" ]]; then
-              echo "$val"
+              echo "$val" | tee "$outFile"
               continue
           fi
 
@@ -182,7 +182,7 @@ run() {
       out)
           decode line line
           
-          echo "$line" >> "$outFile"
+          # echo "$line" >> "$outFile"
           
           if [[ $quietMode ]]; then
               echo -n "$line"

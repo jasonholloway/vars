@@ -321,7 +321,7 @@ sub emitBound {
     my $source = shift;
 
     my $v = join('|', @$vals);
-    $v =~ tr/\n/\30/;
+    $v =~ tr/\n/\31/;
 
     say "bound $source $vn $v";
 }
