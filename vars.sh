@@ -50,8 +50,10 @@ main() {
     {
       trap 'kill $COPROC_PID' EXIT
 
+      local p=$VARS_PATH
+
       coproc {
-        $VARS_PATH/bus.pl "files:$VARS_PATH/files.sh;blocks:$VARS_PATH/blocks.sh;deducer:$VARS_PATH/deducer.pl;hist:$VARS_PATH/history.sh;runner:$VARS_PATH/runner.sh $pts"
+        $p/bus.pl "files:$p/files.sh;blocks:$p/blocks.sh;deducer:$p/deducer.pl;hist:$p/history.sh;cache:$p/cache.sh;runner:$p/runner.sh $pts"
       }
       exec 5<&${COPROC[0]} 6>&${COPROC[1]}
 
@@ -114,7 +116,6 @@ run() {
   rm -f "$outFile" || :
 
   while hear type line; do
-    # echo "+++ $type $line" >&2
     case "$type" in
 
       fin)

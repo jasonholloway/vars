@@ -26,12 +26,12 @@ main() {
 
 run() {
 		local cacheFile cacheVals
-		local outline runFlags blockFlags ivn vn isMultiIn v
+		local outline runFlags bid rawOuts blockFlags ivn vn isMultiIn v
 		local -a vals=()
 		local -a args=()
 		local now=$(date +%s)
 
-		IFS=$FS read -r bid _ _ _ blockFlags <<< "$*"
+		IFS=$FS read -r bid _ _ rawOuts blockFlags <<< "$*"
 
 		while hear type line; do
 				case $type in
@@ -195,6 +195,15 @@ run() {
 		} \
 		| {
 				local fromCache=
+
+				#if we're a data block
+				#we want to cache and return a bound stats
+				#but...really this is the overall bound var
+				#
+
+				local -A bound=()
+				local -a lines=()
+
 				while read -r line; do
 						case "$line" in
 								@fromCache)
@@ -205,11 +214,13 @@ run() {
 								@bind[[:space:]][[:word:]]*)
 										read -r _ vn v <<< "$line"
 										say bind "$vn" "$v"
+										bound[$vn]=1
 								;;
 
 								@bindHeredoc[[:space:]][[:word:]]*)
 										read -r _ vn _ <<< "$line"
 										say bindHeredoc "$vn"
+										bound[$vn]=1
 
 										while read -r l; do
 											if [[ $l =~ ^EOF ]];
@@ -235,24 +246,23 @@ run() {
 										vn="${line%%=*}"
 										v="${line#*=}"
 										say bind "$vn" "$v"
+										bound[$vn]=1
 								;;
 
 								*)
-										say out "$line"
+										lines+=("$line")
 								;;
 						esac
 				done
-			} \
-		# | {
-		#     >"$outFile"
-		
-		# 		if [[ ${runFlags[*]} =~ "T" ]]; then
-		# 				while read -r line; do
-		# 						say out "$line"
-		# 						echo "$line" >>"$outFile"
-		# 				done
-		# 		fi
-		# 	}
+		        
+				local -a outs
+				outs=($rawOuts)
+				out0=${outs[0]}
+
+				if [[ ! -z $out0 && -z ${bound[$out0]} ]]; then
+						IFS=$'\31'; say bind "$out0" "${lines[*]}"
+				fi
+			}
 
 		say fin
 }

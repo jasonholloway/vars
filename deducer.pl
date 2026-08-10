@@ -224,10 +224,10 @@ sub evalBlock {
         addVar($x, $vn, \@vs, $bid);
     }
 
-    if($singleOut and scalar(%boundOuts) == 0) {
-        my $val = join("\n", @linesOut);
-        addVar($x, $singleOut, [$val], $bid);
-    }
+    # if($singleOut and scalar(@{$boundOuts{$singleOut} // []}) == 0) {
+    #     my $val = join("\n", @linesOut);
+    #     addVar($x, $singleOut, [$val], $bid);
+    # }
 }
 
 # so we have two summons

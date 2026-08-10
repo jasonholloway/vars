@@ -19,6 +19,11 @@ moo
 EOF
 
 #++++
-# n: wot
-# in: sayBoo
-echo YUP
+# in: dog
+# out: data#dogstats.txt
+cat <<EOF
+Some $dog stuff
+right here
+$(date)
+EOF
+
