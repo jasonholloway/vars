@@ -45,6 +45,14 @@ run() {
 		isCacheable=
 		[[ $blockFlags =~ C ]] && isCacheable=1
 
+		# so if the block is cacheable,
+		# we want firstly to establish a conversation with the cache
+		# and supply it our header of variables
+		#
+		# the cache will then tell us whether it has data or not
+		#
+		#
+
 		if [[ $isCacheable ]]; then
 				cacheVals=$(for val in "${args[@]}" "${vals[@]}"; do echo "$val"; done | sort | tr '\n' '\30')
 				local hash=$(sha1sum <<< "$bid ${cacheVals}")
@@ -195,12 +203,6 @@ run() {
 		} \
 		| {
 				local fromCache=
-
-				#if we're a data block
-				#we want to cache and return a bound stats
-				#but...really this is the overall bound var
-				#
-
 				local -A bound=()
 				local -a lines=()
 
@@ -260,7 +262,37 @@ run() {
 				out0=${outs[0]}
 
 				if [[ ! -z $out0 && -z ${bound[$out0]} ]]; then
-						IFS=$'\31'; say bind "$out0" "${lines[*]}"
+						if [[ $out0 =~ ^data#(.+) ]]; then
+								name=${BASH_REMATCH[1]}
+
+								say "@ASK cache"
+								say "putData"
+								say "$name"
+								for val in "${args[@]}" "${vals[@]}"; do say "$val"; done
+								say
+
+								say newFile
+								say "@YIELD"
+
+								hear file
+
+								for line in "${lines[@]}"; do
+										echo "$line" >> "$file"
+								done
+								say
+
+								say fin
+								say "@YIELD"
+
+								hear spec
+
+								say "@END"
+
+								say bind "$out0" "$spec"
+
+						else
+								IFS=$'\31'; say bind "$out0" "${lines[*]}"
+						fi
 				fi
 			}
 
@@ -268,3 +300,30 @@ run() {
 }
 
 main "$@"
+
+
+# DO WE REALLY WANT CONSISTENT HASHING OF DATA FILE NAME???  the file
+# path should sit in the normal cache till its expiry so each
+# generation of the file should have a different hash even if it has
+# exactly the same inputs
+#
+# almost like the cache header should be given to the *actual* cache
+# and not the virtual files system
+#
+# what we really want is for the name to be part of the path, but with
+# some kind of unique addition - an addition given to it by the actual
+# cache entry?
+#
+# but even the hash deduced by the cache should have some expiry or
+# ttl too
+#
+# every cacheing should return a unique name, formed by the cache
+# mechanism itself - the actual content would be up to the cache, but
+# it would be expected to be informative and consistent
+# eg ${vn}.${hash}.${expiry}.${fileNum}.data
+#
+# cacheing is of a block, rather than of a single variable, seemingly
+# the hash above encodes the block specs, the determinant source the
+# vn is just the split out portion of the cacheing relating to the file
+#
+# 

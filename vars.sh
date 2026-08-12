@@ -266,6 +266,7 @@ list() {
       local IFS=$','
       for name in $names; do
           echo "B;$name;$bid"
+          echo "O;$name;$bid"
       done
 
       for inp in $ins; do
