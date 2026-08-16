@@ -21,11 +21,18 @@ main() {
 				peek) peek $rest;;
 				put) put $rest;;
 				release) release $rest;;
-				stageFile) stageFile $rest;;
+				openSinks) openSinks $rest;;
+				closeSinks) closeSinks $rest;;
+				dump) dump $rest;;
     esac
 
     say "@YIELD"
   done
+}
+
+dump() {
+	local token=$1
+	say "${stash[$token]}"
 }
 
 peek() {
@@ -126,10 +133,13 @@ put() {
 										[[ $line == ';' ]] && break
 									done
 							;;
-							STAGEDFILE)
-									read fn tmpFile <<<"$rest"
-									mv "$tmpFile" "${fn@P}"
-									echo "FILE $fn"
+							SINK)
+									read _ fn sinkFile _ <<<"$rest"
+
+									if [[ -e "$sinkFile" ]]; then
+										mv "$sinkFile" "${fn@P}"
+										echo "FILE $fn"
+									fi
 							;;
 					esac
 				done
@@ -149,13 +159,12 @@ release() {
 	#todo delete tmp file
 }
 
-stageFile() {
-	local token name stashed fn ext dataFile tmpFile hash created
-	token="$1"
-	name="$2"
-	stashed="${stash[$token]}"
+openSinks() {
+	local token name fn ext sinkFile hash created
 
-	if [[ ! -z $stashed ]]; then
+	token="$1"
+
+	stash[$token]+=$(
 		{
 			read _
 
@@ -170,31 +179,75 @@ stageFile() {
 								;;
 				esac
 			done
-		} <<<"$stashed"
+		} <<<"${stash[$token]}"
 
-		fn="\${dataDir}/${name%.*}.${hash}.${created:-0}"
-		ext="${name##*.}"
+		echo
 
-		if [[ ! -z "$ext" ]]; then
-			fn+=".${ext}"
-		fi
+		while hear name && [[ ! -z "$name" ]]; do
+			#todo filenum too!
+			fn="\${dataDir}/${name%.*}.${hash}.${created:-0}"
+			ext="${name##*.}"
+			if [[ ! -z "$ext" && "$ext" != "$name" ]]; then fn+=".${ext}"; fi
 
-		tmpFile=$(mktemp -u)
+			sinkFile=$(mktemp -u)
+			echo "SINK $name $fn $sinkFile"
 
-		say "$tmpFile"
-		say "@YIELD"
+			say "$sinkFile"
+		done
+	)
+}
 
-		hear
+closeSinks() {
+	local token line type rest fn sinkFile
 
-		if [[ -e "$tmpFile" ]]; then
-			stash[$token]+=$'\n'"STAGEDFILE $fn $tmpFile"
-			lastMod=$(stat --format=%Y "$tmpFile")
-			say "file;$fn;$lastMod"
-		else
-			echo "cache data file not written!" >&2
-			say
-		fi
-	fi
+	token="$1"
+
+	{
+		while read line; do
+			case "$line" in
+					"SINK "*)
+							read _ name fn sinkFile <<< "$line"
+
+							if [[ -e "$sinkFile" ]]; then
+								lastMod=$(stat --format=%Y "$sinkFile")
+								say "$name file;$fn;$lastMod"
+							else
+								echo "nothing written to data sink $sinkFile!" >&2
+							fi
+							;;
+			esac
+		done
+
+		say
+	} <<< "${stash[$token]}"
+
+
+
+	# {
+	# 	stash[$token]=$(
+	# 		while read line; do
+	# 			case "$line" in
+	# 					"SINK "*)
+	# 							read _ name fn sinkFile <<< "$line"
+
+	# 							if [[ -e "$sinkFile" ]]; then
+	# 								stash[$token]+=$'\n'"STAGEDFILE $fn $sinkFile"
+	# 								lastMod=$(stat --format=%Y "$sinkFile")
+	# 								say "$name file;$fn;$lastMod"
+	# 							else
+	# 								echo "nothing written to data sink $sinkFile!" >&2
+	# 							fi
+	# 							;;
+	# 					*)
+	# 							echo "$line"
+	# 							;;
+				
+	# 			esac
+	# 		done
+	# 	)
+
+	# 	say
+	# } <<< "${stash[$token]}"
 }
 
 

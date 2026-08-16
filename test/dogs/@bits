@@ -20,7 +20,7 @@ EOF
 
 #++++
 # in: dog
-# out: data#dogstats.txt
+# out: ~data#dogstats.txt
 cat <<EOF
 Some $dog stuff
 right here
