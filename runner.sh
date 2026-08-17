@@ -69,7 +69,7 @@ run() {
 						say "peek"
 						say "$bid"
 						for val in "${args[@]}" "${vals[@]}"; do
-								say "$val";
+								if [[ ! $val =~ ^_ ]]; then say "$val"; fi
 						done
 						say
 						say "@YIELD"

@@ -168,7 +168,7 @@ sub evalBlock {
     #     say "arg $arg"
     # }
 
-    foreach my $vn (keys %boundIns) {
+    foreach my $vn (sort keys %boundIns) {
         my $v = $boundIns{$vn};
 
         foreach my $val (@{$v->{vals}}) {
