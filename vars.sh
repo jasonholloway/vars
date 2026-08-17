@@ -151,6 +151,7 @@ run() {
           val=${val//$'\31'/$'\n'};
 
           if [[ "$src" == "ROOT" ]]; then
+              decode val val
               echo "$val" | tee "$outFile"
               continue
           fi
@@ -528,7 +529,8 @@ parseCache() {
             && echo cleared local outline cache!
         } \
         || {
-          rm -rf $cacheDir/* \
+          rm -f $cacheDir/blocks/* \
+            && rm -f $cacheDir/data/* \
             && echo cleared cache!
         })
     ) \

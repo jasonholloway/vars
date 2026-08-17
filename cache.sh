@@ -38,7 +38,7 @@ dump() {
 peek() {
 	local key line hash cacheFile foundKey
 
-	set -x
+	# set -x
 
 	# header should be the block id, followed by input bindings
 	# but this is all opaque to us

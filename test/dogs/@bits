@@ -8,19 +8,21 @@ dog > food
 ;	* > meat
 
 #++++
-# n: sayBoo
-cat <<EOF
-blah blah blah
+# n: bark
+# in: dog food
+# cache
+@bindHeredoc bark <<EOF
+woof woof woof (sez $dog)
 
-woof woof woof
-
-moo
+yum! $food
 
 EOF
 
+@cacheTill 10000
+
 #++++
 # in: dog
-# out: ~data#dogstats.txt
+# out: data#dogstats.txt
 cat <<EOF
 Some $dog stuff
 right here

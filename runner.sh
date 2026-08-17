@@ -85,6 +85,13 @@ run() {
 										;;
 								miss)
 										hear cacheToken
+
+										#todo openSinks here
+										#
+										#
+										#
+
+										
 										;;
 						esac
 						say "@END" #do I need to end this here? I think not... it will be resumed after the file stuff
@@ -155,11 +162,14 @@ run() {
 											
 											say "@ASK cache"
 											say "put $cacheToken"
+
+											say "OUT"
 											for line in "${buff[@]}"; do
 														say "$line"
 														echo "$line"
 											done
 											say
+
 											say "@END"
 									else
 											while read -r line; do
