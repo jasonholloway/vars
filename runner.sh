@@ -129,6 +129,7 @@ run() {
 												[[ \$VARS_DEBUG ]] && set -x
 												${pres[*]}
 												set -e
+												set -o pipefail
 												$body
 												" <"$pts"
 								)
