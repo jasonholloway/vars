@@ -253,9 +253,7 @@ run() {
 				#
 
 				if [[ $failed ]]; then
-						for line in "${lines[@]}"; do
-									say out "$line"
-						done
+						IFS=$'\36'; say fail "${lines[*]}"
 
 				elif [[ ! -z $out0 && -z ${bound[$out0]} ]]; then
 

@@ -211,6 +211,10 @@ sub evalBlock {
     #           attrs[$n]="$v"
                 #...
             }
+            when(/^fail (?<out>.*)/) {
+                lg($+{out});
+                die "FAILED!";
+            }
             when(/^out (?<line>.*)/) {
                 push(@linesOut, $+{line});
             }
