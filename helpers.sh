@@ -36,7 +36,12 @@
 
             http)
               read -r schema status rest <<<"$line"
-              [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+
+              if [[ ($status -lt 200 || $status -gt 300) && $status -ne 531 ]]; then
+                  isError=1
+              fi
+
+              [[ $isError ]] && echo "$line" >&2
 
               if [[ $rest =~ "Connection [eE]stablished" ]]; then
                 mode=proxyHeader
@@ -49,19 +54,19 @@
 
             header)
               [[ -z $line ]] && mode=body
-              [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+              [[ $isError ]] && echo "$line" >&2
               move=1
             ;;
 
             proxyHeader)
               [[ -z $line ]] && mode=http
-              [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+              [[ $isError ]] && echo "$line" >&2
               move=1
             ;;
 
             body)
               echo "$line" | tee -a /tmp/resp
-              [[ ! ($status -ge 200 && $status -lt 300) ]] && echo "$line" >&2
+              [[ $isError ]] && echo "$line" >&2
               move=1
             ;;
 
@@ -72,7 +77,9 @@
         esac
       done
 
-      [[ $isError ]] && return 1
+      if [[ $isError ]]; then
+        return 1
+      fi
 
     } <<<"$resp"
 }

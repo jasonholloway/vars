@@ -21,9 +21,12 @@ colNormal='\033[0m'
 colDim='\e[38;5;240m'
 colDimmest='\e[38;5;236m'
 
-cacheDir="$HOME/.vars/cache"
-contextFile="$HOME/.vars/current/context"
-outFile="$HOME/.vars/current/out"
+userDir="$HOME/.vars"
+cacheDir="${userDir}/cache"
+contextDir="${userDir}/current"
+contextFile="${contextDir}/context"
+boundFile="${contextDir}/bound"
+outFile="${contextDir}/out"
 
 pts=$(tty)
 
@@ -113,7 +116,8 @@ run() {
   say "${flags[*]}"
   say "@YIELD"
 
-  rm -f "$outFile" || :
+  : > "$outFile"
+  : > "$boundFile"
 
   while hear type line; do
     case "$type" in
@@ -146,6 +150,8 @@ run() {
           ;;
 
       bound)
+          echo "$line" >> "$boundFile"
+
           read -r src key val <<< "$line"
 
           val=${val//$'\31'/$'\n'};

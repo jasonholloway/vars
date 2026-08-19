@@ -29,3 +29,11 @@ right here
 $(date)
 EOF
 
+#+++++
+# out: blub
+echo "isn't it grand, in't it though?"
+
+#+++++
+# n: flub
+# in: blub
+echo "$blub"
