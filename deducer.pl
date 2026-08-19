@@ -234,26 +234,6 @@ sub evalBlock {
     # }
 }
 
-# so we have two summons
-# one is for when we have read the block and now need to summon inputs too
-# 
-#
-#
-#
-#
-#
-#
-#
-
-
-
-
-
-# TODO TODO TODO
-# need to move more bits from below into summonOut
-#
-#
-
 sub tryPinned {
     my $x = shift;
     my $vn = shift;
@@ -353,7 +333,7 @@ sub askVar {
     $v =~ /(?<val>.+?)(?<pin>\!?)$/;
 
     if($+{pin}) {
-      # add to pin file... todo
+        say "pin $vn $+{val}"
     }
 
     addVar($x, $vn, [ $+{val} ], 'asked');
