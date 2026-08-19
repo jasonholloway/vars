@@ -18,7 +18,7 @@ main() {
       clearPinned) clearPinned;;
       clearContext) clearContext;;
       previous) previous;;
-      currentContext) currentContext;;
+      current) current;;
       listContexts) listContexts;;
       switchContext) switchContext "$1";;
       forkContext) forkContext "$1";;
@@ -103,7 +103,7 @@ crop() {
   fi
 }
 
-currentContext() {
+current() {
   cat "$userDir/currentName"
 }
 
@@ -126,8 +126,8 @@ switchContext() {
 forkContext() {
   cd "$userDir"
 
-  newName="$1"
-  currentName=$(currentContext)
+  newName="${1}"
+  currentName=$(current)
 
   cp -R "contexts/$currentName" "contexts/$newName" \
      && switchContext "$newName"

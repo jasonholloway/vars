@@ -502,6 +502,9 @@ parseContext() {
             parse1 '^prev(ious)?$' \
             && $VARS_PATH/context.sh previous
           } || {
+            parse1 '^curr(ent)?$' \
+            && $VARS_PATH/context.sh current
+          } || {
             $VARS_PATH/context.sh list
           }
         }
