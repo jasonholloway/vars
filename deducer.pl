@@ -44,18 +44,52 @@ sub main {
     }
 }
 
+##########################################################################
+# evaluate alias:source+source etc
+# multiple sources are summoned and their results pooled into alias
 sub evalExp {
   my $x = shift;
   my $exp = shift;
   my $bid = shift;
 
   my $alias = $exp->{alias};
+  my $mod = $exp->{modifier} // '';
 
   my @vs;
 
   foreach my $source (@{$exp->{from}}) {
+    if(my $v = summonSource($x, $source)) {
+      push(@vs, @{$v->{vals} // []});
+    }
+  }
+
+  if(scalar(@vs) > 1 and $mod !~ /\*/) {
+    say "pick $alias ¦".join('¦', @vs);
+    say '@YIELD';
+    hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
+    
+    if($+{pin}) {
+        say "pin $alias $+{val}";
+    }
+    
+    @vs = $+{val};
+    putVar($x, $alias, \@vs, "picked");
+  }
+  else {
+    putVar($x, $alias, \@vs, $bid);
+  }
+
+  ($alias, \@vs)
+}
+
+sub summonSource {
+    my $x = shift;
+    my $source = shift;
+
     my $vn0 = $source->{name};
     my $vn = join("#", $vn0, @{$source->{args} // []});
+    my $mod = $source->{modifier} // '';
+
     my $pins = $source->{pins};
 
     if($pins) {
@@ -65,46 +99,7 @@ sub evalExp {
       }
     }
 
-    my $v = summonOut($x, $vn);
-    my $vals = $v->{vals};
-    my $mod = $exp->{modifier};
-
-    # lg("VALS " . Dumper(\$vals));
-
-    # todo this should be done after processing all sources !!!!!
-    if((!$mod or $mod ne '*') and scalar(@{$vals}) != 1) {
-        say "pick $alias ¦".join('¦', @{$vals});
-        say '@YIELD';
-        hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
-
-        if($+{pin}) {
-            say "pin $alias $+{val}";
-        }
-
-        $v = putVar($x, $alias, [$+{val}], "picked");
-    }
-
-    if($pins) {
-      popScope($x);
-    }
-
-    push(@vs, @{$v->{vals}});
-  }
-
-  putVar($x, $alias, \@vs, $bid);
-
-  ($alias, \@vs)
-}
-
-sub summonOut {
-    my $x = shift;
-    my $vn = shift;
-
-    # lg("TARGET: " . $vn);
-    # lg(Dumper($x));
-    # lg(Dumper($x->{supplying}{$target}));
-
-    return getVar($x, $vn)
+    my $v = getVar($x, $vn)
         || tryPinned($x, $vn)
         || do {
             my @bids;
@@ -118,8 +113,17 @@ sub summonOut {
             }
             
             getVar($x, $vn)
-        }
-        || askVar($x, $vn);
+        };
+
+    if(!$v && $mod !~ /\?/) {
+        $v = askVar($x, $vn);
+    }
+
+    if($pins) {
+      popScope($x);
+    }
+
+    $v;
 }
 
 sub evalBlock {
