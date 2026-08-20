@@ -289,6 +289,23 @@ is(
 );
 
 is(
+	Sig::parse("Hairy_dog5(BREED123=Doberman7&Num_Legs=13)"),
+	[
+		{
+			alias => "Hairy_dog5",
+			from => [{
+				name => "Hairy_dog5",
+				pins => {
+					BREED123 => ["Doberman7"],
+					Num_Legs => [5 + 5 + 3]
+				}
+			}]
+		}
+	],
+	"parse multifarious names"
+);
+
+is(
 	Sig::parse("brian:lion#large#loathsome"),
 	[
 		{
