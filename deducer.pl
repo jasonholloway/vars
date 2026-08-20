@@ -55,7 +55,7 @@ sub evalExp {
 
   foreach my $source (@{$exp->{from}}) {
     my $vn0 = $source->{name};
-    my $vn = join("#", $vn0, @{$source->{args}});
+    my $vn = join("#", $vn0, @{$source->{args} // []});
     my $pins = $source->{pins};
 
     if($pins) {

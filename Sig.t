@@ -220,7 +220,7 @@ is(
  );
 
 is(
-	Sig::parse("bert!:dog{breed=Pomeranian&fur=fluffy} cat*{breed=Tabby} hamster! pet*:bunny+gerbil"),
+	Sig::parse("bert!:dog{breed=Pomeranian&fur=fluffy} cat*{breed=Tabby} hamster? pet*:bunny+gerbil mouse*?"),
 	[
 		{
 			alias => "bert",
@@ -248,9 +248,9 @@ is(
 			alias => "hamster",
 			from => [{
 				name => "hamster",
-				modifier => '!'
+				modifier => '?'
 			}],
-			modifier => '!'
+			modifier => '?'
 		},
 		{
 			alias => "pet",
@@ -259,6 +259,14 @@ is(
 				{ name => "gerbil" },
 			],
 			modifier => '*'
+		},
+		{
+			alias => "mouse",
+			from => [{
+				name => "mouse",
+				modifier => '*?'
+			}],
+			modifier => '*?'
 		}
 	]
 );

@@ -83,19 +83,23 @@ sub parse {
 				name => $name
 			);
 
-			@{$ac{args}} = ();
+			my @args = ();
 
-			if(my ($mod) = take(MODIFIER)) {
-				$ac{modifier} = $mod;
+			while(my ($mod) = take(MODIFIER)) {
+				$ac{modifier} .= $mod;
 			}
 
 			while(take(HASH)) {
 				my ($arg) = take(WORD);
-				push(@{$ac{args}}, $arg);
+				push(@args, $arg);
 			}
 
 			if(my %pins = parsePins()) {
 				$ac{pins} = \%pins;
+			}
+
+			if(scalar @args > 0) {
+				@{$ac{args}} = @args;
 			}
 
 			%ac
@@ -206,7 +210,7 @@ sub tokenize {
 		or (/^(\|)/ and emit(OR, $1))
 		or (/^(\+)/ and emit(PLUS, $1))
 		or (/^(\&)/ and emit(AND, $1))
-		or (/^(\!|\*)/ and emit(MODIFIER, $1))
+		or (/^(\!|\*|\?)/ and emit(MODIFIER, $1))
 		or (/^(\#)/ and emit(HASH, $1))
 	}
 
