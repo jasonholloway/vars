@@ -1,0 +1,10 @@
+
+#++++++++++ val
+bull: Brian¦Edward¦Gareth
+
+
+#++++++++++++++++
+# in: farmer bull cow?
+# out: calf
+echo "Cuthbert"
+
