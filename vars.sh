@@ -538,8 +538,7 @@ parseCache() {
             && echo cleared local outline cache!
         } \
         || {
-          rm -f $cacheDir/blocks/* \
-            && rm -f $cacheDir/data/* \
+          find $cacheDir -type f -delete \
             && echo cleared cache!
         })
     ) \
