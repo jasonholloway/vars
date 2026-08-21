@@ -103,8 +103,8 @@ loadFiles() {
 
 loadFile() {
   local fid bid hash cacheFile line i
-  local -A acBlocks
-  local -a acOutlines
+  local -A acBlocks=()
+  local -a acOutlines=()
 
   fid=$1
 
@@ -123,7 +123,7 @@ loadFile() {
     } <"$cacheFile"
   fi
 
-  if [[ ! -v "acOutlines[@]" || ! -v "acBlocks[@]" ]]; then
+  if [[ ! ${!acOutlines[@]} ]]; then
       {
         local block
         local i=0

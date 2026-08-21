@@ -43,10 +43,9 @@ readBlock() {
       if [[ -e $macroFile ]]; then
           block="$(awk -f "$macroFile" <<<"$block")"
 
-          # {
-          #   echo "EXPANDED ${macroFile}:"
-          #   echo "$block"
-          # } >&2
+          if [[ $VARS_DEBUG ]]; then
+              echo -e "EXPANDED ${macroFile}:\n{$block}" >&2
+          fi
       fi
   fi
 
