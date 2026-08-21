@@ -71,9 +71,11 @@ sub evalExp {
     if($+{pin}) {
         say "pin $alias $+{val}";
     }
-    
-    @vs = $+{val};
-    putVar($x, $alias, \@vs, "picked");
+
+    if($+{val} && ($+{val} !~ /^ *$/)) {
+        @vs = $+{val};
+        putVar($x, $alias, \@vs, "picked");
+    }
   }
   else {
     putVar($x, $alias, \@vs, $bid);
@@ -340,7 +342,9 @@ sub askVar {
         say "pin $vn $+{val}"
     }
 
-    addVar($x, $vn, [ $+{val} ], 'asked');
+    if($+{val} && ($+{val} !~ /^ *$/)) {
+        addVar($x, $vn, [ $+{val} ], 'asked');
+    }
 }
 
 sub readInputs {
