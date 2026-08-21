@@ -13,9 +13,9 @@ rat
 
 
 #+
-# in: rodent*:hamster|rat
-for r in ${rodent[@]}; do echo "hello, $r"; done
-
+# in: rodent*:hamster+rat
+# out: multiSqueak
+for r in "${rodent[@]}"; do echo "hello, $r"; done
 
 
 #+ val

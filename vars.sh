@@ -535,7 +535,8 @@ parseCache() {
         && ({
           parse1 '^last$' \
             && rm -f "./.outlines" \
-            && echo cleared local outline cache!
+            && find $cacheDir -type f -a \( -name 'O-*' -o -name 'F-*' \) -delete \
+            && echo cleared files and outlines!
         } \
         || {
           find $cacheDir -type f -delete \
