@@ -25,8 +25,6 @@ main() {
 				closeSinks) closeSinks $rest;;
 				dump) dump $rest;;
     esac
-
-    say "@YIELD"
   done
 }
 
@@ -93,6 +91,7 @@ peek() {
 				done
 
 				say
+				say "@YIELD"
 				return
 			fi
 		} <"$cacheFile"
@@ -112,6 +111,8 @@ EOF
 
 	say "miss"
 	say "$token"
+
+	say "@YIELD"
 }
 
 put() {
@@ -150,11 +151,14 @@ put() {
 			} >"$cacheFile"
 		} <<<"$stashed"
 	fi
+
+	say "@YIELD"
 }
 
 release() {
 	local token="$1"
 	unset stash["$token"]
+	say "@YIELD"
 
 	#todo delete tmp file
 }
@@ -193,6 +197,7 @@ openSinks() {
 			echo "SINK $name $fn $sinkFile"
 
 			say "$sinkFile"
+			say "@YIELD"
 		done
 	)
 }
@@ -212,7 +217,7 @@ closeSinks() {
 								lastMod=$(stat --format=%Y "$sinkFile")
 								say "$name file;$fn;$lastMod"
 							else
-								echo "nothing written to data sink $sinkFile!" >&2
+								echo "Nothing written to data sink $sinkFile for $name!" >&2
 							fi
 							;;
 			esac
@@ -221,38 +226,8 @@ closeSinks() {
 		say
 	} <<< "${stash[$token]}"
 
-
-
-	# {
-	# 	stash[$token]=$(
-	# 		while read line; do
-	# 			case "$line" in
-	# 					"SINK "*)
-	# 							read _ name fn sinkFile <<< "$line"
-
-	# 							if [[ -e "$sinkFile" ]]; then
-	# 								stash[$token]+=$'\n'"STAGEDFILE $fn $sinkFile"
-	# 								lastMod=$(stat --format=%Y "$sinkFile")
-	# 								say "$name file;$fn;$lastMod"
-	# 							else
-	# 								echo "nothing written to data sink $sinkFile!" >&2
-	# 							fi
-	# 							;;
-	# 					*)
-	# 							echo "$line"
-	# 							;;
-				
-	# 			esac
-	# 		done
-	# 	)
-
-	# 	say
-	# } <<< "${stash[$token]}"
+	say "@YIELD"
 }
-
-
-
-
 
 # # todo below should take name hint
 # # and not have anything to do with hashing etc

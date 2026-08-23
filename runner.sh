@@ -33,12 +33,12 @@ run() {
 		IFS=$FS read -r bid _ _ rawOuts blockFlags <<< "$*"
 
 		while hear type line; do
-				case $type in
-						arg) args+=("$line");;
-						flags) runFlags=$line;;
-						val) vals+=("$line");;
-						go) break;
-				esac
+					case $type in
+							arg) args+=("$line");;
+							flags) runFlags=$line;;
+							val) vals+=("$line");;
+							go) break;
+					esac
 		done
 
 		# TODO
@@ -52,11 +52,18 @@ run() {
 		# and then we run the block
 		# and then we confirm that we have finished with each of them by name
 		# which allows us to bind them
-		        
+		
 		local -a outs
 		outs=($rawOuts)
 		out0=${outs[0]}
 		# echo "OUT: $rawOuts" >&2
+
+		local -A dataOuts=()
+		for o in "${outs[@]}"; do
+					if [[ "$o" =~ ^data#(.*)$ ]]; then
+							dataOuts[$o]="${BASH_REMATCH[1]}"
+					fi
+		done
 
 		cacheToken=
 
@@ -68,7 +75,7 @@ run() {
 						say "peek"
 						say "$bid"
 						for val in "${args[@]}" "${vals[@]}"; do
-								if [[ ! $val =~ ^_ ]]; then say "$val"; fi
+									if [[ ! $val =~ ^_ ]]; then say "$val"; fi
 						done
 						say
 						say "@YIELD"
@@ -81,19 +88,27 @@ run() {
 										while hear line && [[ ! -z "$line" ]]; do
 													echo "$line"
 										done
+
+										# no more comms with cache needed
+										say "@END"
 										;;
 								miss)
 										hear cacheToken
 
-										#todo openSinks here
-										#
-										#
-										#
+										say "openSinks $cacheToken"
 
-										
+										for d in "${!dataOuts[@]}"; do
+													read name _ <<< "${dataOuts[$d]}"
+													say "$name"
+													say "@YIELD"
+
+													hear sink
+													dataOuts["$d"]="$name $sink"
+										done
+
+										say
 										;;
 						esac
-						say "@END" #do I need to end this here? I think not... it will be resumed after the file stuff
 				fi
 
 				if [[ $runIt ]]; then
@@ -114,36 +129,41 @@ run() {
 
 										local argI=0
 										for arg in "${args[@]}"; do
-												pres+=("ARG${argI}='$arg';")
-												argI=$((argI + 1))
+													pres+=("ARG${argI}='$arg';")
+													argI=$((argI + 1))
 										done
 
 										for val in "${vals[@]}"; do
-												read -r vn v <<< "$val"
-												decode v v
+													read -r vn v <<< "$val"
+													decode v v
 
-												v="${v//\'/\'\\\'\'}"
+													v="${v//\'/\'\\\'\'}"
 
-												pres+=("$vn+=('$v');")
+													pres+=("$vn+=('$v');")
+										done
+
+										for d in "${dataOuts[@]}"; do
+													read name sink _ <<< "$d"
+													pres+=("DATA_${name//./_}=${sink}");
 										done
 
 										eval "
-												[[ \$VARS_DEBUG ]] && set -x
+												[[ \$VARS_DEBUG > 1 ]] && set -x
 												${pres[*]}
 												set -e
 												$body
 												" <"$pts" \
-										|| echo "@fail"
+													|| echo "@fail"
 								)
 						} \
-						| {
-								  if [[ ! -z $cacheToken ]]; then
-											local -a buff=()
-											local cacheFor
-											local cacheTill=0
-											local failed
+								| {
+								if [[ ! -z $cacheToken ]]; then
+										local -a buff=()
+										local cacheFor
+										local cacheTill=0
+										local failed
 
-											while read -r line; do
+										while read -r line; do
 													case "$line" in
 															"@cacheTill "*)
 																	read -r _ cacheTill _ <<<"$line"
@@ -164,136 +184,149 @@ run() {
 																	echo "$line"
 																	;;
 													esac
-											done
+										done
 
-											#todo need to intercept binds to populate files here?
-											#the line buffer should be used
+										#todo need to intercept binds to populate files here?
+										#the line buffer should be used
 
-											if [[ ! $failed ]]; then
-												say "@ASK cache"
+										if [[ ! $failed ]]; then
+												local -a boundData=()
+
+												say "closeSinks $cacheToken"
+												say "@YIELD"
+												while hear name spec && [[ ! -z $name ]]; do
+															line="@bind data#${name} ${spec}"
+															buff+=("$line")
+															boundData+=("$line")
+												done
+
 												say "put $cacheToken"
-
 												say "OUT"
 												for line in "${buff[@]}"; do
 															say "$line"
 															echo "$line"
 												done
 												say
+										fi
 
-												say "@END"
-											fi
-									else
-											while read -r line; do
-														case "$line" in
-																"@cache"*) ;;
-																*) echo "$line";;
-														esac
-											done
-									fi
-							}
+										say "@END"
+
+										# must be echoed after cache conversation
+										for line in "${boundData[@]}"; do
+													echo "$line"
+										done
+								else
+										while read -r line; do
+													case "$line" in
+															"@cache"*) ;;
+															*) echo "$line";;
+													esac
+										done
+								fi
+						}
 				fi
 		} \
-		| {
+				| {
 				local -A bound=()
 				local -a lines=()
 				local failed
 
 				while read -r line; do
-						case "$line" in
-								@bind[[:space:]][[:word:]]*)
-										read -r _ vn v <<< "$line"
-										say bind "$vn" "$v"
-										bound[$vn]=1
-								;;
+							case "$line" in
+									@bind[[:space:]][[:word:]]*)
+											read -r _ vn v <<< "$line"
+											say bind "$vn" "$v"
+											bound[$vn]=1
+											;;
 
-								@bindHeredoc[[:space:]][[:word:]]*)
-										read -r _ vn _ <<< "$line"
-										say bindHeredoc "$vn"
-										bound[$vn]=1
+									@bindHeredoc[[:space:]][[:word:]]*)
+											read -r _ vn _ <<< "$line"
+											say bindHeredoc "$vn"
+											bound[$vn]=1
 
-										while read -r l; do
-											if [[ $l =~ ^EOF ]];
-												then break;
-												else say "$l";
-											fi
-										done
+											while read -r l; do
+														if [[ $l =~ ^EOF ]];
+														then break;
+														else say "$l";
+														fi
+											done
 
-										say "EOF"
-								;;
+											say "EOF"
+											;;
 
-								@out*)
-										read -r _  v <<< "$line"
-										say out "$v"
-								;;
+									@out*)
+											read -r _  v <<< "$line"
+											say out "$v"
+											;;
 
-								@fail)
-										failed=1
-								;;
+									@fail)
+											failed=1
+											;;
 
-								+([[:word:]])=*)
-										vn="${line%%=*}"
-										v="${line#*=}"
-										say bind "$vn" "$v"
-										bound[$vn]=1
-								;;
+									+([[:word:]])=*)
+											vn="${line%%=*}"
+											v="${line#*=}"
+											say bind "$vn" "$v"
+											bound[$vn]=1
+											;;
 
-								*)
-										lines+=("$line")
-								;;
-						esac
-				done
+									*)
+											lines+=("$line")
+											;;
+									esac
+							done
 
-				# so we need to know the capturing scheme up front - ie, do we need to capture output lines for file purposes?
-				# well, if we know we're capturing into a file, then we should be able to stream directly into the cache
-				#
-				# if the first output is a data output (possibly with a flag on it as well?
-				# then all encountered outputs are sent to the cache directly 
-				# well they're not even written to the cache, they're to be written into the file mechanism
-				#
-				#
+		# so we need to know the capturing scheme up front - ie, do we need to capture output lines for file purposes?
+		# well, if we know we're capturing into a file, then we should be able to stream directly into the cache
+		#
+		# if the first output is a data output (possibly with a flag on it as well?
+		# then all encountered outputs are sent to the cache directly 
+		# well they're not even written to the cache, they're to be written into the file mechanism
+		#
+		#
 
-				if [[ $failed ]]; then
-						IFS=$'\36'; say fail "${lines[*]}"
+		if [[ $failed ]]; then
+				IFS=$'\36'; say fail "${lines[*]}"
 
-				elif [[ ! -z $out0 && -z ${bound[$out0]} ]]; then
+		elif [[ ! -z $out0 && -z ${bound[$out0]} ]]; then
 
-						# if [[ $out0 =~ ^data#(.+) ]]; then
-						# 		name=${BASH_REMATCH[1]}
+				# if [[ $out0 =~ ^data#(.+) ]]; then
+				# 		name=${BASH_REMATCH[1]}
 
-						# 		say "@ASK cache"
-						# 		say "putData"
-						# 		say "$name"
-						# 		for val in "${args[@]}" "${vals[@]}"; do say "$val"; done
-						# 		say
+				# 		say "@ASK cache"
+				# 		say "putData"
+				# 		say "$name"
+				# 		for val in "${args[@]}" "${vals[@]}"; do say "$val"; done
+				# 		say
 
-						# 		say newFile
-						# 		say "@YIELD"
+				# 		say newFile
+				# 		say "@YIELD"
 
-						# 		hear file
+				# 		hear file
 
-						# 		for line in "${lines[@]}"; do
-						# 				echo "$line" >> "$file"
-						# 		done
-						# 		say
+				# 		for line in "${lines[@]}"; do
+				# 				echo "$line" >> "$file"
+				# 		done
+				# 		say
 
-						# 		say fin
-						# 		say "@YIELD"
+				# 		say fin
+				# 		say "@YIELD"
 
-						# 		hear spec
+				# 		hear spec
 
-						# 		say "@END"
+				# 		say "@END"
 
-						# 		say bind "$out0" "$spec"
+				# 		say bind "$out0" "$spec"
 
-						# else
+				# else
 
-						    #nb we 'encode' with \36; but if we wanted to communicate choice of vals instead, we'd use \31
-						    #there should be some kind of marker on the out var to choose between behaviours
-								IFS=$'\36'; say bind "$out0" "${lines[*]}"
+				#nb we 'encode' with \36; but if we wanted to communicate choice of vals instead, we'd use \31
+				#there should be some kind of marker on the out var to choose between behaviours
+				IFS=$'\36'; say bind "$out0" "${lines[*]}"
 
-						# fi
-				fi
-		}
+				# fi
+		fi
+}
 
 		say fin
 }
