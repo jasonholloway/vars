@@ -267,8 +267,7 @@ list() {
   findOutlines outlines
 
   for outline in ${outlines[@]}; do
-      
-      local IFS=$FS; read -r bid names ins outs <<<"$outline"
+      local IFS=$FS; read -r bid names ins outs _ <<<"$outline"
 
       local IFS=$','
       for name in $names; do
@@ -280,9 +279,12 @@ list() {
           echo "I;${inp%\*};$bid"
       done
 
-      for out in $outs; do
-          echo "O;${out%\*};$bid"
-      done
+      {
+          IFS=' '
+          for out in $outs; do
+              echo "O;${out%\*};$bid"
+          done
+      }
   done
 }
 
@@ -426,10 +428,10 @@ parseLs() {
 
       {
         parse1 '^(b|bl|block|blocks)' \
-          && cmds+=("| filterList B")
+          && cmds+=("| filterList B | uniq")
       } || {
         parse1 '^(o|out|outs)' \
-          && cmds+=("| filterList O")
+          && cmds+=("| filterList O | uniq")
       }
       # } || {
       #   parse1 '^(i|in|ins)' \
