@@ -94,7 +94,8 @@ dispatch() {
 run() {
   local fids outlines type line currentBlock
 
-  if [[ -e .outlines ]]; then
+  # if [[ -e .outlines ]]; then
+  if false; then
       outlines=$(cat .outlines)
   else
     say "@ASK files"
@@ -537,7 +538,7 @@ parseCache() {
         && ({
           parse1 '^last$' \
             && rm -f "./.outlines" \
-            && find $cacheDir -type f -a \( -name 'O-*' -o -name 'F-*' \) -delete \
+            && find $cacheDir -type f -a \( -name 'O-*' \) -delete \
             && echo cleared files and outlines!
         } \
         || {
