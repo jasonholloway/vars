@@ -58,6 +58,11 @@ run() {
 		out0=${outs[0]}
 		# echo "OUT: $rawOuts" >&2
 
+		local varFromOut dataFromOut
+		if [[ ${#outs[@]} == 1 ]]; then
+				varFromOut=${outs[0]}
+		fi
+
 		local -A dataOuts=()
 		for o in "${outs[@]}"; do
 					if [[ "$o" =~ ^data#(.*)$ ]]; then
@@ -104,6 +109,10 @@ run() {
 
 													hear sink
 													dataOuts["$d"]="$name $sink"
+
+													if [[ $d == $varFromOut ]]; then
+															dataFromOut="$sink"
+													fi
 										done
 
 										say
@@ -180,14 +189,17 @@ run() {
 																	;;
 
 															*)
-																	buff+=("$line")
-																	echo "$line"
+																	if [[ $dataFromOut ]]; then
+																			echo "$line" >>$dataFromOut
+																	else
+																			#unsure if we always want to both buffer and echo the line below?
+																			#does it depend on whether we're doing varFromOut???
+																			buff+=("$line")
+																			echo "$line"
+																	fi
 																	;;
 													esac
 										done
-
-										#todo need to intercept binds to populate files here?
-										#the line buffer should be used
 
 										if [[ ! $failed ]]; then
 												local -a boundData=()
@@ -264,26 +276,17 @@ run() {
 											;;
 
 									+([[:word:]])=*)
-											vn="${line%%=*}"
-											v="${line#*=}"
-											say bind "$vn" "$v"
-											bound[$vn]=1
-											;;
+		vn="${line%%=*}"
+		v="${line#*=}"
+		say bind "$vn" "$v"
+		bound[$vn]=1
+		;;
 
-									*)
-											lines+=("$line")
-											;;
-									esac
-							done
-
-		# so we need to know the capturing scheme up front - ie, do we need to capture output lines for file purposes?
-		# well, if we know we're capturing into a file, then we should be able to stream directly into the cache
-		#
-		# if the first output is a data output (possibly with a flag on it as well?
-		# then all encountered outputs are sent to the cache directly 
-		# well they're not even written to the cache, they're to be written into the file mechanism
-		#
-		#
+		*)
+				lines+=("$line")
+				;;
+		esac
+done
 
 		if [[ $failed ]]; then
 				IFS=$'\36'; say fail "${lines[*]}"
@@ -333,29 +336,3 @@ run() {
 
 main "$@"
 
-
-# DO WE REALLY WANT CONSISTENT HASHING OF DATA FILE NAME???  the file
-# path should sit in the normal cache till its expiry so each
-# generation of the file should have a different hash even if it has
-# exactly the same inputs
-#
-# almost like the cache header should be given to the *actual* cache
-# and not the virtual files system
-#
-# what we really want is for the name to be part of the path, but with
-# some kind of unique addition - an addition given to it by the actual
-# cache entry?
-#
-# but even the hash deduced by the cache should have some expiry or
-# ttl too
-#
-# every cacheing should return a unique name, formed by the cache
-# mechanism itself - the actual content would be up to the cache, but
-# it would be expected to be informative and consistent
-# eg ${vn}.${hash}.${expiry}.${fileNum}.data
-#
-# cacheing is of a block, rather than of a single variable, seemingly
-# the hash above encodes the block specs, the determinant source the
-# vn is just the split out portion of the cacheing relating to the file
-#
-# 

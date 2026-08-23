@@ -24,8 +24,6 @@ EOF
 # in: dog
 # out: data#dogstats.txt
 # cache
-echo woof > $DATA_dogstats_txt
-
 cat <<EOF
 Some $dog stuff
 right here
