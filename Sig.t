@@ -319,4 +319,25 @@ is(
 	"parse args"
 );
 
+is(
+	Sig::parse("<brian:lion >neil:seal"),
+	[
+		{
+			alias => "brian",
+			premod => "<",
+			from => [{
+				name => "lion"
+			}]
+		},
+		{
+			alias => "neil",
+			premod => ">",
+			from => [{
+				name => "seal"
+			}]
+		}
+	],
+	"parse args"
+);
+
 done_testing;

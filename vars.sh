@@ -283,6 +283,7 @@ list() {
       {
           IFS=' '
           for out in $outs; do
+              out="${out//>/}"
               echo "O;${out%\*};$bid"
           done
       }

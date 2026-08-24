@@ -5,8 +5,8 @@ source "${VARS_PATH:-.}/common.sh"
 
 pts=${1:?need to pass pts}
 
-outFile="$HOME/.vars/out"
 cacheDir="$HOME/.vars/cache"
+dataDir="$cacheDir/data"
 
 main() {
   local type block
@@ -40,21 +40,10 @@ run() {
 							go) break;
 					esac
 		done
-
-		# TODO
-		# for all data out vars, we need to summon sink files from the cache
-		# and inject the locations of these into the block
-		#
-		# the cache therefore needs asynchronous confirmation that each
-		# file has been written to, before it will yield back file specs to be bound
-		#
-		# so before running, we summon data sinks
-		# and then we run the block
-		# and then we confirm that we have finished with each of them by name
-		# which allows us to bind them
 		
 		local -a outs
-		outs=($rawOuts)
+		outs=(${rawOuts//>/}) #erasing the premod here is a hack: means
+													#that > has no real effect, just looks nice
 		out0=${outs[0]}
 		# echo "OUT: $rawOuts" >&2
 
@@ -65,8 +54,10 @@ run() {
 
 		local -A dataOuts=()
 		for o in "${outs[@]}"; do
-					if [[ "$o" =~ ^data#(.*)$ ]]; then
-							dataOuts[$o]="${BASH_REMATCH[1]}"
+					if [[ "$o" =~ \. ]]; then
+							o=${o//>/}
+							dataOuts[${o}]="${o}"
+							# dataOuts[$o]="${BASH_REMATCH[1]}"
 					fi
 		done
 
@@ -148,12 +139,20 @@ run() {
 
 													v="${v//\'/\'\\\'\'}"
 
+													if [[ $vn =~ \. ]]; then
+															vn=${vn//./_}
+
+															if [[ $v =~ ^file\;([^\;]+) ]]; then
+																	v="${BASH_REMATCH[1]@P}"
+															fi
+													fi
+
 													pres+=("$vn+=('$v');")
 										done
 
 										for d in "${dataOuts[@]}"; do
 													read name sink _ <<< "$d"
-													pres+=("DATA_${name//./_}=${sink}");
+													pres+=("${name//./_}=${sink}");
 										done
 
 										eval "
@@ -207,7 +206,7 @@ run() {
 												say "closeSinks $cacheToken"
 												say "@YIELD"
 												while hear name spec && [[ ! -z $name ]]; do
-															line="@bind data#${name} ${spec}"
+															line="@bind ${name} ${spec}"
 															buff+=("$line")
 															boundData+=("$line")
 												done
@@ -325,7 +324,7 @@ done
 
 				#nb we 'encode' with \36; but if we wanted to communicate choice of vals instead, we'd use \31
 				#there should be some kind of marker on the out var to choose between behaviours
-				IFS=$'\36'; say bind "$out0" "${lines[*]}"
+				IFS=$'\36'; say bind "${out0}" "${lines[*]}"
 
 				# fi
 		fi

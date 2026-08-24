@@ -15,6 +15,7 @@ use constant PLUS => 7;
 use constant AND => 8;
 use constant MODIFIER => 9;
 use constant HASH => 10;
+use constant PREMODIFIER => 11;
 
 sub parse {
 	my $raw = shift;
@@ -44,6 +45,8 @@ sub parse {
 	sub parseInp {
 		my %ac;
 
+		my ($premod) = take(PREMODIFIER);
+
 		if(my ($alias, $mod) = take(WORD, MODIFIER, COLON)) {
 			$ac{alias} = $alias;
 			$ac{from} = [parseSources()];
@@ -57,6 +60,10 @@ sub parse {
 			$ac{alias} = $source{name};
 			$ac{from} = [\%source];
 			$ac{modifier} = $source{modifier} if $source{modifier};
+		}
+
+		if($premod) {
+			$ac{premod} = $premod;
 		}
 
 		%ac
@@ -78,6 +85,7 @@ sub parse {
 	}
 
 	sub parseSource {
+
 		if(my ($name) = take(WORD)) {
 			my %ac = (
 				name => $name
@@ -212,6 +220,7 @@ sub tokenize {
 		or (/^(\&)/ and emit(AND, $1))
 		or (/^(\!|\*|\?)/ and emit(MODIFIER, $1))
 		or (/^(\#)/ and emit(HASH, $1))
+		or (/^(\<|\>)/ and emit(PREMODIFIER, $1))
 	}
 
 	sub emit {

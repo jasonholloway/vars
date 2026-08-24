@@ -22,13 +22,19 @@ EOF
 
 #++++
 # in: dog
-# out: data#dogstats.txt
+# out: >dogstats.txt
 # cache
 cat <<EOF
 Some $dog stuff
 right here
 $(date)
 EOF
+
+#+++++++
+# in: <dogstats.txt
+# out: bestDog
+cat $dogstats_txt
+
 
 #+++++
 # out: blub

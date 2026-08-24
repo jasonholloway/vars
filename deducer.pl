@@ -424,7 +424,7 @@ sub readVar {
     my $raw = $_[0];
     my %v;
 
-    $raw =~ /(?<name>.+?)(?<postfix>[\*]?)$/;
+    $raw =~ />?(?<name>.+?)(?<postfix>[\*]?)$/;
     $v{name} = $+{name};
 
     if(!$+{postfix}) {
