@@ -123,7 +123,7 @@ loadFile() {
     } <"$cacheFile"
   fi
 
-  if [[ ! ${!acOutlines[@]} ]]; then
+  if [[ ! -v acOutlines[@] || ! -v acBlocks[@] ]]; then
       {
         local block
         local i=0
