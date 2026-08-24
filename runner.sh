@@ -191,10 +191,8 @@ run() {
 																	if [[ $dataFromOut ]]; then
 																			echo "$line" >>$dataFromOut
 																	else
-																			#unsure if we always want to both buffer and echo the line below?
-																			#does it depend on whether we're doing varFromOut???
+																			# always buffer given cache, as we need to replay this into cache...
 																			buff+=("$line")
-																			echo "$line"
 																	fi
 																	;;
 													esac
@@ -208,14 +206,13 @@ run() {
 												while hear name spec && [[ ! -z $name ]]; do
 															line="@bind ${name} ${spec}"
 															buff+=("$line")
-															boundData+=("$line")
+															# boundData+=("$line")
 												done
 
 												say "put $cacheToken"
 												say "OUT"
 												for line in "${buff[@]}"; do
 															say "$line"
-															echo "$line"
 												done
 												say
 										fi
@@ -223,9 +220,15 @@ run() {
 										say "@END"
 
 										# must be echoed after cache conversation
-										for line in "${boundData[@]}"; do
+										# live updates would require some special multiplex mechanism (a pipe maybe?)
+										for line in "${buff[@]}"; do
 													echo "$line"
 										done
+
+										# # must be echoed after cache conversation
+										# for line in "${boundData[@]}"; do
+										# 			echo "$line"
+										# done
 								else
 										while read -r line; do
 													case "$line" in

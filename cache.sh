@@ -36,8 +36,6 @@ dump() {
 peek() {
 	local key line hash cacheFile foundKey
 
-	# set -x
-
 	# header should be the block id, followed by input bindings
 	# but this is all opaque to us
 	key=$(
@@ -151,14 +149,11 @@ put() {
 			} >"$cacheFile"
 		} <<<"$stashed"
 	fi
-
-	say "@YIELD"
 }
 
 release() {
 	local token="$1"
 	unset stash["$token"]
-	say "@YIELD"
 
 	#todo delete tmp file
 }
@@ -228,52 +223,5 @@ closeSinks() {
 
 	say "@YIELD"
 }
-
-# # todo below should take name hint
-# # and not have anything to do with hashing etc
-# # (could take a cache token?)
-
-# putData() {
-# 	local line header hash cacheFile dataFile dataFileNum specs
-# 	local -a dataFiles=()
-# 	local -a specs=()
-
-# 	header=$(
-# 		while hear line && [[ ! -z $line ]]; do
-# 			echo "$line"
-# 		done
-# 	)
-
-# 	hash=$(sha1sum <<< "$header")
-# 	cacheFile="$dataDir/${hash%% *}"
-# 	dataFileNum=0
-
-# 	{
-# 		echo "$header" 
-
-# 		echo
-
-# 		while hear line && [[ $line != "fin" ]]; do
-# 			dataFile="${cacheFile}.${dataFileNum}.data"
-
-# 			say "$dataFile"
-# 			say "@YIELD"
-
-# 			hear
-
-# 			if [[ -e "$dataFile" ]]; then
-# 				echo "$dataFile"
-# 				lastMod=$(stat --format=%Y "$dataFile")
-# 				specs+=("file;$dataFile;$lastMod")
-# 			fi
-
-# 			fileNum=$((dataFileNum+1))
-# 		done
-# 	} >"$cacheFile"
-
-# 	echo HELLO >&2
-
-#   IFS=| say "${specs[*]}"
-# }
 
 main "$@"
