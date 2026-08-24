@@ -42,6 +42,6 @@ echo "isn't it grand, in't it though?"
 false
 
 #+++++
-# n: flub
+# out: flub
 # in: blub
 echo "$blub"

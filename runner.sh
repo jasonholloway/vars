@@ -161,7 +161,10 @@ run() {
 												set -e
 												$body
 												" <"$pts" \
-													|| echo "@fail"
+													|| {
+												     encode body body
+														 echo "@fail $body"
+													}
 								)
 						} \
 								| {
@@ -182,7 +185,7 @@ run() {
 																	cacheTill=$((now + cacheFor))
 																	;;
 
-															"@fail")
+															"@fail "*)
 																	failed=1
 																	echo "$line"
 																	;;
@@ -273,8 +276,16 @@ run() {
 											say out "$v"
 											;;
 
-									@fail)
+									@fail*)
 											failed=1
+
+											{
+													read _ body <<< "$line"
+													decode body body
+
+													echo "FAIL when running:"
+													echo "$body"
+											} >&2
 											;;
 
 									+([[:word:]])=*)

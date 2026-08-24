@@ -271,10 +271,6 @@ list() {
       local IFS=$FS; read -r bid names ins outs _ <<<"$outline"
 
       local IFS=$','
-      for name in $names; do
-          echo "B;$name;$bid"
-          echo "O;$name;$bid"
-      done
 
       for inp in $ins; do
           echo "I;${inp%\*};$bid"

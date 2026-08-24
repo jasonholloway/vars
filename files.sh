@@ -1,6 +1,9 @@
 #!/bin/bash 
 
 cacheDir="$HOME/.vars/cache"
+filesDir="$cacheDir/files"
+outlinesDir="$cacheDir/outlines"
+mkdir -p $filesDir $outlinesDir
 
 source "${VARS_PATH:-.}/common.sh"
 
@@ -30,14 +33,14 @@ getOutlines() {
   fids=$*
 
   hash=$(echo "$fids" | sha1sum)
-  cacheFile="$cacheDir/O-${hash%% *}"
+  cacheFile="${outlinesDir}/${hash%% *}"
 
   if [[ -e $cacheFile && ! $DISABLE_VARS_CACHE ]]; then
     {
       read -r allOutlines
       say "$allOutlines"
-      return
     } <"$cacheFile"
+    return
   fi
 
   local -a outlines=()
@@ -111,7 +114,7 @@ loadFile() {
   [[ -v "files[$fid]" ]] && return
 
   hash=$(echo "$fid" | sha1sum)
-  cacheFile="$cacheDir/F-${hash%% *}"
+  cacheFile="${filesDir}/${hash%% *}"
   
   if [[ -e $cacheFile && ! $DISABLE_VARS_CACHE ]]; then
     {
@@ -123,7 +126,7 @@ loadFile() {
     } <"$cacheFile"
   fi
 
-  if [[ ! -v acOutlines[@] || ! -v acBlocks[@] ]]; then
+  if [[ ${#acOutlines[@]} == 0 || ${#acBlocks[@]} == 0 ]]; then
       {
         local block
         local i=0
@@ -159,10 +162,12 @@ loadFile() {
           i=$((i+1))
         done
 
-        {
-            echo "${acOutlines[*]@A}"
-            [[ ! $fid =~ .gpg ]] && echo "${acBlocks[*]@A}"
-        } >"$cacheFile"
+        if [[ ! -e $cacheFile ]]; then
+          {
+              echo "${acOutlines[*]@A}"
+              [[ ! $fid =~ .gpg ]] && echo "${acBlocks[*]@A}"
+          } >"$cacheFile"
+        fi
 
       } < <(
           getRawFile "$fid" |
