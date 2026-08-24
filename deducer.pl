@@ -17,24 +17,12 @@ sub main {
     while (my $line = hear()) {
         given($line) {
             when("deduce") {
-                my %x = readInputs();
-                $x{scopes} = [ {} ];
-                $x{pins} = readUserPins();
+                my ($x, $targets) = readInputs();
+                $x->{scopes} = [ {} ];
+                $x->{pins} = readUserPins();
 
-                # if($ENV{VARS_DEBUG}) {
-                #     lg(Dumper(\%x));
-                # }
-
-                foreach my $target (keys %{$x{targets}}) {
-                    evalExp(\%x,
-                            {
-                                alias => $target,
-                                from => [{
-                                    name => $target,
-                                    args => []
-                                }]
-                            },
-                            "ROOT");
+                foreach my $target (@$targets) {
+                    evalExp($x, $target, "ROOT");
                 }
 
                 say 'fin';
@@ -364,32 +352,14 @@ sub readInputs {
         }
     }
 
-    my %targets;
-    foreach my $tn (hearWords()) {
-        $targets{$tn} = 1;
-    }
-
-    # foreach my $targetName (hearWords()) {
-    #     if(exists $blocks->{$targetName}) {
-    #         $targets{$targetName} = 1;
-    #     }
-    #     elsif(exists $blocksByName{$targetName}) {
-    #         my $bid = $blocksByName{$targetName}{bid};
-    #         $targets{$bid} = 1;
-    #     }
-    #     elsif(exists $supplying{$targetName}) {
-    #         foreach my $bid (@{$supplying{$targetName}}) {
-    #             $targets{$bid} = 1;
-    #         }
-    #     }
-    # }
-    
-    (
+    my $targets = Sig::parse(hearWords());
+    my %x = (
         blocks => $blocks,
-        targets => { %targets },
         flags => [ hearWords() ],
         supplying => { %supplying },
-    );
+       );
+
+    (\%x, $targets)
 }
 
 sub readBlocks {
