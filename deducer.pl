@@ -66,7 +66,7 @@ sub evalExp {
     }
   }
   else {
-    putVar($x, $alias, \@vs, $bid);
+    putVar($x, $alias, \@vs, $bid =~ 'ROOT' ? $bid : 0); #this is to opt out of emitting
   }
 
   ($alias, \@vs)
@@ -288,7 +288,9 @@ sub putVar {
     @{$v->{vals}} = @{$vals};
     $v->{source} = $source; # todo should be source per val
 
-    emitBound($vn, $vals, $source);
+    if($source) {
+        emitBound($vn, $vals, $source);
+    }
 
     $v;
 }
