@@ -166,29 +166,25 @@
     export sqlPass
     export query
 
-    docker run -it \
-        --network=host \
-        -e sqlServer \
-        -e sqlDb \
-        -e sqlUser \
-        -e sqlPass \
-        -e authMode=$([[ $sqlUser =~ '@' ]] && echo "-G " || echo "") \
-        -e query \
-        sqlcmd \
-        /bin/sh -c '
-            sqlcmd \
-                -S "$sqlServer" \
-                $authMode \
-                -U "$sqlUser" -P "$sqlPass" \
-                -C -K ReadOnly \
-                -d "$sqlDb" \
-                -h -1 \
-                -Q "
-                    SET NOCOUNT ON;
-                    ${query}"
-        ' |
-    sed $'s/\r$//' |
-    while read -r line; do
+    authMode=$([[ $sqlUser =~ '@' ]] && echo "-G " || echo "")
+
+    {
+      set -e
+      set -o pipefail
+
+      sqlcmd \
+          -S "$sqlServer" \
+          $authMode \
+          -U "$sqlUser" -P "$sqlPass" \
+          -C -K ReadOnly \
+          -d "$sqlDb" \
+          -r1 -b \
+          -h -1 \
+          -Q "
+              SET NOCOUNT ON;
+              ${query}" || { echo SQL ERROR! >&2 && exit 1; } } |
+        sed $'s/\r$//' |
+        while read -r line; do
         case "$line" in
             "Sqlcmd:"*) {
                 echo "$line"
