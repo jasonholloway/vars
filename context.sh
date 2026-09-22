@@ -1,5 +1,8 @@
 #!/bin/bash
 
+colNormal='\033[0m'
+colDim='\e[38;5;240m'
+
 userDir=$HOME/.vars
 outFile=$userDir/current/out
 contextFile=$userDir/current/context
@@ -112,12 +115,25 @@ listContexts() {
     sort -k2 -r |
     while read name age
     do
-      if [[ $userDir/contexts/$name -ef $userDir/current ]]
+      path=$userDir/contexts/$name
+
+      if [[ $path -ef $userDir/current ]]
       then
         name="${name} ***"
       fi
 
-      echo -e "${name}\t${age}"
+      declare -a vars=()
+
+      for f in $path/pinned/*; do
+        n=$(basename $f)
+
+        if [[ ! $n =~ ^adUser|_.*$ ]]; then
+          v=$(base64 -d $f)
+          vars+=("$n=$v")
+        fi
+      done
+
+      echo -e "${name}\t${age}\t${colDim}${vars[*]}${colNormal}"
     done |
     column -t --table-columns NAME,LAST_ACCESS -s $'\t'
 }
