@@ -4,7 +4,9 @@ use warnings;
 use Data::Dumper;
 use MIME::Base64 qw(decode_base64);
 use List::Util qw(uniq);
+use POSIX ":sys_wait_h";
 use 5.034;
+use feature 'try';
 no warnings 'experimental';
 no warnings 'deprecated';
 
@@ -14,8 +16,8 @@ use Sig;
 $|++;
 
 my @forks=();
-my $forked = 0;
 my @forkAssignments=();
+my $forked=0;
 
 sub main {
     while (my $line = hear()) {
@@ -26,13 +28,21 @@ sub main {
                 $x->{pins} = readUserPins();
                 $x->{path} = [];
 
-                foreach my $target (@$targets) {
-                    evalExp($x, $target, "ROOT");
+                try {
+                    foreach my $target (@$targets) {
+                        evalExp($x, $target, "ROOT");
+                    }
                 }
-
-                foreach(@forks) {
-                    kill CONT => $_->{pid};
-                    waitpid($_->{pid}, 0);
+                catch($e) {
+                    if($e =~ /^FORKED .*/) {
+                        foreach(@forks) {
+                            kill CONT => $_->{pid};
+                            waitpid($_->{pid}, 0);
+                        }
+                    }
+                    else {
+                        die $_;
+                    }
                 }
 
                 if($forked) {
@@ -144,15 +154,17 @@ sub evalBlock {
     my $bid = shift;
     my $block = $x->{blocks}{$bid};
 
-    if(grep(/P/, @{$block->{flags}})) {
+    if (grep(/P/, @{$block->{flags}})) {
         say '@ASK files';
         say "pins $bid";
         say '@YIELD';
 
         my @blockPins;
 
-        while(my $vn = hear()) {
-            if($vn =~ /fin/) { last; }
+        while (my $vn = hear()) {
+            if ($vn =~ /fin/) {
+                last;
+            }
 
             my $val = hear();
             push(@blockPins, [ $vn, $val ]);
@@ -174,42 +186,38 @@ sub evalBlock {
         if (scalar(@$vs) > 1 && ($in->{modifier} // '') ne '*') {
             my $i = 0;
             my $v;
-            my $description;
 
             foreach (@$vs) {
                 $v = $_;
 
-                my @thisAssignment = (@forkAssignments, "${alias}=${v}");
-                my $thisDescription = join(" ", @thisAssignment);
+                my @assignments = (@forkAssignments, "${alias}=${v}");
+                my $description = join(" ", @assignments);
 
-                if (++$i != scalar(@$vs)) {
-                    my $child = fork;
+                my $child = fork;
 
-                    if ($child) {
-                        push(@forks, { pid => $child, description => $thisDescription });
-                    } else {
-                        $forked = 1;
-
-                        kill STOP => $$; 
-
-                        @forks=();
-                        @forkAssignments = @thisAssignment;
-                        $description = $thisDescription;
-                        last
-                    }
+                if ($child) {
+                    push(@forks, { pid => $child, description => $description });
                 }
                 else {
-                    @forkAssignments = @thisAssignment;
-                    $description = $thisDescription;
+                    kill STOP => $$; 
+
+                    @forks = ();
+                    @forkAssignments = @assignments;
+                    $forked = 1;
+
+                    $vs=[$v];
+                    putVar($x, $alias, $vs, "fork");
+
+                    lg("FORK ${description}");
+                    say "out ";
+                    say "out FORK ${description}";
+                    last
                 }
             }
 
-            $vs=[$v];
-            putVar($x, $alias, $vs, "fork");
-
-            lg("FORK ${description}");
-            say "out ";
-            say "out FORK ${description}";
+            if(scalar(@forks)) {
+                die "FORKED";
+            }
         }
 
         push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
