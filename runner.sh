@@ -43,7 +43,7 @@ run() {
 		
 		local -a outs
 		outs=(${rawOuts//>/}) #erasing the premod here is a hack: means
-													#that > has no real effect, just looks nice
+		#that > has no real effect, just looks nice
 		out0=${outs[0]}
 		# echo "OUT: $rawOuts" >&2
 
@@ -80,13 +80,12 @@ run() {
 
 						case "$line" in
 								hit)
+										say "@END"
+
 										runIt=
 										while hear line && [[ ! -z "$line" ]]; do
 													echo "$line"
 										done
-
-										# no more comms with cache needed
-										say "@END"
 										;;
 								miss)
 										hear cacheToken
