@@ -15,6 +15,7 @@ $|++;
 
 my @forks=();
 my $forked = 0;
+my @forkAssignments=();
 
 sub main {
     while (my $line = hear()) {
@@ -23,18 +24,19 @@ sub main {
                 my ($x, $targets) = readInputs();
                 $x->{scopes} = [ {} ];
                 $x->{pins} = readUserPins();
+                $x->{path} = [];
 
                 foreach my $target (@$targets) {
                     evalExp($x, $target, "ROOT");
                 }
 
-                if($forked) {
-                    exit 0;
+                foreach(@forks) {
+                    kill CONT => $_->{pid};
+                    waitpid($_->{pid}, 0);
                 }
 
-                foreach(@forks) {
-                    kill CONT => $_;
-                    waitpid($_, 0);
+                if($forked) {
+                    exit 0;
                 }
 
                 say 'fin';
@@ -167,33 +169,50 @@ sub evalBlock {
 
     foreach my $in (@{$block->{ins} or []}) {
 
-      my ($alias, $vs) = evalExp($x, $in, $bid);
+        my ($alias, $vs) = evalExp($x, $in, $bid);
 
-      if(scalar(@$vs) > 1 && ($in->{modifier} // '') ne '*') {
-          my $i = 0;
-          my $v;
+        if (scalar(@$vs) > 1 && ($in->{modifier} // '') ne '*') {
+            my $i = 0;
+            my $v;
+            my $description;
 
-          foreach(@$vs) {
-            $v = $_;
+            foreach (@$vs) {
+                $v = $_;
 
-            if($i++ > 0) {
-                my $child = fork;
+                my @thisAssignment = (@forkAssignments, "${alias}=${v}");
+                my $thisDescription = join(" ", @thisAssignment);
 
-                if($child) {
-                    push(@forks, $child);
+                if (++$i != scalar(@$vs)) {
+                    my $child = fork;
+
+                    if ($child) {
+                        push(@forks, { pid => $child, description => $thisDescription });
+                    } else {
+                        $forked = 1;
+
+                        kill STOP => $$; 
+
+                        @forks=();
+                        @forkAssignments = @thisAssignment;
+                        $description = $thisDescription;
+                        last
+                    }
                 }
                 else {
-                    $forked = 1;
-                    kill STOP => $$; 
-                    last
-                };
+                    @forkAssignments = @thisAssignment;
+                    $description = $thisDescription;
+                }
             }
-          }
 
-          $vs=[$v];
-      }
+            $vs=[$v];
+            putVar($x, $alias, $vs, "fork");
 
-      push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
+            lg("FORK ${description}");
+            say "out ";
+            say "out FORK ${description}";
+        }
+
+        push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
     }
 
     say '@ASK runner';
@@ -213,7 +232,7 @@ sub evalBlock {
         my $v = $boundIns{$vn};
 
         foreach my $val (@{$v->{vals}}) {
-           say "val $vn $val"
+            say "val $vn $val"
         }
     }
 
@@ -231,11 +250,11 @@ sub evalBlock {
     my @linesOut = ();
     my $singleOut;
 
-    if(scalar(@{$block->{outs}}) == 1) {
+    if (scalar(@{$block->{outs}}) == 1) {
         $singleOut = $block->{outs}[0]->{name};
     }
 
-    while(my $line = hear()) {
+    while (my $line = hear()) {
         given($line) {
             when(/^bind (?<vn>[^ ]+) (?<val>.+)/) {
                 # my $v = decode($+{val});
@@ -249,7 +268,7 @@ sub evalBlock {
             }
             when(/^set (?<name>[^ ]+) (?<val>.+)/) {
                 lg("SET $+{vn} to be $+{val}");
-    #           attrs[$n]="$v"
+                #           attrs[$n]="$v"
                 #...
             }
             when(/^fail (?<out>.*)/) {
