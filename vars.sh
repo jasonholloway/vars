@@ -491,7 +491,7 @@ parseContext() {
             parse1 '^(s|switch)$' \
             && {
               echo "Switch to context:"
-              newContext=$($ctx listContexts | fzy)
+              newContext=$($ctx listContexts | tail -n+2 | fzy | cut -w -f1)
               $ctx switchContext $newContext
             }
           } || {

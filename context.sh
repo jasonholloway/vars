@@ -108,18 +108,32 @@ current() {
 }
 
 listContexts() {
-  find $userDir/contexts -mindepth 1 -maxdepth 1 -type d -printf "%f\n"
+  find $userDir/contexts -mindepth 1 -maxdepth 1 -type d -printf '%f\t%AF %Ar\n' |
+    sort -k2 -r |
+    while read name age
+    do
+      if [[ $userDir/contexts/$name -ef $userDir/current ]]
+      then
+        name="${name} ***"
+      fi
+
+      echo -e "${name}\t${age}"
+    done |
+    column -t --table-columns NAME,LAST_ACCESS -s $'\t'
 }
 
 switchContext() {
   cd $userDir
 
-  name="$1"
-  path="contexts/$name"
+  name=${1%% *}
 
-  if [[ -d $path ]]; then
-    ln -sfv -T "$path" current \
-    && echo "$name" >currentName
+  if [[ ! -z $name ]]; then
+    path="contexts/$name"
+
+    if [[ -d $path ]]; then
+      ln -sfv -T "$path" current \
+      && echo "$name" >currentName
+    fi
   fi
 }
 
