@@ -13,6 +13,9 @@ use Sig;
 
 $|++;
 
+my @forks=();
+my $forked = 0;
+
 sub main {
     while (my $line = hear()) {
         given($line) {
@@ -23,6 +26,15 @@ sub main {
 
                 foreach my $target (@$targets) {
                     evalExp($x, $target, "ROOT");
+                }
+
+                if($forked) {
+                    exit 0;
+                }
+
+                foreach(@forks) {
+                    kill CONT => $_;
+                    waitpid($_, 0);
                 }
 
                 say 'fin';
@@ -54,16 +66,25 @@ sub evalExp {
   if(scalar(@vs) > 1 and $mod !~ /\*/) {
     say "pick $alias ¦".join('¦', @vs);
     say '@YIELD';
-    hear() =~ /^(?<val>.*?)(?<pin>\!?)$/;
-    
-    if($+{pin}) {
-        say "pin $alias $+{val}";
+
+    my $picked = hear();
+
+    if($picked eq "*") {
+        putVar($x, $alias, \@vs, 0);
+    }
+    else {
+        $picked =~ /^(?<val>.*?)(?<pin>\!?)$/;
+
+        if($+{pin}) {
+            say "pin $alias $+{val}";
+        }
+
+        if($+{val} && ($+{val} !~ /^ *$/)) {
+            @vs = $+{val};
+            putVar($x, $alias, \@vs, "picked");
+        }
     }
 
-    if($+{val} && ($+{val} !~ /^ *$/)) {
-        @vs = $+{val};
-        putVar($x, $alias, \@vs, "picked");
-    }
   }
   else {
     putVar($x, $alias, \@vs, $bid =~ 'ROOT' ? $bid : 0); #this is to opt out of emitting
@@ -145,7 +166,33 @@ sub evalBlock {
     my %boundIns;
 
     foreach my $in (@{$block->{ins} or []}) {
+
       my ($alias, $vs) = evalExp($x, $in, $bid);
+
+      if(scalar(@$vs) > 1 && ($in->{modifier} // '') ne '*') {
+          my $i = 0;
+          my $v;
+
+          foreach(@$vs) {
+            $v = $_;
+
+            if($i++ > 0) {
+                my $child = fork;
+
+                if($child) {
+                    push(@forks, $child);
+                }
+                else {
+                    $forked = 1;
+                    kill STOP => $$; 
+                    last
+                };
+            }
+          }
+
+          $vs=[$v];
+      }
+
       push(@{($boundIns{$alias} //= {})->{vals}}, @{$vs});
     }
 
@@ -166,7 +213,7 @@ sub evalBlock {
         my $v = $boundIns{$vn};
 
         foreach my $val (@{$v->{vals}}) {
-            say "val $vn $val"
+           say "val $vn $val"
         }
     }
 
